@@ -146,11 +146,24 @@ matches.
 
 ## Decompiled code
 
+39 of 842 game functions match (1.63% of the game code bytes; `tools/compare.py`). All of them
+are linked into `build/wf.exe` from source.
+
 | File | Contents | Status |
 |---|---|---|
-| `src/object.h` | `Object` (root class, vtable 0x451270) | `~Object` 0x401090 and scalar deleting dtor 0x401070 match |
-| `src/task.h`, `src/task.cpp` | `TaskBase : Object` (task tree, vtable 0x451544) | `~TaskBase` 0x402880 and scalar deleting dtor 0x402860 match |
-| `src/sprite.h`, `src/sprite.cpp` | `Sprite` with `TLVertex[4]` | `SetColor` 0x401000 matches |
+| `src/object.h`, `src/object.cpp` | `Object` (root class: name, log file) | ctor, OpenLog/Log/Warning/Error, dtors: all match |
+| `src/task_list.h`, `src/object.cpp`, `src/task_list_delete.cpp` | `Task`, `TaskList` (per-frame task list) | 7/7 match |
+| `src/node.h`, `src/task.h`, `src/task.cpp` | `Node` (transform tree), `TaskBase : Node` | 7/8 match (`Node::Node`: vptr store scheduling) |
+| `src/sprite.h`, `src/sprite.cpp` | `Sprite` with `TLVertex[4]` | `SetColor` matches |
+| `src/file.h`, `src/file.cpp`, `src/pack_file.cpp`, `src/pack.cpp` | `File` (stdio wrapper), `PackFile` (member of `data.bin`), archive directory | 18/20 match (`PackFile::Open`, `OpenPack` drafted) |
+
+Flags: the game uses `/O2` with its default `/Ob2`. `Object()` is inlined into
+`TaskList()`, and `Remove` into `RemoveUpTo`/`RemoveFrom`, which `/Ob1` would not do.
+`/G5` vs `/G6` has not been told apart by any function yet.
+
+Tools for decompiling:
+* `tools/disasm.py <addr|name|unit>`: disassembly with symbol, string and float annotations.
+* `tools/fdiff.py <addr|name>`: side-by-side diff of the compiled and the original function.
 
 Code style: explicit braces everywhere and the repo `.clang-format` (Google, left pointer
 alignment). Use structs and named fields instead of raw offsets, and recover classes with
