@@ -35,6 +35,8 @@ class HLSTxt : public HLSObject {
 
   // Copies `text` into the text buffer.
   void SetText(const char* text);  // 0x41ca50
+  // The size of the text in pixels, 0 x 0 without one.
+  void Measure(SIZE* size);  // 0x420480
   // Print `count` characters (all when negative) at (`x`, `y`) in `color`
   // or in the colors of `palette` (its first one for plain text).
   void Print(int x, int y, D3DCOLOR color, int count);           // 0x41ca70
