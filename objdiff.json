@@ -28,6 +28,11 @@
       "base_path": "build/obj/src/hl_sync.obj"
     },
     {
+      "name": "hl_window",
+      "target_path": "build/target/hl_window.obj",
+      "base_path": "build/obj/src/hl_window.obj"
+    },
+    {
       "name": "object",
       "target_path": "build/target/object.obj",
       "base_path": "build/obj/src/object.obj"

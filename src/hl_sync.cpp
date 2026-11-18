@@ -87,8 +87,8 @@ void HLSync::BltSkipFrame(HLSync* sync) {
 // 0x40c8e0
 void HLSync::SetMode(unsigned char mode) {
   Application* app = app_;
-  if (app->screen_flags & Application::kFullScreen) {
-    if (app->flags & Application::kPageFlip) {
+  if (app->graphics_flags & Application::kDirectDraw) {
+    if (app->flags & Application::kFullScreen) {
       switch (mode) {
         case kVSync:
           present_ = Flip;

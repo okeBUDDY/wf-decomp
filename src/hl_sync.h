@@ -12,7 +12,7 @@ struct Application;
 class HLSync : public Object {
  public:
   enum Mode {
-    kVSync,     // full screen with page flipping: flip
+    kVSync,     // full screen: flip
     kWait,      // wait for the timer, then present
     kNoWait,    // present at once
     kSkipDraw,  // present at once; frames are not drawn

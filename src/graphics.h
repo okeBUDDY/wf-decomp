@@ -16,6 +16,8 @@ class Graphics {
   // Copies the back buffer to the top left of the primary surface.
   void BltFast() { primary_->BltFast(0, 0, back_, NULL, DDBLTFAST_WAIT); }
   void Flip() { primary_->Flip(NULL, DDFLIP_WAIT); }
+  // Follows the window after it moved or was resized.
+  void UpdateWindowRect(HWND window);  // 0x405300
 
  private:
   char unknown_00_[0x1c];
