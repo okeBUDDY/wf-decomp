@@ -67,6 +67,7 @@ class HLSurface : public Object {
  private:
   friend class Graphics;
   friend class HL3D;
+  friend class HLSTxtSys;
 
   // Returns the FormatCode of `format`, 0 for an unknown one.
   short GetFormatCode(const DDPIXELFORMAT* format);  // 0x40b570

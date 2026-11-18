@@ -13,7 +13,11 @@ struct Application;
 class HLMesh;
 class HLSurface;
 
-struct Transform;
+// A 2D transform: x' = x * m[0][0] + y * m[1][0] + m[2][0], and the same
+// with column 1 for y'.
+struct Transform {
+  float m[3][4];
+};
 
 // A texture coordinate.
 struct TexCoord {
@@ -77,6 +81,11 @@ class HL3D : public System {
                     const D3DVECTOR* points, const TexCoord* coords,
                     D3DCOLOR color, int count);  // 0x409ed0
 
+  // Draws `count` transformed vertices.
+  void DrawPrimitive(D3DPRIMITIVETYPE type, D3DTLVERTEX* vertices, int count) {
+    device_->DrawPrimitive(type, D3DFVF_TLVERTEX, vertices, count, 0);
+  }
+
   void EndScene() {
     if (flags_ & kInScene) {
       device_->EndScene();
@@ -86,6 +95,7 @@ class HL3D : public System {
 
  private:
   friend class HLMesh;
+  friend class HLSTxtSys;
 
   // Creates the device `guid` (and its z-buffer) on the back buffer.
   // Returns 0, with the reason in g_text_buffer, when it cannot.

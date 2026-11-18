@@ -78,6 +78,11 @@
       "base_path": "build/obj/src/hls_pat.obj"
     },
     {
+      "name": "hls_txt",
+      "target_path": "build/target/hls_txt.obj",
+      "base_path": "build/obj/src/hls_txt.obj"
+    },
+    {
       "name": "object",
       "target_path": "build/target/object.obj",
       "base_path": "build/obj/src/object.obj"
