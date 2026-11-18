@@ -500,6 +500,38 @@ void Control32::RunProgramB0(Actor* actor, EnmList* program) {
   ++program->time;
 }
 
+// 0x412400
+void Control32::OnChildDestroyed(Actor* parent, Actor* child) {
+  if (child->team != 0x61) {
+    return;
+  }
+  Control32Work* work = reinterpret_cast<Control32Work*>(parent->work);
+  if (child == work->arms[0]) {
+    work->arms[0] = NULL;
+  } else if (child == work->arms[1]) {
+    work->arms[1] = NULL;
+  } else if (child == work->arms[2]) {
+    work->arms[2] = NULL;
+  } else if (child == work->arms[3]) {
+    work->arms[3] = NULL;
+  }
+  PartWork* part = reinterpret_cast<PartWork*>(parent->work);
+  short level = reinterpret_cast<PartWork*>(child->work)->level;
+  if ((level >= 6 || level * 100 / part->level >= 40) &&
+      (g_enm_param.state_.flags & 0x100)) {
+    // Knocked back, away from the lost part.
+    part->flags &= ~Control32Work::kDashing;
+    g_enm_param.list_9c_.Start(
+        0x10006, static_cast<short>(parent->AngleTo(child->screen.m[2][0],
+                                                    child->screen.m[2][1])) +
+                     0x200);
+  }
+  LinkedPartControl::OnChildDestroyed(parent, child);
+  if (part->level <= 1 && (g_enm_param.state_.step_mask & 0x40000)) {
+    g_enm_param.list_218_.Start(0x12, 0);
+  }
+}
+
 // 0x412750
 int Control32::OnMove(Actor* actor) {
   if (g_enm_param.list_9c_.op != 0) {
