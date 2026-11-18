@@ -41,6 +41,7 @@ class Section:
         self.flags = flags
         self.relocs = []  # (offset, symbol name, type)
         self.comdat = comdat  # selection number or None
+        self.comdat_name = None  # COMDAT symbol (emitted right after the section symbol)
         self.index = 0
 
 
@@ -113,6 +114,10 @@ class ObjectWriter:
                                       0, sec.comdat or 0)
                 index["$sec" + str(sec.index)] = nsym
                 nsym += 2
+                if sec.comdat_name:
+                    symtab += name_field(sec.comdat_name) + struct.pack("<IhHBB", 0, sec.index, 0, 2, 0)
+                    index[sec.comdat_name] = nsym
+                    nsym += 1
             else:
                 name, value, sec, cls, func = obj
                 secno = -1 if sec == -1 else sec.index

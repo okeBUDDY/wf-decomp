@@ -14,11 +14,11 @@ import json
 import os
 import sys
 
-from coffwriter import (IMAGE_REL_I386_DIR32, IMAGE_REL_I386_REL32, ObjectWriter, Section,
-                        section_flags)
+from coffwriter import (IMAGE_REL_I386_DIR32, IMAGE_REL_I386_REL32, SCN_LNK_COMDAT, ObjectWriter,
+                        Section, section_flags)
 from gensyms import read_symbols
 from splits import load_splits
-from wfcommon import BUILD, ORIG_EXE, PE
+from wfcommon import BUILD, CONFIG, ORIG_EXE, PE
 
 COMP_IDS = {"cpp": 0x600C05, "c": 0x5F0C05}  # Utc1310_CPP / Utc1310_C build 3077
 DEFAULT_DIRECTIVES = b'   /DEFAULTLIB:"LIBCMT" /DEFAULTLIB:"OLDNAMES" '
@@ -66,7 +66,33 @@ class Resolver:
         return f"abs_{t:08x}", None
 
 
-def build_blob(unit, pe, an, res, outdir):
+def load_comdats():
+    out = {}
+    p = os.path.join(CONFIG, "comdats.txt")
+    if os.path.exists(p):
+        for line in open(p):
+            line = line.split("#", 1)[0].split()
+            if line:
+                out[int(line[0], 16)] = (line[1], int(line[2], 16))
+    return out
+
+
+def pieces(unit, comdats):
+    """Split the unit's ranges so that each shared COMDAT constant is its own
+    section: yields (section, lo, hi, comdat_name_or_None)."""
+    for secname, lo, hi in unit.ranges:
+        cur = lo
+        for a in sorted(c for c in comdats if lo <= c < hi):
+            name, size = comdats[a]
+            if a > cur:
+                yield secname, cur, a, None
+            yield secname, a, a + size, name
+            cur = a + size
+        if cur < hi:
+            yield secname, cur, hi, None
+
+
+def build_blob(unit, pe, an, res, outdir, comdats):
     w = ObjectWriter()
     comp = unit.opts.get("comp", "cpp")
     w.absolute("@comp.id", COMP_IDS[comp])
@@ -77,12 +103,17 @@ def build_blob(unit, pe, an, res, outdir):
     relocs = an["relocs"]
     at_list = [r[0] for r in relocs]
     secs = []
-    for secname, lo, hi in unit.ranges:
+    for secname, lo, hi, comdat in pieces(unit, comdats):
         align = 1
         while align < 16 and lo % (align * 2) == 0:
             align *= 2
         if secname == ".bss":
             sec = Section(".bss", None, section_flags(".bss", align), size=hi - lo)
+        elif comdat:
+            sec = Section(secname, bytearray(pe.read(lo, hi - lo)),
+                          section_flags(secname, align) | SCN_LNK_COMDAT, comdat=2)
+            sec.comdat_name = comdat
+            w.defined[comdat] = True
         else:
             sec = Section(secname, bytearray(pe.read(lo, hi - lo)), section_flags(secname, align))
         w.add_section(sec)
@@ -117,13 +148,14 @@ def main():
     sp = load_splits()
     syms = read_symbols()
     res = Resolver(sp, syms)
+    comdats = load_comdats()
     outdir = os.path.join(BUILD, "blobs")
     os.makedirs(outdir, exist_ok=True)
     want = set(sys.argv[1:])
     units = [u for u in sp.units if not want or u.name in want]
     writers = []
     for u in units:
-        writers.append((u,) + build_blob(u, pe, an, res, outdir))
+        writers.append((u,) + build_blob(u, pe, an, res, outdir, comdats))
     # second pass: define symbols (named ones from symbols.txt + labels)
     for u, w, secs in writers:
         names = dict(res.labels.get(u.name, {}))

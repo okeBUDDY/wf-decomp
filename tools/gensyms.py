@@ -82,7 +82,15 @@ def main():
     if os.path.exists(libdata):
         for a, s in read_symbols(libdata).items():
             syms.setdefault(a, s)
+    cpath = os.path.join(CONFIG, "comdats.txt")
+    if os.path.exists(cpath):
+        for line in open(cpath):
+            f = line.split("#", 1)[0].split()
+            if f:
+                syms[int(f[0], 16)] = dict(name=f[1], size=int(f[2], 16), type="data")
     for a, s in syms.items():
+        if s["type"] == "data" and not s["name"].startswith("DAT_"):
+            continue
         if a in old and old[a]["type"] == s["type"]:
             s["name"] = old[a]["name"]
     write_symbols(syms)
