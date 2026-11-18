@@ -33,6 +33,14 @@ class cGlobal : public System {
   // Creates the record directory; returns 1.
   int InitRecords();   // 0x4186f0
   void ClearReplay();  // 0x418710
+  // Picks the replay to play next: the last record if it is one, else the
+  // first file in rec\ after replay_path (by name), wrapping around. Writes
+  // it to `path` and replay_path; 0 when there is none.
+  int NextReplay(char* path);  // 0x418720
+  // Keeps the replay just recorded (rec\temp.rec): as the boss's replay
+  // for the lone titles, and when `finished`, as the best (on a new high
+  // score) and the last one; then deletes it.
+  void SaveReplay(int finished);  // 0x418a00
 };
 
 extern cGlobal g_global;  // 0x467538

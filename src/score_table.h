@@ -52,6 +52,8 @@ class ScoreTable {
   void Import();  // 0x4217b0
   // Sets the score file path and the default rules.
   void Init(const char* path);  // 0x421990
+  // The rank of the last inserted score, -1 for none.
+  int rank() const { return rank_; }
 
  private:
   // The score file: kFileVersion, a FileHeader, then `count` records
