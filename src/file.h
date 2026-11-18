@@ -7,6 +7,7 @@
 
 class File {
  public:
+  File() : file_(NULL) {}
   enum Mode { kRead, kWrite, kAppend, kReadUpdate };
 
   // scalar deleting dtor 0x401f40
@@ -48,5 +49,10 @@ class PackFile : public File {
   long pos_;     // 0x0c
   long size_;    // 0x10
 };
+
+// Loads the data.bin directory; returns 0 on failure.
+int OpenPack(const char* path);  // 0x40dce0
+// Frees the directory.
+void ClosePack();  // 0x40dc80
 
 #endif  // WF_FILE_H_
