@@ -943,3 +943,13 @@ HLSAnm* HLSAnmSys::Play(AnmData* data) {
   }
   return NULL;
 }
+
+// 0x40fe30
+int LinkedPartControl::GetScore(Actor* actor) {
+  return reinterpret_cast<PartWork*>(actor->work)->slot->part->score;
+}
+
+// 0x40fe40
+int LinkedPartControl::GetHitPoints(Actor* actor) {
+  return reinterpret_cast<PartWork*>(actor->work)->slot->part->hit_points;
+}

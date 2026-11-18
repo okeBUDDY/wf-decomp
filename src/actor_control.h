@@ -19,8 +19,10 @@
 
 class Actor;
 struct ActorDesc;
+struct FloatRect;
 class HLSPatFile;
 struct EnmSlot;
+class EnmList;
 
 // Actor::work of the parts of the boss.
 struct PartWork {
@@ -283,6 +285,16 @@ class Control32 : public PartControl {
 
   // The body of the boss while it is alive.
   static Actor* boss_;  // 0x469270
+
+ private:
+  // Run the movement programs of CEnmParam (not decompiled yet).
+  void RunProgram9c(Actor* actor, EnmList* program);              // 0x4120d0
+  void RunProgramB0(Actor* actor, EnmList* program);              // 0x412530
+  void RunSideProgram(Actor* actor, EnmList* program, int side);  // 0x4119d0
+
+ private:
+  // Where the body may move.
+  static FloatRect bounds_;  // 0x469054
 };
 
 class Control33 : public LinkedPartControl {

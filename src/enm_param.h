@@ -37,7 +37,9 @@ struct EnmPlanPart : EnmPlanItem {
     kTurret = 0x80,   // its first child turns it
   };
 
-  short unknown_1c_[9];     // 0x1c
+  short unknown_1c_[6];     // 0x1c
+  int score;                // 0x28, of a linked part
+  short hit_points;         // 0x2c, of a linked part
   short x1;                 // 0x2e, where it is while armed (flags & 3 == 1)
   short y1;                 // 0x30
   short unknown_32_;        // 0x32
@@ -216,6 +218,10 @@ class CEnmParam : public System {
       }
     }
     return NULL;
+  }
+  // The code of the first child of the part at `code`.
+  static unsigned int ChildBase(unsigned int code) {
+    return (code & kSideMask) | (code << 3);
   }
   // The code of the parent of the part at `code`.
   static unsigned int ParentCode(unsigned int code) {
