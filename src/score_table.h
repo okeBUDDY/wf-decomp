@@ -18,11 +18,7 @@ class ScoreTable {
  public:
   enum { kEntries = 8 };
 
-  // 0x420f60
-  ScoreTable() {
-    path_[0] = '\0';
-    rank_ = -1;
-  }
+  ScoreTable();  // 0x420f60
   // scalar deleting dtor 0x401a30
   virtual ~ScoreTable() {}
 

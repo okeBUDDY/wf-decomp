@@ -11,6 +11,12 @@ static const char* kRankNames[] = {"1ST", "2ND", "3RD", "4TH",
                                    "5TH", "6TH", "7TH", "8TH"};  // 0x45de80
 char g_text_buffer[256];                                         // 0x468d90
 
+// 0x420f60
+ScoreTable::ScoreTable() {
+  path_[0] = '\0';
+  rank_ = -1;
+}
+
 // 0x420f80
 void ScoreTable::SetRules(const GameRules* rules) { rules_ = *rules; }
 
