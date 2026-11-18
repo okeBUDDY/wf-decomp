@@ -229,6 +229,12 @@ class CEnmParam : public System {
   // The opening the next tactic shares: steps 0 to 3, then `next_step`.
   void RunOpening(int unused, int next_step);  // 0x4163f0
   int Tactic416560(int unused);                // 0x416560
+  int Tactic416630(int unused);                // 0x416630
+  int Tactic4167a0(int unused);                // 0x4167a0
+  int Tactic4168e0(int unused);                // 0x4168e0
+  int Tactic4169c0(int unused);                // 0x4169c0
+  int Tactic416ac0(int unused);                // 0x416ac0
+  int Tactic416cb0(int unused);                // 0x416cb0
   // The slot of the part at `code`, NULL without one.
   EnmSlot* FindSlot(unsigned int code) {
     if (code != 0) {
