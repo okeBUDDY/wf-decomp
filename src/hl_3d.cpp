@@ -6,16 +6,18 @@
 
 #include "application.h"
 #include "graphics.h"
+#include "hl_camera.h"
 #include "hl_mesh.h"
 #include "hl_surface.h"
 #include "profile.h"
+#include "task.h"
 
 // 0x402bb0
 HL3D::HL3D() {
   app_ = NULL;
   d3d_ = NULL;
   device_ = NULL;
-  unknown_10_ = 0;
+  camera_ = NULL;
   zbuffer_ = NULL;
   texture_ = NULL;
   flags_ = 0;
@@ -133,7 +135,7 @@ int HL3D::CreateBuffers() {
       static_cast<D3DTLVERTEX*>(malloc(kMaxVertices * sizeof(D3DTLVERTEX)));
   if (vertices_ == NULL) {
     // "Out of memory"
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+    Error("ﾒﾓﾘが足りません");
     return 0;
   }
   vertex_count_ = 0;
@@ -144,7 +146,7 @@ int HL3D::CreateBuffers() {
   g_vector_work = static_cast<float*>(malloc(0x78));
   g_matrix_work = static_cast<float*>(malloc(0x280));
   if (g_vector_work == NULL || g_matrix_work == NULL) {
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+    Error("ﾒﾓﾘが足りません");
     return 0;
   }
   g_base_matrix.m[0][0] = g_base_matrix.m[1][1] = g_base_matrix.m[2][2] = 1.0f;
@@ -154,7 +156,7 @@ int HL3D::CreateBuffers() {
   g_sin_table = static_cast<float*>(malloc(0x500 * sizeof(float)));
   g_angle_table = static_cast<float*>(malloc(0x400 * sizeof(float)));
   if (g_sin_table == NULL || g_angle_table == NULL) {
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+    Error("ﾒﾓﾘが足りません");
     return 0;
   }
   for (int i = 0; i < 0x500; ++i) {
@@ -168,9 +170,7 @@ int HL3D::CreateBuffers() {
   meshes_ = static_cast<HLMesh**>(malloc(kMaxMeshes * sizeof(HLMesh*)));
   if (meshes_ == NULL) {
     // "Out of memory"
-    Error(
-        "\203\201\203\202\203\212\202\252\221\253\202\350\202\334\202\271\202"
-        "\361");
+    Error("メモリが足りません");
     return 0;
   }
   for (int j = 0; j < kMaxMeshes; ++j) {
@@ -215,9 +215,7 @@ int HL3D::CreateDevice(REFCLSID guid, BOOL hardware) {
     if (d3d_->EnumZBufferFormats(guid, EnumZBufferProc, &desc) != D3D_OK ||
         desc.dwWidth == 0x10000) {
       // "No z-buffer is available"
-      strcpy(g_text_buffer,
-             "Z\312\336\257\314\247\202\252\227\230\227p\202\305\202\253"
-             "\202\334\202\271\202\361");
+      strcpy(g_text_buffer, "Zﾊﾞｯﾌｧが利用できません");
       goto failed;
     }
     desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
@@ -229,31 +227,23 @@ int HL3D::CreateDevice(REFCLSID guid, BOOL hardware) {
     if (app_->graphics->ddraw_->CreateSurface(&desc, &zbuffer_, NULL) !=
         DD_OK) {
       // "Cannot create the z-buffer"
-      strcpy(g_text_buffer,
-             "Z\312\336\257\314\247\202\252\220\266\220\254\202\305\202"
-             "\253\202\334\202\271\202\361");
+      strcpy(g_text_buffer, "Zﾊﾞｯﾌｧが生成できません");
       goto failed;
     }
     if (app_->screen->surface_->AddAttachedSurface(zbuffer_) != DD_OK) {
       // "Cannot attach the z-buffer to the surface"
-      strcpy(g_text_buffer,
-             "Z\312\336\257\314\247\202\360\273\260\314\252\275\202\311"
-             "\261\300\257\301\202\305\202\253\202\334\202\271\202\361");
+      strcpy(g_text_buffer, "Zﾊﾞｯﾌｧをｻｰﾌｪｽにｱﾀｯﾁできません");
       goto failed;
     }
   }
   if (d3d_->CreateDevice(guid, app_->screen->surface_, &device_) != D3D_OK) {
     // "Direct3DDevice is not available"
-    strcpy(g_text_buffer,
-           "Direct3DDevice\202\252\227\230\227p\202\305\202\253\202\334"
-           "\202\271\202\361");
+    strcpy(g_text_buffer, "Direct3DDeviceが利用できません");
     goto failed;
   }
   if (!app_->screen->InitTextureFormats(device_)) {
     // "A required texture format does not exist"
-    strcpy(g_text_buffer,
-           "\225K\227v\202\310\303\270\275\301\254\214`\216\256\202\252"
-           "\221\266\215\335\202\265\202\334\202\271\202\361");
+    strcpy(g_text_buffer, "必要なﾃｸｽﾁｬ形式が存在しません");
     goto failed;
   }
   depth_ = static_cast<short>(desc.ddpfPixelFormat.dwZBufferBitDepth);
@@ -271,4 +261,97 @@ failed:
 // 0x4030a0
 void HL3D::SetLighting(BOOL enable) {
   device_->SetRenderState(D3DRENDERSTATE_LIGHTING, enable);
+}
+
+// 0x4030c0
+int HL3D::Initialize(Application* app) {
+  app_ = app;
+  if (app->graphics == NULL || app->graphics->ddraw_ == NULL ||
+      app->screen == NULL) {
+    Error("HLDrawが初期化されていません");
+    return 0;
+  }
+  if (app_->graphics->ddraw_->QueryInterface(
+          IID_IDirect3D7, reinterpret_cast<void**>(&d3d_)) != DD_OK) {
+    Error("Direct3D7が利用できません");
+    return 0;
+  }
+  flags_ = 0;
+  if (CreateDevice(IID_IDirect3DTnLHalDevice, TRUE)) {
+    Log("Direct3D-HAL(TnL)ﾃﾞﾊﾞｲｽを使用 : Zﾊﾞｯﾌｧ=%dbit", depth_);
+    flags_ |= 0x20000;
+  } else if (CreateDevice(IID_IDirect3DHALDevice, TRUE)) {
+    Log("Direct3D-HALﾃﾞﾊﾞｲｽを使用 : Zﾊﾞｯﾌｧ=%dbit", depth_);
+  } else {
+    app_->flags |= AppSettings::kNoHardware3D;
+    if (CreateDevice(IID_IDirect3DMMXDevice, FALSE)) {
+      Log("Direct3D-HEL(MMX)ﾃﾞﾊﾞｲｽを使用 : Zﾊﾞｯﾌｧ=%dbit", depth_);
+    } else if (CreateDevice(IID_IDirect3DRGBDevice, FALSE)) {
+      Log("Direct3D-HEL(RGB)ﾃﾞﾊﾞｲｽを使用 : Zﾊﾞｯﾌｧ=%dbit", depth_);
+    } else {
+      Error(g_text_buffer);
+      return 0;
+    }
+  }
+  flags_ |= HLSurface::texture_caps_ & 0xffff;
+
+  D3DVIEWPORT7 viewport;
+  viewport.dwX = 0;
+  viewport.dwY = 0;
+  viewport.dwWidth = app_->width;
+  viewport.dwHeight = app_->height;
+  viewport.dvMinZ = 0;
+  viewport.dvMaxZ = 1;
+  if (device_->SetViewport(&viewport) != D3D_OK) {
+    Error("ﾋﾞｭｰﾎﾟｰﾄが設定できません");
+    return 0;
+  }
+  camera_ = new HLCamera;
+  if (camera_ == NULL) {
+    Error("ｶﾒﾗｼｽﾃﾑが初期化できません");
+    return 0;
+  }
+  HLCamera::d3d_ = this;
+  app_->overlays.Add(camera_, 0, reinterpret_cast<Task*>(1));
+  TaskBase* node = new TaskBase;
+  Node::d3d_ = this;
+  delete node;
+  if (!CreateBuffers()) {
+    return 0;
+  }
+
+  device_->SetRenderState(D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_NONE);
+  device_->SetRenderState(D3DRENDERSTATE_FILLMODE, D3DFILL_SOLID);
+  device_->SetRenderState(D3DRENDERSTATE_SHADEMODE, D3DSHADE_GOURAUD);
+  device_->SetRenderState(D3DRENDERSTATE_CULLMODE, D3DCULL_CCW);
+  device_->SetRenderState(D3DRENDERSTATE_FOGENABLE, FALSE);
+  device_->SetRenderState(D3DRENDERSTATE_STENCILENABLE, FALSE);
+  device_->SetRenderState(D3DRENDERSTATE_COLORVERTEX, FALSE);
+  device_->SetRenderState(D3DRENDERSTATE_LOCALVIEWER, FALSE);
+  if (zbuffer_ != NULL) {
+    device_->SetRenderState(D3DRENDERSTATE_ZWRITEENABLE, TRUE);
+    device_->SetRenderState(D3DRENDERSTATE_ZENABLE, D3DZB_TRUE);
+    device_->SetRenderState(D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
+  }
+  device_->SetRenderState(D3DRENDERSTATE_AMBIENT, 0xff000000);
+  device_->SetRenderState(D3DRENDERSTATE_SPECULARENABLE, FALSE);
+  SetLighting(TRUE);
+  ZeroMemory(&material_, sizeof(material_));
+  material_.diffuse.r = material_.diffuse.g = material_.diffuse.b = 1.0f;
+  material_.ambient.r = material_.ambient.g = material_.ambient.b = 1.0f;
+  device_->SetRenderState(D3DRENDERSTATE_ALPHATESTENABLE, TRUE);
+  device_->SetRenderState(D3DRENDERSTATE_ALPHAFUNC, D3DCMP_GREATER);
+  device_->SetRenderState(D3DRENDERSTATE_ALPHAREF, 0);
+  device_->SetRenderState(D3DRENDERSTATE_COLORKEYENABLE, FALSE);
+  device_->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, FALSE);
+  device_->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+  device_->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
+  device_->SetRenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA);
+  SetAlpha(1.0f);
+  device_->SetRenderState(D3DRENDERSTATE_TEXTUREPERSPECTIVE, TRUE);
+  SetTextureOp(D3DTOP_MODULATE, D3DTA_TEXTURE, D3DTA_CURRENT, 0);
+  device_->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTFN_LINEAR);
+  device_->SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTFG_LINEAR);
+  Clear();
+  return 1;
 }

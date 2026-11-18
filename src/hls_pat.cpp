@@ -170,12 +170,12 @@ int HLSPatSys::Initialize(Application* app) {
   pats_ = new HLSPat[count_];
   if (pats_ == NULL) {
     // "Out of memory"
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+    Error("ﾒﾓﾘが足りません");
     return 0;
   }
   HLSPat::d3d_ = app_->d3d;
   HLSPat::system_ = this;
   // "%d patterns available."
-  Log("%d\312\337\300\260\335\227\230\227p\211\302\224\\.", count_);
+  Log("%dﾊﾟﾀｰﾝ利用可能.", count_);
   return 1;
 }

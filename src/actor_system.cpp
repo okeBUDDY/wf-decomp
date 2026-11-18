@@ -24,9 +24,7 @@ int ActorSystem::Register(int id, ActorControl* control) {
   if (controls_ != NULL && control != NULL) {
     if (id <= 0) {
       // "Invalid control system id"
-      Error(
-          "\225s\220\263\202\310\220\247\214\344\274\275\303\321ID\202\305"
-          "\202\267");
+      Error("不正な制御ｼｽﾃﾑIDです");
       return 0;
     }
     if (!control->Initialize()) {
@@ -40,7 +38,7 @@ int ActorSystem::Register(int id, ActorControl* control) {
     return 1;
   }
   // "Out of memory"
-  Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+  Error("ﾒﾓﾘが足りません");
   return 0;
 }
 
@@ -541,7 +539,7 @@ int ActorSystem::Initialize(Application* app) {
   actors_ = new Actor[max_actors_ + 1];
   if (controls_ == NULL || actors_ == NULL) {
     // "Out of memory"
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+    Error("ﾒﾓﾘが足りません");
     return 0;
   }
   if (!g_hit_image.Create(app_->width, app_->height)) {
@@ -568,9 +566,7 @@ int ActorSystem::Initialize(Application* app) {
   flags_ = 1;
   DestroyAll();
   // "%d objects, %d control systems available."
-  Log("%d\265\314\336\274\336\252\270\304 %d\220\247\214\344\274\275\303\321"
-      "\202\360\227\230\227p\211\302\224\\.",
-      max_actors_, max_controls_);
+  Log("%dｵﾌﾞｼﾞｪｸﾄ %d制御ｼｽﾃﾑを利用可能.", max_actors_, max_controls_);
   return 1;
 }
 

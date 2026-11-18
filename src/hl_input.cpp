@@ -290,9 +290,8 @@ void HLInpDev::LoadTriggerMap() {
     button_count_ = buttons;
   }
   // "%d-button pad (%s) usable: checking %d buttons: TrigMap=%s"
-  Log("%d\316\336\300\335\312\337\257\304\336(%s)\202\360\227\230\227p\211\302"
-      ":%d\316\336\300\335\202\360\222\262\215\270:TrigMap=%s",
-      buttons, instance.tszProductName, button_count_, g_text_buffer);
+  Log("%dﾎﾞﾀﾝﾊﾟｯﾄﾞ(%s)を利用可:%dﾎﾞﾀﾝを調査:TrigMap=%s", buttons,
+      instance.tszProductName, button_count_, g_text_buffer);
 }
 
 // 0x406170
@@ -319,25 +318,19 @@ int HLJoystick::Open(HLInput* input, const GUID* guid) {
                                      reinterpret_cast<void**>(&device_),
                                      NULL) != DI_OK) {
     // "Pad device unavailable"
-    Error(
-        "\312\337\257\304\336\303\336\312\336\262\275\202\252\227\230\227p"
-        "\202\305\202\253\202\334\202\271\202\361");
+    Error("ﾊﾟｯﾄﾞﾃﾞﾊﾞｲｽが利用できません");
     return 0;
   }
   if (device_->SetDataFormat(&c_dfDIJoystick) != DI_OK) {
     // "Cannot set the pad format"
-    Error(
-        "\312\337\257\304\336\214`\216\256\202\360\220\335\222\350\202\305"
-        "\202\253\202\334\202\271\202\361");
+    Error("ﾊﾟｯﾄﾞ形式を設定できません");
     return 0;
   }
   if (device_->SetCooperativeLevel(input->app_->window,
                                    DISCL_NONEXCLUSIVE | DISCL_FOREGROUND) !=
       DI_OK) {
     // "Cannot set the pad cooperative level"
-    Error(
-        "\312\337\257\304\336\202\314\213\246\222\262\332\315\336\331\202\360"
-        "\220\335\222\350\202\305\202\253\202\334\202\271\202\361");
+    Error("ﾊﾟｯﾄﾞの協調ﾚﾍﾞﾙを設定できません");
     return 0;
   }
   DIPROPRANGE range;
@@ -361,9 +354,7 @@ int HLJoystick::Open(HLInput* input, const GUID* guid) {
   result |= device_->SetProperty(DIPROP_DEADZONE, &dead_zone.diph);
   if (result != DI_OK) {
     // "Cannot adjust the pad"
-    Error(
-        "\312\337\257\304\336\202\314\222\262\220\256\202\252\202\305\202\253"
-        "\202\334\202\271\202\361");
+    Error("ﾊﾟｯﾄﾞの調整ができません");
     return 0;
   }
   for (int i = 0; i < kMaxTriggers; ++i) {
@@ -373,9 +364,7 @@ int HLJoystick::Open(HLInput* input, const GUID* guid) {
   LoadTriggerMap();
   if (device_->Acquire() != DI_OK) {
     // "Cannot start using the pad"
-    Error(
-        "\312\337\257\304\336\202\252\227\230\227p\212J\216n\202\305\202\253"
-        "\202\334\202\271\202\361");
+    Error("ﾊﾟｯﾄﾞが利用開始できません");
     return 0;
   }
   return 1;
@@ -387,25 +376,19 @@ int HLKeyboard::Open(HLInput* input, const GUID* guid) {
                                      reinterpret_cast<void**>(&device_),
                                      NULL) != DI_OK) {
     // "Keyboard device unavailable"
-    Error(
-        "\267\260\316\336\260\304\336\303\336\312\336\262\275\202\252\227\230"
-        "\227p\202\305\202\253\202\334\202\271\202\361");
+    Error("ｷｰﾎﾞｰﾄﾞﾃﾞﾊﾞｲｽが利用できません");
     return 0;
   }
   if (device_->SetDataFormat(&c_dfDIKeyboard) != DI_OK) {
     // "Cannot set the keyboard format"
-    Error(
-        "\267\260\316\336\260\304\336\214`\216\256\202\360\220\335\222\350"
-        "\202\305\202\253\202\334\202\271\202\361");
+    Error("ｷｰﾎﾞｰﾄﾞ形式を設定できません");
     return 0;
   }
   if (device_->SetCooperativeLevel(input->app_->window,
                                    DISCL_NONEXCLUSIVE | DISCL_FOREGROUND) !=
       DI_OK) {
     // "Cannot set the keyboard cooperative level"
-    Error(
-        "\267\260\316\336\260\304\336\202\314\213\246\222\262\332\315\336\331"
-        "\202\360\220\335\222\350\202\305\202\253\202\334\202\271\202\361");
+    Error("ｷｰﾎﾞｰﾄﾞの協調ﾚﾍﾞﾙを設定できません");
     return 0;
   }
   trigger_map_[0] = DIK_Z;
@@ -420,9 +403,7 @@ int HLKeyboard::Open(HLInput* input, const GUID* guid) {
   LoadTriggerMap();
   if (device_->Acquire() != DI_OK) {
     // "Cannot start using the keyboard"
-    Error(
-        "\267\260\316\336\260\304\336\202\252\227\230\227p\212J\216n\202\305"
-        "\202\253\202\334\202\271\202\361");
+    Error("ｷｰﾎﾞｰﾄﾞが利用開始できません");
     return 0;
   }
   return 1;
@@ -434,9 +415,7 @@ int HLInput::Initialize(Application* app) {
   if (DirectInputCreateEx(app->instance, DIRECTINPUT_VERSION, IID_IDirectInput7,
                           reinterpret_cast<void**>(&dinput_), NULL) != DI_OK) {
     // "Cannot get DirectInput7"
-    Error(
-        "DirectInput7\202\252\216\346\223\276\202\305\202\253\202\334\202\271"
-        "\202\361");
+    Error("DirectInput7が取得できません");
     return 0;
   }
   HLInpDev::profile_ = &app_->profile;
@@ -469,7 +448,7 @@ int HLInput::Initialize(Application* app) {
   if (task_ == NULL) {
   no_memory:
     // "Out of memory"
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+    Error("ﾒﾓﾘが足りません");
     return 0;
   }
   task_->input_ = this;

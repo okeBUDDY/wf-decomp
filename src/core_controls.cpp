@@ -119,7 +119,8 @@ int Control40::OnMove(Actor* actor) {
         desc_.speed = work->speed;
         desc_.work = reinterpret_cast<int>(work->slot);
         g_actor_system.Spawn(&desc_);
-        g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0, 1.0f);
+        g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0,
+                                                 1.0f);
       }
       if (--work->unknown_1e_ <= 0) {
         Schedule(actor, work->delay, 6);
@@ -380,7 +381,8 @@ int Control44::OnMove(Actor* actor) {
         g_actor_system.Create(45, NULL, actor->screen.m[2][0],
                               actor->screen.m[2][1], 11, actor->ScreenAngle(),
                               work);
-        g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0, 1.0f);
+        g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0,
+                                                 1.0f);
       }
       if (--work->unknown_1e_ <= 0) {
         Schedule(actor, work->delay, 0);
@@ -619,7 +621,8 @@ int Control49::OnMove(Actor* actor) {
         desc_.start_angle = actor->ScreenAngle();
         desc_.work = reinterpret_cast<int>(work->slot);
         g_actor_system.Spawn(&desc_);
-        g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0, 1.0f);
+        g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0,
+                                                 1.0f);
       }
       if (--work->unknown_1e_ <= 0) {
         OnDamage(actor, 3);

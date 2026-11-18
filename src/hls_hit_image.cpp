@@ -24,12 +24,11 @@ int HLSHitImage::Create(int width, int height) {
   bits_ = static_cast<unsigned short*>(malloc(size_));
   if (bits_ == NULL) {
     // "Out of memory."
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361.");
+    Error("ﾒﾓﾘが足りません.");
     return 0;
   }
   // "Allocated the (%dx%d) hit image"
-  Log("(%dx%d)\202\314\313\257\304\262\322\260\274\336\202\360\212m\225\333",
-      width, height);
+  Log("(%dx%d)のﾋｯﾄｲﾒｰｼﾞを確保", width, height);
   return 1;
 }
 

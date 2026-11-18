@@ -94,7 +94,7 @@ void CSndStrm::Release() {
   if (flags_ == 0) {
     return;
   }
-  Log("[%d]:\312\336\257\314\247\215\355\217\234", id_);  // "buffer deleted"
+  Log("[%d]:ﾊﾞｯﾌｧ削除", id_);  // "buffer deleted"
   g_sound_system->Stop(this, -1);
   g_snd_buf_list->Remove(this);
   if (file_ != NULL) {

@@ -262,11 +262,10 @@ int HLWindow::Initialize(Application* app) {
                            0, 0, 0, "FixedSys");
   // "MS Gothic"
   gothic_font_ = CreateFont(12, 0, 0, 0, FW_NORMAL, 0, 0, 0, SHIFTJIS_CHARSET,
-                            0, 0, 0, 0, "\202l\202r \203S\203V\203b\203N");
+                            0, 0, 0, 0, "ＭＳ ゴシック");
   // "MS PGothic"
-  pgothic_font_ =
-      CreateFont(12, 0, 0, 0, FW_NORMAL, 0, 0, 0, SHIFTJIS_CHARSET, 0, 0, 0, 0,
-                 "\202l\202r \202o\203S\203V\203b\203N");
+  pgothic_font_ = CreateFont(12, 0, 0, 0, FW_NORMAL, 0, 0, 0, SHIFTJIS_CHARSET,
+                             0, 0, 0, 0, "ＭＳ Ｐゴシック");
   WNDCLASSEX window_class;
   window_class.cbSize = sizeof(window_class);
   window_class.lpszClassName = "hl_defwin";
@@ -292,9 +291,7 @@ int HLWindow::Initialize(Application* app) {
   }
   if (!RegisterClassEx(&window_class)) {
     // "the window class cannot be registered"
-    Error(
-        "\263\262\335\304\336\263\270\327\275\202\252\223o\230^\202\305\202"
-        "\253\202\334\202\271\202\361");
+    Error("ｳｲﾝﾄﾞｳｸﾗｽが登録できません");
     return 0;
   }
   if (app_->flags & Application::kFullScreen) {
@@ -324,9 +321,7 @@ int HLWindow::Initialize(Application* app) {
   }
   if (app_->window == NULL) {
     // "the window cannot be created"
-    Error(
-        "\263\262\335\304\336\263\202\252\220\266\220\254\202\305\202\253\202"
-        "\334\202\271\202\361");
+    Error("ｳｲﾝﾄﾞｳが生成できません");
     return 0;
   }
   if (message_height_ != 0) {
@@ -338,9 +333,7 @@ int HLWindow::Initialize(Application* app) {
         reinterpret_cast<HMENU>(1), app_->instance, NULL);
     if (message_field_ == NULL) {
       // "the message field cannot be created"
-      Error(
-          "\322\257\276\260\274\336\314\250\260\331\304\336\202\252\220\266\220"
-          "\254\202\305\202\253\202\334\202\271\202\361");
+      Error("ﾒｯｾｰｼﾞﾌｨｰﾙﾄﾞが生成できません");
       return 0;
     }
     SendMessage(message_field_, WM_SETFONT,
@@ -349,7 +342,7 @@ int HLWindow::Initialize(Application* app) {
                 reinterpret_cast<LPARAM>(NoWordBreak));
     buffer_ = malloc(MAX_PATH);
     if (buffer_ == NULL) {
-      Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+      Error("ﾒﾓﾘが足りません");
       return 0;
     }
   }

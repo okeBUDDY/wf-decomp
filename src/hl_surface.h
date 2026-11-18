@@ -77,6 +77,8 @@ class HLSurface : public Object {
   static HRESULT CALLBACK EnumTextureFormatProc(DDPIXELFORMAT* format,
                                                 void* context);  // 0x40b680
 
+  // What the texture formats found allow (set by InitTextureFormats()).
+  static unsigned int texture_caps_;  // 0x468f74
   // The primary, opaque texture and alpha texture formats.
   static DDPIXELFORMAT formats_[3];  // 0x468f10
   static short format_codes_[3];     // 0x468f80

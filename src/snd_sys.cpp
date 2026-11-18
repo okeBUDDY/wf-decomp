@@ -84,16 +84,12 @@ int SoundSystem::SetFormat(int rate, int bits, int channels) {
     IDirectSoundBuffer* primary;
     if (dsound_->CreateSoundBuffer(&desc, &primary, NULL) != DS_OK) {
       // "could not get the primary buffer"
-      Error(
-          "\314\337\327\262\317\330\312\336\257\314\247\202\314\216\346\223\276"
-          "\216\270\224s");
+      Error("ﾌﾟﾗｲﾏﾘﾊﾞｯﾌｧの取得失敗");
       return 0;
     }
     if (primary->SetFormat(&format_) != DS_OK) {
       // "could not set the sound format"
-      Error(
-          "\273\263\335\304\336\314\253\260\317\257\304\202\314\220\335\222\350"
-          "\216\270\224s");
+      Error("ｻｳﾝﾄﾞﾌｫｰﾏｯﾄの設定失敗");
       return 0;
     }
     primary->Release();
@@ -102,8 +98,7 @@ int SoundSystem::SetFormat(int rate, int bits, int channels) {
     }
   }
   // "output format"
-  Log("\217o\227\315\314\253\260\317\257\304:%dch %dHz %dbit", channels, rate,
-      bits);
+  Log("出力ﾌｫｰﾏｯﾄ:%dch %dHz %dbit", channels, rate, bits);
   return 1;
 }
 
@@ -165,15 +160,12 @@ int SoundSystem::Initialize(Application* app) {
   if (DirectSoundCreate(device_, &dsound_, NULL) == DS_OK) {
     if (dsound_->SetCooperativeLevel(app_->window, DSSCL_PRIORITY) != DS_OK) {
       // "could not set the DirectSound cooperative level"
-      Error(
-          "DirectSound\202\314\213\246\222\262\203\214\203x\203\213\202"
-          "\252\220\335\222\350\202\305\202\253\202\334\202\271\202\361");
+      Error("DirectSoundの協調レベルが設定できません");
       return 0;
     }
   } else {
     // "DirectSound is not available"
-    Log("DirectSound\202\315\227\230\227p\202\305\202\253\202\334\202\271\202"
-        "\361");
+    Log("DirectSoundは利用できません");
     dsound_ = NULL;
   }
   if (!SetFormat(44100, 16, 2)) {
@@ -186,16 +178,12 @@ int SoundSystem::Initialize(Application* app) {
   channels_ = new Channel[channel_count_];
   if (channels_ == NULL) {
     // "out of memory"
-    Error(
-        "\203\201\203\202\203\212\202\252\221\253\202\350\202\334\202\271\202"
-        "\361");
+    Error("メモリが足りません");
     return 0;
   }
   if (!buffers_.Clear()) {
     // "could not initialize the sound buffer list"
-    Error(
-        "\273\263\335\304\336\312\336\257\314\247\212\307\227\235\274\275\303"
-        "\321\202\314\217\211\212\372\211\273\216\270\224s");
+    Error("ｻｳﾝﾄﾞﾊﾞｯﾌｧ管理ｼｽﾃﾑの初期化失敗");
     return 0;
   }
   InitializeCriticalSection(&lock_);
@@ -210,9 +198,7 @@ int SoundSystem::Initialize(Application* app) {
       CreateThread(NULL, 0, Thread::ThreadProc, thread, 0, &thread->id_);
   if (thread->handle_ == NULL) {
     // "could not create the sound thread"
-    Error(
-        "\273\263\335\304\336\275\332\257\304\336\220\266\220\254\216\270\224"
-        "s");
+    Error("ｻｳﾝﾄﾞｽﾚｯﾄﾞ生成失敗");
     return 0;
   }
   group_volume_[0] = 1.0f;
@@ -359,9 +345,7 @@ int SoundSystem::CreateMixer() {
       desc.guid3DAlgorithm = GUID_NULL;
       if (dsound_->CreateSoundBuffer(&desc, &primary_, NULL) != DS_OK) {
         // "could not create the DirectSoundBuffer"
-        Error(
-            "DirectSoundBuffer\202\252\220\266\220\254\202\305\202\253\202\334"
-            "\202\271\202\361");
+        Error("DirectSoundBufferが生成できません");
         return 0;
       }
     }
@@ -372,9 +356,7 @@ int SoundSystem::CreateMixer() {
     if (primary_->Lock(0, format_.nAvgBytesPerSec, &data1, &size1, &data2,
                        &size2, 0) != DS_OK) {
       // "could not lock the sound buffer"
-      Error(
-          "\273\263\335\304\336\312\336\257\314\247\202\360\333\257\270\202\305"
-          "\202\253\202\334\202\271\202\361");
+      Error("ｻｳﾝﾄﾞﾊﾞｯﾌｧをﾛｯｸできません");
       return 0;
     }
     memset(data1, 0, size1);

@@ -176,7 +176,7 @@ int HLSTxtSys::Initialize(Application* app, HLSurface* texture, short txt_count,
   if (glyphs_ == NULL) {
   failed:
     // "Out of memory."
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361.");
+    Error("ﾒﾓﾘが足りません.");
     return 0;
   }
   {
@@ -209,9 +209,8 @@ int HLSTxtSys::Initialize(Application* app, HLSurface* texture, short txt_count,
     }
   }
   // "%d kinds of %d-byte characters (%dx%d) can be shown. Buffer=%d"
-  Log("%d\216\355\202\314%d\312\336\262\304\225\266\216\232(%dx%d)\202\360"
-      "\225\\\216\246\211\302\224\\. Buffer=%d",
-      char_count_, (first_char_ > 0xff) + 1, width, height, txt_count_);
+  Log("%d種の%dﾊﾞｲﾄ文字(%dx%d)を表示可能. Buffer=%d", char_count_,
+      (first_char_ > 0xff) + 1, width, height, txt_count_);
   return 1;
 }
 

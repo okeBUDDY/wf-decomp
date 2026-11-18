@@ -30,9 +30,7 @@ int Application::AddSystem(System* system, bool owns) {
   }
   if (system_count == kMaxSystems) {
     // "too many systems registered"
-    Error(
-        "\274\275\303\321\202\314\223o\230^"
-        "\220\224\202\252\221\275\202\267\202\254\202\334\202\267");
+    Error("ｼｽﾃﾑの登録数が多すぎます");
     return 0;
   }
   systems[system_count] = system;

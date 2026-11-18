@@ -125,9 +125,9 @@ void HLSurface::Attach(unsigned short mode) {
   }
   Clear();
   // "[%d]%s created: mode=%04X %dx%d(%d:%d) %dbit(%d)"
-  Log("[%d]%s\220\266\220\254: mode=%04X %dx%d(%d:%d) %dbit(%d)", id_,
-      (mode_ & kKindMask) == kTexture ? "\303\270\275\301\254"   // texture
-                                      : "\273\260\314\252\275",  // surface
+  Log("[%d]%s生成: mode=%04X %dx%d(%d:%d) %dbit(%d)", id_,
+      (mode_ & kKindMask) == kTexture ? "ﾃｸｽﾁｬ"   // texture
+                                      : "ｻｰﾌｪｽ",  // surface
       mode_, width_, height_, scale_x_, scale_y_,
       desc.ddpfPixelFormat.dwRGBBitCount, format_codes_[format_]);
 }
@@ -150,7 +150,7 @@ void HLSurface::Release() {
   }
   surface_ = NULL;
   // "[%d] surface deleted"
-  Log("[%d]\273\260\314\252\275\215\355\217\234", id_);
+  Log("[%d]ｻｰﾌｪｽ削除", id_);
   if (id_ != -1) {
     graphics_->surfaces_[id_] = NULL;
   }

@@ -37,7 +37,7 @@ void HLMesh::Release() {
   buffer_->Release();
   buffer_ = NULL;
   // "[%d] mesh deleted"
-  Log("[%d]\322\257\274\255\215\355\217\234", id_);
+  Log("[%d]ﾒｯｼｭ削除", id_);
   if (id_ != -1) {
     d3d_->meshes_[id_] = NULL;
   }
@@ -132,12 +132,10 @@ int HLSAnmSys::Initialize(Application* app) {
   anims_ = new HLSAnm[count_];
   if (anims_ == NULL) {
     // "Out of memory"
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+    Error("ﾒﾓﾘが足りません");
     return 0;
   }
   // "%d animation objects available."
-  Log("%d\214\302\202\314\261\306\322\265\314\336\274\336\252\270\304\202\360"
-      "\227\230\227p\211\302\224\\.",
-      count_);
+  Log("%d個のｱﾆﾒｵﾌﾞｼﾞｪｸﾄを利用可能.", count_);
   return 1;
 }

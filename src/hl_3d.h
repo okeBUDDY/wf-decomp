@@ -60,6 +60,8 @@ extern float* g_vector_work;     // 0x468870, 0x78 bytes
 extern float* g_matrix_work;     // 0x468874, 0x280 bytes
 extern Transform g_base_matrix;  // 0x468830
 
+class HLCamera;
+
 class HL3D : public System {
  public:
   enum Flags { kInScene = 0x10000 };
@@ -172,7 +174,7 @@ class HL3D : public System {
 
   IDirect3D7* d3d_;               // 0x08
   IDirect3DDevice7* device_;      // 0x0c
-  int unknown_10_;                // 0x10
+  HLCamera* camera_;              // 0x10, in Application::overlays
   IDirectDrawSurface7* zbuffer_;  // 0x14
   short depth_;                   // 0x18, z-buffer bits
   Application* app_;              // 0x1c

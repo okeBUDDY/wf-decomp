@@ -157,15 +157,11 @@ int HLSync::Initialize(Application* app) {
                         reinterpret_cast<DWORD_PTR>(this), TIME_PERIODIC);
   if (timer_ == 0) {
     // "the high resolution timer cannot be initialized"
-    Error(
-        "\215\202\220\270\223x\300\262\317\260\202\252\217\211\212\372\211\273"
-        "\202\305\202\253\202\334\202\271\202\361");
+    Error("高精度ﾀｲﾏｰが初期化できません");
     return 0;
   }
   SetMode(mode_);
   // "%dfps(1f=%dmsec): high resolution timer started"
-  Log("%dfps(1f=%dmsec)\202\305\215\202\220\270\223x\300\262\317\260\213N"
-      "\223\256",
-      fps_, delay);
+  Log("%dfps(1f=%dmsec)で高精度ﾀｲﾏｰ起動", fps_, delay);
   return 1;
 }

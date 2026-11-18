@@ -50,7 +50,7 @@ int CSndBuf::CreateBuffer(WAVEFORMATEX* format, int size) {
   if (g_sound_system->dsound_->CreateSoundBuffer(&desc, &buffer_, NULL) !=
       DS_OK) {
     // "DirectSoundBuffer could not be created"
-    Error("DirectSoundBuffer\202\252\220\266\220\254\216\270\224s");
+    Error("DirectSoundBufferが生成失敗");
     return 0;
   }
   size_ = size;
@@ -94,7 +94,7 @@ void CSndBuf::Release() {
   if (flags_ == 0) {
     return;
   }
-  Log("[%d]:\312\336\257\314\247\215\355\217\234", id_);  // "buffer deleted"
+  Log("[%d]:ﾊﾞｯﾌｧ削除", id_);  // "buffer deleted"
   g_sound_system->Stop(this, -1);
   g_snd_buf_list->Remove(this);
   if (buffer_ != NULL) {
@@ -124,15 +124,15 @@ CSndFile* CSndBuf::OpenSndFile(const char* path, WAVEFORMATEX* format) {
       break;
     default:
       // "unsupported file - %s"
-      Error("\273\316\337\260\304\212O\202\314\314\247\262\331 - %s", path);
+      Error("ｻﾎﾟｰﾄ外のﾌｧｲﾙ - %s", path);
       return NULL;
   }
   if (file == NULL) {
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+    Error("ﾒﾓﾘが足りません");
     return NULL;
   }
   if (!file->Open(path, format, flags_ & kFromDisk)) {
-    Error("\265\260\314\337\335\216\270\224s - %s", path);  // "open failed"
+    Error("ｵｰﾌﾟﾝ失敗 - %s", path);  // "open failed"
     file->Close();
     delete file;
     return NULL;
@@ -190,12 +190,12 @@ int CSndBuf::Write(CSndFile* file, int offset, int size, int loop) {
 int CSndBuf::SetPath(const char* path, CSndFile* file, WAVEFORMATEX* format) {
   path_ = new char[strlen(path) + 1];
   if (path_ == NULL) {
-    Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
+    Error("ﾒﾓﾘが足りません");
     return 0;
   }
   strcpy(path_, path);
   // "buffer created"
-  Log("[%d]:\312\336\257\314\247\220\266\220\254: \"%s\"", id_, path);
+  Log("[%d]:ﾊﾞｯﾌｧ生成: \"%s\"", id_, path);
   Log("[%d]:%dByte(%dByte) %dch %dHz %dbit %4.2fsec", id_, file->size(), size_,
       format->nChannels, format->nSamplesPerSec, format->wBitsPerSample,
       seconds_);

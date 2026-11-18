@@ -6,6 +6,8 @@
 
 #include "object.h"
 
+class HL3D;
+
 struct Vector3 {
   float x;
   float y;
@@ -20,6 +22,9 @@ class Node : public Object {
   void Unlink();                   // 0x4027a0
   virtual void Detach();           // 0x402850
   virtual void SetMode(int mode);  // 0x402770
+
+  // Set by HL3D::Initialize().
+  static HL3D* d3d_;  // 0x468eb0
 
   void SetScale(float x, float y, float z) {
     scale_.x = x;
