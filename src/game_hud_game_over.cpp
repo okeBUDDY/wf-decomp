@@ -2,8 +2,17 @@
 // it.
 #include "game_hud.h"
 
+#include <stdio.h>
+#include <string.h>
+
+#include "application.h"
+#include "cglobal.h"
 #include "enm_param.h"
+#include "fonts.h"
+#include "hl_3d.h"
 #include "hls_txt.h"
+#include "snd_sys.h"
+#include "sounds.h"
 
 // 0x420250
 int GameHud::Lerp(int* out, int from, int to, int frames, int time) {
@@ -77,4 +86,113 @@ void GameHud::LoadParams() {
   }
   shown_params_[0] = params_[0];
   UpdateChart();
+}
+
+// 0x420bd0
+// TODO: nonmatching: the original pushes Create()'s arguments before it
+// picks the title font (and stores mode_texts_[2] before the NULL checks);
+// the rest matches.
+int GameHud::MoveGameOver() {
+  int step = step_;
+  switch (step) {
+    case 0: {
+      mode_texts_[0] = g_text_font.Create(16, NULL);
+      mode_texts_[1] = g_text_font.Create(16, NULL);
+      mode_texts_[2] =
+          (g_global.flags & cGlobal::kFlagEnglish ? g_title_font : g_kana_font)
+              .Create(0x80, NULL);
+      if (mode_texts_[0] == NULL || mode_texts_[1] == NULL ||
+          mode_texts_[2] == NULL) {
+        return 1;
+      }
+      LoadParams();
+      frame_open_ = 0;
+      band_height_ = 0;
+      info_alpha_ = 1.0f;
+      chart_alpha_ = 0;
+      title_slide_ = 400.0f;
+      const char* name = "NAME:";
+      strcpy(mode_texts_[0]->text(), name);
+      sprintf(mode_texts_[1]->text(), "STAGE:%02d", g_global.stage);
+      if (g_global.flags & cGlobal::kFlagEnglish) {
+        g_enm_param.FormatTitleEn(mode_texts_[2]->text());
+      } else {
+        g_enm_param.FormatTitleJa(mode_texts_[2]->text());
+      }
+      mode_texts_[2]->Measure(&title_size_);
+      title_pos_.x = static_cast<int>(title_slide_) + 360;
+      title_pos_.y = 400 - title_size_.cy;
+      g_application.sound->channel(kSndWarning)
+          ->Assign(&g_sounds[kSndWarning], 0, 1.0f);
+      ++step_;
+      break;
+    }
+    case 1: {
+      int angle;
+      if (Lerp(&angle, 0, 0x100, 20, mode_time_)) {
+        step_ = 2;
+      }
+      frame_open_ = g_sin_table[angle & 0x3ff];
+      break;
+    }
+    case 2:
+      if (Lerp(&band_height_, 0, 78.0f, 20, mode_time_)) {
+        ++step_;
+      }
+      break;
+    case 3:
+      if (Lerp(&chart_alpha_, 0, 1.0f, 10, mode_time_)) {
+        flags_ &= ~kFlagSkip;
+        ++step_;
+      }
+      break;
+    case 4: {
+      // Grow the chart one corner at a time.
+      int done = 0;
+      for (int i = 0; i < param_count_; ++i) {
+        if (shown_params_[i] < params_[i]) {
+          shown_params_[i] += 0x40;
+          if (shown_params_[i] > params_[i]) {
+            shown_params_[i] = params_[i];
+          }
+          UpdateChart();
+          if (i < 6) {
+            break;
+          }
+        } else {
+          ++done;
+        }
+      }
+      int angle;
+      if (Lerp(&angle, 0, 0x100, 20, mode_time_) && done >= param_count_) {
+        step_ = 10;
+      }
+      title_slide_ = (1.0f - g_sin_table[angle & 0x3ff]) * 400.0f;
+      break;
+    }
+    case 10:
+      if (mode_time_ >= 180 || (flags_ & kFlagSkip)) {
+        step_ = 20;
+      }
+      break;
+    case 20:
+      Lerp(&chart_alpha_, 1.0f, 0, 20, mode_time_);
+      if (Lerp(&info_alpha_, 1.0f, 0, 20, mode_time_)) {
+        ++step_;
+      }
+      break;
+    case 21:
+      Lerp(&title_slide_, 0, 400.0f, 20, mode_time_);
+      Lerp(&frame_open_, 1.0f, 0, 20, mode_time_);
+      if (Lerp(&band_height_, 78.0f, 0, 20, mode_time_)) {
+        return 1;
+      }
+      break;
+  }
+  if (step != step_) {
+    mode_time_ = 0;
+  } else {
+    ++mode_time_;
+  }
+  return 0;
 }

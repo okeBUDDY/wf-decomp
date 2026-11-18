@@ -92,7 +92,7 @@ void cGlobal::SaveReplay(int finished) {
     strcpy(last_record, "rec\\last.rec");
     CopyFileA("rec\\temp.rec", last_record, FALSE);
   }
-  if (g_global.unknown_08_ & 1) {
+  if (g_global.flags & cGlobal::kFlagStageReplays) {
     sprintf(path, "rec\\stage%02d.rec", stage);
     CopyFileA("rec\\temp.rec", path, FALSE);
     strcpy(last_record, "rec\\stage01.rec");

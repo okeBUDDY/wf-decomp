@@ -27,7 +27,12 @@ class cGlobal : public System {
   int RegisterActorControls();  // 0x40ff00
 
  public:
-  int unknown_08_;         // 0x08
+  enum Flags {
+    kFlagStageReplays = 0x1,  // keep a replay of every stage
+    kFlagEnglish = 0x4,       // English boss titles
+  };
+
+  unsigned int flags;      // 0x08, Flags
   int stage;               // 0x0c, the current stage (from 0)
   int unknown_10_[2];      // 0x10
   ScoreEntry entry;        // 0x18, of the current game

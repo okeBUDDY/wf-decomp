@@ -119,8 +119,17 @@ class GameHud : public Task {
     };
     // The game over screen.
     struct {
-      HLSTxt* game_over_texts_[3];  // 0x4c
-      char unknown_58_[0x74 - 0x58];
+      HLSTxt* game_over_texts_[3];  // 0x4c, "NAME:", "STAGE:", the title
+      // The boss's title: measured, then where it is drawn.
+      union {
+        SIZE title_size_;  // 0x58
+        POINT title_pos_;  // 0x58
+      };
+      float title_slide_;  // 0x60, of the title from the right
+      float frame_open_;   // 0x64, how far the frame is open (0..1)
+      float band_height_;  // 0x68
+      float chart_alpha_;  // 0x6c
+      float info_alpha_;   // 0x70
       // The chart of the boss's parameters.
       int param_count_;         // 0x74
       short params_[13];        // 0x78, CEnmParam::GetParams(), at least 0x40

@@ -248,7 +248,7 @@ int cGlobal::Initialize(Application* app) {
     Error("data.bin がオープンできません");
     return 0;
   }
-  unknown_08_ = 0;
+  flags = 0;
   if (!LoadFonts() || !LoadPatterns() || !RegisterActorControls() ||
       !LoadSounds()) {
     return 0;
