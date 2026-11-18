@@ -30,6 +30,16 @@ struct TexCoord {
 void TransformPoint(D3DTLVERTEX* out, const Transform* transform,
                     const D3DVECTOR* point);  // 0x402370
 
+// Scales `transform` by `sx` and `sy`.
+inline void ScaleTransform(Transform* transform, float sx, float sy) {
+  transform->m[0][0] *= sx;
+  transform->m[1][0] *= sx;
+  transform->m[2][0] *= sx;
+  transform->m[0][1] *= sy;
+  transform->m[1][1] *= sy;
+  transform->m[2][1] *= sy;
+}
+
 // `out` = `a` x `b`.
 void MultiplyTransform(Transform* out, const Transform* a,
                        const Transform* b);  // 0x4023d0
