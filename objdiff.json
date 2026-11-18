@@ -113,6 +113,11 @@
       "base_path": "build/obj/src/hls_txt.obj"
     },
     {
+      "name": "line_sprites",
+      "target_path": "build/target/line_sprites.obj",
+      "base_path": "build/obj/src/line_sprites.obj"
+    },
+    {
       "name": "object",
       "target_path": "build/target/object.obj",
       "base_path": "build/obj/src/object.obj"
@@ -128,6 +133,11 @@
       "base_path": "build/obj/src/path_util.obj"
     },
     {
+      "name": "player",
+      "target_path": "build/target/player.obj",
+      "base_path": "build/obj/src/player.obj"
+    },
+    {
       "name": "profile",
       "target_path": "build/target/profile.obj",
       "base_path": "build/obj/src/profile.obj"
@@ -141,11 +151,6 @@
       "name": "score_table",
       "target_path": "build/target/score_table.obj",
       "base_path": "build/obj/src/score_table.obj"
-    },
-    {
-      "name": "shockwave",
-      "target_path": "build/target/shockwave.obj",
-      "base_path": "build/obj/src/shockwave.obj"
     },
     {
       "name": "snd_buf",

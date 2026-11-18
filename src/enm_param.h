@@ -229,6 +229,8 @@ class CEnmParam : public System {
   }
 
  private:
+  friend class Control01;
+
   // Actor::destroy_hook_ while the game runs.
   static void OnActorDestroyed(Actor* source, Actor* actor);  // 0x41aa60
 

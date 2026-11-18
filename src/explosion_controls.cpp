@@ -13,7 +13,7 @@
 #include "game_data.h"
 #include "hl_3d.h"
 #include "hls_anm.h"
-#include "shockwave.h"
+#include "line_sprites.h"
 #include "snd_sys.h"
 #include "sounds.h"
 #include "sprite.h"
@@ -187,6 +187,8 @@ int Control18::OnMove(Actor* actor) {
 }
 
 // 0x410be0
+// TODO: nonmatching (the original sinks the depth counter store below the
+// pushes)
 int Control19::OnCreate(Actor* actor, void* param) {
   Control19Work* work = reinterpret_cast<Control19Work*>(actor->work);
   actor->hit_points = 1;

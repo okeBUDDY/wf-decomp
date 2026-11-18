@@ -24,6 +24,7 @@ class HLSObject;
 class HLSPatFile;
 struct EnmSlot;
 class EnmList;
+class File;
 
 // Actor::work of the parts of the boss.
 struct PartWork {
@@ -177,14 +178,34 @@ class CorePartControl : public PartControl {
 
 // Simple controls ---------------------------------------------------------
 
+// The player.
 class Control01 : public ActorControl {
  public:
+  enum Weapons { kShot, kLaser, kWeapons };
+  enum Events { kEventInvincible = 1 };
+
   virtual int Initialize();  // 0x412fe0
   virtual void Finalize() {}
-  virtual int OnCreate(Actor* actor, void* param);   // 0x413550
-  virtual void OnDestroy(Actor* actor);              // 0x412fa0
-  virtual int OnMove(Actor* actor);                  // 0x4136f0
-  virtual void OnEvent(Actor* actor, int x, int y);  // 0x4130f0
+  virtual int OnCreate(Actor* actor, void* param);  // 0x413550
+  virtual void OnDestroy(Actor* actor);             // 0x412fa0
+  virtual int OnMove(Actor* actor);                 // 0x4136f0
+  // kEventInvincible: invincible for `value` frames (for good when
+  // negative, no longer when 0).
+  virtual void OnEvent(Actor* actor, int event, int value);  // 0x4130f0
+
+  // Starts the next game with the shot.
+  static void ResetWeapon();  // 0x412f90
+  // Write / read the state of the player for a replay.
+  static int Save(Actor* actor, File* file);  // 0x413070
+  static int Load(Actor* actor, File* file);  // 0x413440
+
+ private:
+  void Fire(Actor* actor);  // 0x413130
+  // Switches to `weapon` (the next one when negative).
+  static void SelectWeapon(Actor* actor, int weapon, float x, float y);
+
+  static int weapon_;      // 0x4690ec, kept from one life to the next
+  static ActorDesc shot_;  // 0x4690b8
 };
 
 class Control08 : public ActorControl {
