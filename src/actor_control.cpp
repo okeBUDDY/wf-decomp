@@ -1,11 +1,13 @@
 #include "actor_control.h"
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "actor.h"
 #include "actor_system.h"
 #include "application.h"
+#include "cglobal.h"
 #include "enm_param.h"
 #include "game.h"
 #include "game_data.h"
@@ -213,9 +215,16 @@ int Control48::OnMove(Actor* actor) {
   return 1;
 }
 
+// Actor::work of control 43.
+struct Control43Work {
+  int unknown_00_[4];  // 0x30
+  short unknown_10_;   // 0x40
+  short sound;         // 0x42, which of the channels 19 and 20 it holds
+};
+
 // 0x414430
 void Control43::OnDestroy(Actor* actor) {
-  switch (reinterpret_cast<PartWork*>(actor->work)->unknown_12_) {
+  switch (reinterpret_cast<Control43Work*>(actor->work)->sound) {
     case 0:
       if (--sound_users_[0] == 0) {
         g_application.sound->channel(19)->Stop();
@@ -232,11 +241,16 @@ void Control43::OnDestroy(Actor* actor) {
 // 0x417c00 (this object, so the enm_param.cpp callers do not inline it)
 void CEnmParam::ClearUnknown32c() { unknown_32c_ = 0; }
 
+Actor* Control32::boss_;
+
+int g_core_controls[7] = {40, 41, 42, 44, 46, 47, 49};
+int g_debris_controls[4] = {0, 17, 18, 19};
+
 // 0x418c40
 int ScoredControl::Prepare(Actor* actor, void* param) {
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
   work->slot = static_cast<EnmSlot*>(param);
-  work->unknown_04_ = 0;
+  work->flags = 0;
   actor->hit_points = GetHitPoints(actor);
   actor->hit_points +=
       actor->hit_points * g_enm_param.state_.unknown_26_ / 1024;
@@ -249,6 +263,38 @@ void PartControl::ScaleHitPoints(Actor* actor) {
     actor->hit_points = (reinterpret_cast<PartWork*>(actor->work)->level + 3) *
                         actor->hit_points / 4;
   }
+}
+
+// 0x418da0
+int LinkedPartControl::SpawnChildren(Actor* actor, unsigned int base,
+                                     unsigned int index, int count) {
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  for (; count > 0; --count, ++index) {
+    EnmSlot* slot = g_enm_param.FindSlot(base | index);
+    if (slot == NULL) {
+      return 0;
+    }
+    Actor* child;
+    switch (slot->flags & 3) {
+      case 0:
+        child = g_actor_system.Create(g_core_controls[slot->weapon], actor,
+                                      slot->part->x, slot->part->y, 6, 0, slot);
+        break;
+      case 1:
+        child =
+            g_actor_system.Create(g_core_controls[slot->weapon], actor,
+                                  slot->part->x1, slot->part->y1, 6, 0, slot);
+        break;
+      default:
+        child = g_actor_system.Create(34, actor, slot->part->x, slot->part->y,
+                                      4, 0, slot);
+        break;
+    }
+    if (child != NULL) {
+      work->level += reinterpret_cast<PartWork*>(child->work)->level;
+    }
+  }
+  return 1;
 }
 
 // 0x418ec0
@@ -276,4 +322,360 @@ unsigned short Actor::ClampAngle(unsigned short value, short low, short high) {
     }
   }
   return result;
+}
+
+// 0x418f50
+int PartControl::SpawnPieces(Actor* actor, const PartPiece* pieces, int count) {
+  ActorDesc desc;
+  memset(&desc, 0, sizeof(desc));
+  desc.work = actor->work[0];
+  desc.color = 0xffffffff;
+  for (; count > 0; --count, ++pieces) {
+    desc.debris = g_debris_controls[pieces->debris];
+    desc.flags = 0;
+    desc.team = 0xa1;
+    desc.hit_points = 1;
+    HLSObject* sprite = pieces->file->Get(pieces->pat);
+    desc.x = pieces->x;
+    desc.sprite = sprite;
+    desc.parent = actor;
+    desc.y = pieces->y;
+    desc.layer = actor->layer + pieces->layer;
+    g_actor_system.Spawn(&desc);
+  }
+  return 1;
+}
+
+// 0x419020
+void PartControl::PlayTrans(PartWork* work) {
+  if (!(work->flags & PartWork::kTrans)) {
+    work->flags |= PartWork::kTrans;
+    ++g_enm_param.trans_count_;
+    g_application.sound->channel(27)->Assign(&g_snd_trans1, 0, 1.0f);
+  }
+}
+
+// 0x419070
+int PartControl::InitPart(Actor* actor, void* param) {
+  Prepare(actor, param);
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  const EnmPlanPart* part = work->slot->part;
+  EnmSlot* parent =
+      g_enm_param.FindSlot(CEnmParam::ParentCode(work->slot->code));
+  if (part->flags & EnmPlanPart::kGuard) {
+    actor->team = 0xa1;
+    work->level = 0;
+  } else {
+    actor->team = 0x61;
+    work->level = 1;
+  }
+  if (parent != NULL && (parent->part->flags & EnmPlanPart::kTurret) &&
+      !(work->slot->code & 7)) {
+    work->turret = actor->parent;
+    work->low = parent->low;
+    work->high = parent->high;
+  } else {
+    work->turret = actor;
+    work->low = work->slot->low;
+    work->high = work->slot->high;
+  }
+  work->angle = (part->flags & EnmPlanPart::kAimHigh) ? work->high : work->low;
+  if ((work->slot->flags & 3) == 1) {
+    work->flags |= 0x10000;
+  } else if (part->flags & 0x20) {
+    work->flags |= 0x20000;
+  } else if (part->flags & 0x10) {
+    work->flags |= 0x10000;
+  }
+  work->turret->angle = work->angle;
+  work->turret->start_angle = work->turret->angle;
+  work->max_hit_points = actor->hit_points;
+  work->flags |= PartWork::kAlive;
+  work->unknown_18_ = 0;
+  int side = (work->slot->code & CEnmParam::kSideMask) == 0x80000000;
+  ++g_enm_param.parts_alive_[side];
+  if (work->flags & 0x20000) {
+    ++g_enm_param.unknown_104_[side];
+  }
+  if (work->slot->flags & 8) {
+    ++g_enm_param.armored_parts_[side];
+    work->flags |= 0x40000;
+  }
+  return 1;
+}
+
+// 0x419220
+int CorePartControl::InitCore(Actor* actor, void* param) {
+  InitPart(actor, param);
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  work->rank = work->slot->power * 100 / 1024;
+  work->unknown_22_ = 0;
+  Setup(actor, work->rank);
+  g_enm_param.core_power_[(work->slot->code & CEnmParam::kSideMask) ==
+                          0x80000000][GetLevel()] += work->rank + 50;
+  ++g_enm_param.core_count_;
+  return 1;
+}
+
+// 0x4192b0
+// TODO: nonmatching (`this` and the sprite swap ebx and ebp).
+int LinkedPartControl::InitLinked(Actor* actor, void* param) {
+  InitPart(actor, param);
+  const EnmPlanPart* part =
+      reinterpret_cast<PartWork*>(actor->work)->slot->part;
+  actor->debris = g_debris_controls[part->debris];
+  actor->color = g_enm_param.state_.color;
+  if (part->flags & EnmPlanPart::kMirrorX) {
+    actor->flags |= Actor::kMirrorX;
+    actor->matrix_angle += 0x1000;
+  }
+  if (part->flags & EnmPlanPart::kMirrorY) {
+    actor->flags |= Actor::kMirrorY;
+    actor->matrix_angle += 0x1000;
+  }
+  actor->SetSprite(PlanPatFile(part->pat_file)->Get(part->pat));
+  if (part->flags & 0x10) {
+    OnDamage(actor, 6);
+  } else {
+    OnDamage(actor, 0);
+  }
+  return 1;
+}
+
+// 0x419370
+void LinkedPartControl::OnEvent(Actor* actor, int x, int y) {
+  int count = y & 0xff;
+  if ((y & 0x1000) &&
+      ((y & 0x2000) ||
+       (reinterpret_cast<PartWork*>(actor->work)->flags & PartWork::kAlive)) &&
+      ((y & 0x100) || count == 0)) {
+    OnDamage(actor, x);
+  }
+  if (--count >= 0) {
+    y = (y & ~0xff) | count;
+    for (Actor* child = actor->first_child; child != NULL;
+         child = child->prev_sibling) {
+      if (child->control != NULL) {
+        child->control->OnEvent(child, x, y);
+      }
+    }
+  }
+}
+
+// 0x419400
+void LinkedPartControl::OnChildDestroyed(Actor* parent, Actor* child) {
+  PartWork* work = reinterpret_cast<PartWork*>(parent->work);
+  if (child->team == 0x61) {
+    if (parent->team != 0xa1 && work->level > 1) {
+      int old_level = work->level;
+      work->level -= reinterpret_cast<PartWork*>(child->work)->level;
+      parent->hit_points =
+          abs(parent->hit_points) * (work->level + 3) / (old_level + 3);
+      if (parent->hit_points < 1) {
+        parent->hit_points = 1;
+      }
+      if (work->level == 1) {
+        g_actor_system.Create(35, parent, 0.0f, 0.0f, 4, 0, work->slot);
+      }
+    }
+    if (parent->id != 32) {
+      parent->parent->control->OnChildDestroyed(parent->parent, child);
+    }
+  }
+}
+
+// 0x419580
+void PartControl::StopTrans(PartWork* work, int next) {
+  if (work->flags & PartWork::kTrans) {
+    work->flags &= ~PartWork::kTrans;
+    if (--g_enm_param.trans_count_ <= 0) {
+      g_application.sound->channel(27)->Stop();
+    }
+    if (next) {
+      g_application.sound->channel(28)->Assign(&g_snd_trans2, 0, 1.0f);
+    }
+  }
+}
+
+// 0x4195f0
+// TODO: nonmatching (the original does not rotate the loop over the
+// ancestors).
+void PartControl::OnDestroy(Actor* actor) {
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  work->slot->lerp_at = actor->angle;
+  // Each destroyed ancestor doubles the chain; the root counts as one.
+  int chain = 1;
+  int rapid = 1;
+  Actor* ancestor = actor;
+  for (;;) {
+    ancestor = ancestor->parent;
+    if (ancestor == NULL) {
+      chain >>= 1;
+      break;
+    }
+    if (ancestor->flags != Actor::kDead) {
+      break;
+    }
+    chain <<= 1;
+  }
+  if (chain > 32) {
+    chain = 32;
+  } else if (chain == 1) {
+    // Destroyed fast: in percent of its hit points per frame.
+    int speed = work->max_hit_points * 100 / (actor->age - actor->hit_age + 1);
+    rapid = chain;
+    if (speed > 110) {
+      rapid <<= speed / 55 - 1;
+      ++work->slot->hits;
+      if (rapid > 32) {
+        rapid = 32;
+      }
+    }
+  }
+  if (work->flags & PartWork::kTrans) {
+    work->flags &= ~PartWork::kTrans;
+    if (--g_enm_param.trans_count_ <= 0) {
+      g_application.sound->channel(27)->Stop();
+    }
+  }
+  g_enm_param.LogDestroy(work->slot, chain, rapid);
+  if (chain == 1) {
+    work->slot->power += 20;
+    if (work->slot->power > 0x400) {
+      work->slot->power = 0x400;
+    } else if (work->slot->power < 0) {
+      work->slot->power = 0;
+    }
+    g_game.OnPartDestroyed();
+  }
+  int side = (work->slot->code & CEnmParam::kSideMask) == 0x80000000;
+  --g_enm_param.parts_alive_[side];
+  if (work->flags & 0x20000) {
+    --g_enm_param.unknown_104_[side];
+  }
+  if (work->flags & 0x40000) {
+    --g_enm_param.armored_parts_[side];
+  }
+  int score = GetScore(actor);
+  g_enm_param.score_base_ += score;
+  if (rapid > 1) {
+    ++g_enm_param.rapid_count_;
+    g_enm_param.score_rapid_ += (rapid - 1) * score;
+  }
+  if (chain > 1) {
+    ++g_enm_param.chain_count_;
+    g_enm_param.score_chain_ += (chain - 1) * score;
+  }
+  g_global.score += score * rapid * chain;
+}
+
+// 0x4197d0
+void CorePartControl::OnDestroy(Actor* actor) {
+  PartControl::OnDestroy(actor);
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  g_enm_param.core_power_[(work->slot->code & CEnmParam::kSideMask) ==
+                          0x80000000][GetLevel()] -= work->rank + 50;
+  --g_enm_param.core_count_;
+  EnmSlot* slot = work->slot;
+  if (slot->power > g_enm_param.state_.weapon_levels[slot->weapon]) {
+    g_enm_param.state_.weapon_levels[slot->weapon] = slot->power;
+  }
+}
+
+// 0x419850
+void PartControl::SpawnFlare(Actor* actor) {
+  unsigned short angle =
+      Control32::boss_->AngleTo(actor->screen.m[2][0], actor->screen.m[2][1]);
+  short offset = (g_enm_param.unknown_158_ - angle) & 0x3ff;
+  if (offset > 0x100 && offset < 0x300) {
+    if (actor->transform != &actor->screen) {
+      angle = actor->parent->ToLocalAngle(angle);
+      if (actor->flags & Actor::kMirrorX) {
+        angle = -angle;
+      }
+      if (actor->flags & Actor::kMirrorY) {
+        angle = 0x200 - angle;
+      }
+    }
+    g_actor_system.Create(23, actor, 0.0f, 0.0f, 1, angle, NULL);
+    ++g_enm_param.unknown_164_;
+  }
+}
+
+// 0x4194a0
+int PartControl::SpawnItems(Actor* actor) {
+  EnmSlot* slot = reinterpret_cast<PartWork*>(actor->work)->slot;
+  const EnmPlanPart* part = slot->part;
+  const EnmPlanItem* item = part->item;
+  ActorDesc desc;
+  memset(&desc, 0, sizeof(desc));
+  desc.color = 0xffffffff;
+  desc.work = reinterpret_cast<int>(slot);
+  int count = part->item_count;
+  for (int i = 0; i < count; ++i, ++item) {
+    desc.debris = g_debris_controls[item->debris];
+    desc.flags = 0;
+    desc.team = 0xa1;
+    desc.hit_points = 1;
+    HLSObject* sprite = PlanPatFile(item->pat_file)->Get(item->pat);
+    desc.sprite = sprite;
+    desc.parent = actor;
+    desc.x = item->x;
+    desc.y = item->y;
+    desc.layer = 5;
+    g_actor_system.Spawn(&desc);
+  }
+  return 1;
+}
+
+// 0x4113d0
+unsigned short Actor::ScreenAngle() {
+  if (transform == &screen) {
+    return angle;
+  }
+  unsigned short result = angle;
+  for (Actor* ancestor = parent; ancestor != system_->actors_;
+       ancestor = ancestor->parent) {
+    if (ancestor->flags & kMirrorX) {
+      result = -result;
+    }
+    if (ancestor->flags & kMirrorY) {
+      result = 0x200 - result;
+    }
+    result += ancestor->angle;
+  }
+  return result;
+}
+
+// 0x411690
+unsigned short Actor::ToLocalAngle(unsigned short screen_angle) {
+  if (transform != &screen) {
+    screen_angle = parent->ToLocalAngle(screen_angle);
+  }
+  screen_angle -= angle;
+  if (flags & kMirrorX) {
+    screen_angle = -screen_angle;
+  }
+  if (flags & kMirrorY) {
+    screen_angle = 0x200 - screen_angle;
+  }
+  return screen_angle;
+}
+
+// 0x411d90
+// TODO: nonmatching (the original returns `result` with mov eax, ecx).
+unsigned short Actor::AngleTo(float x, float y) {
+  if (!(flags & kMovedOnce)) {
+    return angle;
+  }
+  float dx = x - screen.m[2][0];
+  float dy = y - screen.m[2][1];
+  if (dx == 0.0f && dy == 0.0f) {
+    return angle;
+  }
+  int result = 0x100 - static_cast<int>(atan2(dy, dx) * -162.97466f);
+  if (transform == &screen) {
+    return result;
+  }
+  return parent->ToLocalAngle(result);
 }

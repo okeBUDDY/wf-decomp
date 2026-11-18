@@ -21,21 +21,6 @@ short g_weapon_order[3][7] = {
 // (0x45d990).
 char g_step_costs[12] = {1, 1, 1, 1, 1, 1, 3, 1, 3, 5, 0, 0};
 
-// The code of the parent of the part at `code`.
-static inline unsigned int ParentCode(unsigned int code) {
-  return (code & CEnmParam::kSideMask) | ((code & CEnmParam::kCodeMask) >> 3);
-}
-
-// Adds `delta` to `value`, keeping it within 0..0x400.
-static inline void AddClamped(short* value, int delta) {
-  *value += delta;
-  if (*value > 0x400) {
-    *value = 0x400;
-  } else if (*value < 0) {
-    *value = 0;
-  }
-}
-
 // 0x419e60
 CEnmParam::CEnmParam() {
   slots_ = NULL;
@@ -226,24 +211,24 @@ void CEnmParam::ChooseWeapon(EnmSlot* slot, EnmSlot* parent) {
 }
 
 // 0x41a4c0
-void CEnmParam::LogDestroy(EnmSlot* slot, int how, int chain) {
+void CEnmParam::LogDestroy(EnmSlot* slot, int chain, int rapid) {
   if (record_count_ < record_capacity_) {
     EnmDestroyRecord* record = &records_[record_count_];
     record->slot = slot;
-    record->how = how;
     record->chain = chain;
+    record->rapid = rapid;
     ++record_count_;
-    if (chain > 1) {
+    if (rapid > 1) {
       EnmSideStats* side =
           &state_.sides[(slot->code & kSideMask) == 0x80000000];
       if (side->mode == 0) {
         ++side->unknown_08_;
       }
-      AddClamped(&state_.unknown_26_, chain * 7);
-      AddClamped(&state_.unknown_2a_, chain * -5);
+      AddClamped(&state_.unknown_26_, rapid * 7);
+      AddClamped(&state_.unknown_2a_, rapid * -5);
     }
-    if (how == 1) {
-      AddClamped(&state_.unknown_26_, chain);
+    if (chain == 1) {
+      AddClamped(&state_.unknown_26_, rapid);
     }
   }
 }
@@ -376,7 +361,7 @@ int CEnmParam::CountDestroyed(int count, unsigned int* kinds, int unique,
                               int all) {
   EnmDestroyRecord* record = records_;
   for (int i = record_count_; i > 0; --i, ++record) {
-    if ((record->slot->flags & 3) == 1 && (all || record->how <= 2)) {
+    if ((record->slot->flags & 3) == 1 && (all || record->chain <= 2)) {
       int side;
       switch (record->slot->code & kSideMask) {
         case 0x40000000:

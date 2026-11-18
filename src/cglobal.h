@@ -17,7 +17,7 @@ class cGlobal : public System {
   int unknown_08_;      // 0x08
   int stage;            // 0x0c, the current stage (from 0)
   int unknown_10_[2];   // 0x10
-  int unknown_18_;      // 0x18
+  int score;            // 0x18
   int unknown_1c_;      // 0x1c
   short unknown_20_;    // 0x20
   short deaths;         // 0x22, in this game

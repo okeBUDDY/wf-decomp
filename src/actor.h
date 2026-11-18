@@ -106,6 +106,13 @@ class Actor {
   // nearer of them.
   unsigned short ClampAngle(unsigned short value, short low,
                             short high);  // 0x418ef0
+  // The angle on the screen.
+  unsigned short ScreenAngle();  // 0x4113d0
+  // `screen_angle` relative to the actor.
+  unsigned short ToLocalAngle(unsigned short screen_angle);  // 0x411690
+  // The angle from the actor to (`x`, `y`) on the screen, relative to its
+  // parent; its own angle before it has moved or when it is there.
+  unsigned short AngleTo(float x, float y);  // 0x411d90
   // Moves the actor to the draw list of `new_layer`.
   void SetLayer(unsigned short new_layer);  // 0x4108c0
   // Replaces the sprite (the null sprite for NULL).

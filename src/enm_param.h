@@ -11,30 +11,45 @@
 class Actor;
 class File;
 
-// A part template of plan.dat (0x48 bytes).
-struct EnmPlanPart {
-  unsigned int code;         // 0x00, the position in the part tree
-  unsigned int flags;        // 0x04
-  unsigned int kind;         // 0x08
-  int unknown_0c_;           // 0x0c
-  short unknown_10_;         // 0x10
-  short low;                 // 0x12
-  short high;                // 0x14
-  short unknown_16_[15];     // 0x16
-  short lerp_from;           // 0x34
-  short lerp_to;             // 0x36
-  short child_count;         // 0x38
-  short option_count;        // 0x3a, children added in mode 1 or 2
-  short option4_count;       // 0x3c, children added in mode 4
-  short extra_child_count;   // 0x3e
-  int unknown_40_;           // 0x40
-  struct EnmPlanItem* item;  // 0x44, an index into EnmPlan::items_ on disk
-};
-
-// A weapon or extra of plan.dat (0x1c bytes).
+// A weapon or extra of plan.dat (0x1c bytes); the start of a part
+// template.
 struct EnmPlanItem {
   unsigned int code;   // 0x00
-  int unknown_04_[6];  // 0x04
+  unsigned int flags;  // 0x04
+  unsigned int kind;   // 0x08
+  short x;             // 0x0c, relative to the parent
+  short y;             // 0x0e
+  short unknown_10_;   // 0x10
+  short low;           // 0x12
+  short high;          // 0x14
+  short debris;        // 0x16, an index into g_debris_controls
+  short pat_file;      // 0x18, see PlanPatFile()
+  short pat;           // 0x1a
+};
+
+// A part template of plan.dat (0x48 bytes).
+struct EnmPlanPart : EnmPlanItem {
+  enum Flags {
+    kMirrorX = 0x1,
+    kMirrorY = 0x2,
+    kGuard = 0x4,     // takes no damage
+    kAimHigh = 0x40,  // starts at `high`
+    kTurret = 0x80,   // its first child turns it
+  };
+
+  short unknown_1c_[9];     // 0x1c
+  short x1;                 // 0x2e, where it is while armed (flags & 3 == 1)
+  short y1;                 // 0x30
+  short unknown_32_;        // 0x32
+  short lerp_from;          // 0x34
+  short lerp_to;            // 0x36
+  short child_count;        // 0x38
+  short option_count;       // 0x3a, children added in mode 1 or 2
+  short option4_count;      // 0x3c, children added in mode 4
+  short extra_child_count;  // 0x3e
+  short item_count;         // 0x40
+  short unknown_42_;        // 0x42
+  EnmPlanItem* item;        // 0x44, an index into EnmPlan::items_ on disk
 };
 
 // The contents of plan.dat (vtable 0x4514ac, enm_plan.cpp).
@@ -104,9 +119,19 @@ struct EnmSlot {
 // A logged destruction (8 bytes).
 struct EnmDestroyRecord {
   EnmSlot* slot;  // 0x00
-  short how;      // 0x04
-  short chain;    // 0x06
+  short chain;    // 0x04, the parts destroyed with it (a power of 2)
+  short rapid;    // 0x06, how fast it was destroyed (a power of 2)
 };
+
+// Adds `delta` to `value`, keeping it within 0..0x400.
+inline void AddClamped(short* value, int delta) {
+  *value += delta;
+  if (*value > 0x400) {
+    *value = 0x400;
+  } else if (*value < 0) {
+    *value = 0;
+  }
+}
 
 // Destructions counted for one side of the boss (10 bytes).
 struct EnmSideStats {
@@ -162,7 +187,7 @@ class CEnmParam : public System {
   // Takes the slot for the part at `code` of `kind`; NULL when full.
   EnmSlot* AllocSlot(unsigned int code, int kind);  // 0x41a2a0
   // Logs the destruction of `slot`.
-  void LogDestroy(EnmSlot* slot, int how, int chain);  // 0x41a4c0
+  void LogDestroy(EnmSlot* slot, int chain, int rapid);  // 0x41a4c0
   // Saves / loads the state; 0 on failure.
   int Save(File* file);  // 0x41a5b0
   int Load(File* file);  // 0x41a660
@@ -176,23 +201,6 @@ class CEnmParam : public System {
   // `*lines` high.
   void FormatResult(char* text, int* columns, int* lines);  // 0x41a090
   void ClearUnknown32c();                                   // 0x417c00
-
- private:
-  // Actor::destroy_hook_ while the game runs.
-  static void OnActorDestroyed(Actor* source, Actor* actor);  // 0x41aa60
-
-  void Count(EnmSlot* slot, int side);  // 0x41a190
-  // Counts up to `count` logged destructions of parts of kind 1 (only those
-  // destroyed by the first two ways unless `all`; one per side when
-  // `unique`), keeping the first kind of each side in `kinds`. Returns the
-  // count left.
-  int CountDestroyed(int count, unsigned int* kinds, int unique,
-                     int all);                        // 0x41a730
-  void ChooseWeapon(EnmSlot* slot, EnmSlot* parent);  // 0x41a3a0
-  // Plans the part at `code` (taking a slot for it when it has none) and
-  // its children.
-  void Grow(EnmSlot* parent, unsigned int code, int kind);  // 0x41a820
-
   // The slot of the part at `code`, NULL without one.
   EnmSlot* FindSlot(unsigned int code) {
     if (code != 0) {
@@ -204,29 +212,60 @@ class CEnmParam : public System {
     }
     return NULL;
   }
+  // The code of the parent of the part at `code`.
+  static unsigned int ParentCode(unsigned int code) {
+    return (code & kSideMask) | ((code & kCodeMask) >> 3);
+  }
+
+ private:
+  // Actor::destroy_hook_ while the game runs.
+  static void OnActorDestroyed(Actor* source, Actor* actor);  // 0x41aa60
+
+  void Count(EnmSlot* slot, int side);  // 0x41a190
+  // Counts up to `count` logged destructions of parts of kind 1 (only those
+  // destroyed alone or in a chain of 2 unless `all`; one per side when
+  // `unique`), keeping the first kind of each side in `kinds`. Returns the
+  // count left.
+  int CountDestroyed(int count, unsigned int* kinds, int unique,
+                     int all);                        // 0x41a730
+  void ChooseWeapon(EnmSlot* slot, EnmSlot* parent);  // 0x41a3a0
+  // Plans the part at `code` (taking a slot for it when it has none) and
+  // its children.
+  void Grow(EnmSlot* parent, unsigned int code, int kind);  // 0x41a820
+
   // Adds step `id` to the steps of the game unless it is there already.
   void AddStep(int id);
 
  public:
   // The controls read and change much of this directly.
 
-  EnmState state_;             // 0x08
-  int unknown_84_[4];          // 0x84
-  int unknown_94_;             // 0x94
-  int unknown_98_;             // 0x98
-  EnmList list_9c_;            // 0x9c
-  EnmList list_b0_;            // 0xb0
-  EnmList lists_c4_[2];        // 0xc4
-  int unknown_ec_[8];          // 0xec
-  int weapon_parts_[7];        // 0x10c, parts planned per weapon
-  int power_total_;            // 0x128, of the parts planned
-  int part_total_;             // 0x12c, parts planned
-  int unknown_130_[5];         // 0x130
-  int unknown_144_;            // 0x144
+  EnmState state_;       // 0x08
+  int unknown_84_[4];    // 0x84
+  int unknown_94_;       // 0x94
+  int unknown_98_;       // 0x98
+  EnmList list_9c_;      // 0x9c
+  EnmList list_b0_;      // 0xb0
+  EnmList lists_c4_[2];  // 0xc4
+  // Parts of the boss in battle, per side.
+  int parts_alive_[2];    // 0xec
+  int unknown_f4_[2];     // 0xf4
+  int armored_parts_[2];  // 0xfc, of slots with flag 8
+  int unknown_104_[2];    // 0x104, with PartWork flag 0x20000
+  union {
+    // While planning.
+    struct {
+      int weapon_parts_[7];  // 0x10c, parts planned per weapon
+      int power_total_;      // 0x128, of the parts planned
+      int part_total_;       // 0x12c, parts planned
+    };
+    // In battle: the rank + 50 of the cores per side and level.
+    int core_power_[2][7];  // 0x10c
+  };
+  int core_count_;             // 0x144
   int unknown_148_;            // 0x148
   int unknown_14c_;            // 0x14c
   int glow_time;               // 0x150, of the glow (control 22) of a part
-  int unknown_154_;            // 0x154
+  int trans_count_;            // 0x154, parts that played trans1
   int unknown_158_;            // 0x158
   int unknown_15c_;            // 0x15c
   float unknown_160_;          // 0x160

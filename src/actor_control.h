@@ -19,17 +19,44 @@
 
 class Actor;
 struct ActorDesc;
+class HLSPatFile;
 struct EnmSlot;
 
 // Actor::work of the parts of the boss.
 struct PartWork {
-  EnmSlot* slot;      // 0x30
-  int unknown_04_;    // 0x34
-  void* param;        // 0x38
-  int unknown_0c_;    // 0x3c
-  short level;        // 0x40
-  short unknown_12_;  // 0x42
+  enum Flags {
+    kAlive = 0x1000000,
+    kTrans = 0x4000000,  // has played trans1
+  };
+
+  EnmSlot* slot;       // 0x30
+  unsigned int flags;  // 0x34
+  Actor* turret;       // 0x38, what turns: the part itself or its parent
+  int max_hit_points;  // 0x3c
+  short level;         // 0x40, the levels of the part and its children
+  short low;           // 0x42, of the angles the turret may turn to
+  short high;          // 0x44
+  short angle;         // 0x46, where the turret starts
+  int unknown_18_;     // 0x48
+  int unknown_1c_;     // 0x4c
+  short rank;          // 0x50, of a core: its power in percent
+  short unknown_22_;   // 0x52
 };
+
+// A sprite spawned on a part (0x10 bytes).
+struct PartPiece {
+  float x;           // 0x00
+  float y;           // 0x04
+  char layer;        // 0x08, relative to the part's
+  char debris;       // 0x09, an index into g_debris_controls
+  short pat;         // 0x0a
+  HLSPatFile* file;  // 0x0c
+};
+
+// The controls of the cores by weapon (0x45d91c).
+extern int g_core_controls[7];
+// The debris controls by size (0x45d938).
+extern int g_debris_controls[4];
 
 class ActorControl {
  public:
@@ -61,14 +88,29 @@ class ScoredControl : public ActorControl {
 
 class PartControl : public ScoredControl {
  public:
+  virtual void OnDestroy(Actor* actor);          // 0x4195f0
   virtual void OnDamage(Actor* actor, int how);  // 0x4198e0
   // Scales the hit points by the level of the part.
   void ScaleHitPoints(Actor* actor);  // 0x418d70
+  // Sets the actor up as the part planned in `param` (an EnmSlot).
+  int InitPart(Actor* actor, void* param);  // 0x419070
+  // Spawns `count` sprites from `pieces` on the part.
+  int SpawnPieces(Actor* actor, const PartPiece* pieces,
+                  int count);  // 0x418f50
+  // Spawns the items of the part template.
+  int SpawnItems(Actor* actor);  // 0x4194a0
+  // Plays trans1 the first time.
+  void PlayTrans(PartWork* work);  // 0x419020
+  // Stops trans1 when no part plays it any more; then plays trans2 when
+  // `next`.
+  void StopTrans(PartWork* work, int next);  // 0x419580
+  // Spawns control 23 on the part, pointing away from the boss, unless the
+  // part is within a quarter turn of CEnmParam::unknown_158_ from it.
+  void SpawnFlare(Actor* actor);  // 0x419850
 };
 
 class LinkedPartControl : public PartControl {
  public:
-  virtual void OnDestroy(Actor* actor);                        // 0x4195f0
   virtual int OnMove(Actor* actor);                            // 0x419cc0
   virtual void OnEvent(Actor* actor, int x, int y);            // 0x419370
   virtual void OnChildDestroyed(Actor* parent, Actor* child);  // 0x419400
@@ -78,6 +120,12 @@ class LinkedPartControl : public PartControl {
   virtual int GetHitPoints(Actor* actor);
   // Spawns the glow (control 22) on `actor`; 0 when it cannot.
   int SpawnGlow(Actor* actor);  // 0x418ec0
+  // InitPart() plus the look of the part.
+  int InitLinked(Actor* actor, void* param);  // 0x4192b0
+  // Spawns the `count` children at `base` | `index`... of the part; 0 when
+  // one was not planned.
+  int SpawnChildren(Actor* actor, unsigned int base, unsigned int index,
+                    int count);  // 0x418da0
 };
 
 class CorePartControl : public PartControl {
@@ -86,6 +134,8 @@ class CorePartControl : public PartControl {
   virtual void OnEvent(Actor* actor, int x, int y);  // 0x418cc0
   virtual int GetLevel() = 0;
   virtual void Setup(Actor* actor, int rank) = 0;
+  // InitPart() plus the rank of the core.
+  int InitCore(Actor* actor, void* param);  // 0x419220
 };
 
 // Simple controls ---------------------------------------------------------
@@ -208,6 +258,9 @@ class Control32 : public PartControl {
   virtual void OnChildDestroyed(Actor* parent, Actor* child);  // 0x412400
   virtual int GetScore(Actor* actor);                          // 0x411530
   virtual int GetHitPoints(Actor* actor) { return 1; }
+
+  // The body of the boss while it is alive.
+  static Actor* boss_;  // 0x469270
 };
 
 class Control33 : public LinkedPartControl {

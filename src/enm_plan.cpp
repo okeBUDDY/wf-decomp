@@ -53,7 +53,7 @@ const EnmPlanPart* EnmPlan::Find(unsigned int code, int kind) {
     for (EnmPlanItem* weapon = &weapons_[weapon_count_ - 1]; weapon >= weapons_;
          --weapon) {
       if (weapon->code == code) {
-        return reinterpret_cast<EnmPlanPart*>(weapon);
+        return static_cast<EnmPlanPart*>(weapon);
       }
     }
     return NULL;
