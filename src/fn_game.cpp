@@ -2,8 +2,10 @@
 #include "fn_game.h"
 
 #include "actor.h"
+#include "actor_control.h"
 #include "actor_system.h"
 #include "application.h"
+#include "background.h"
 #include "cglobal.h"
 #include "enm_param.h"
 #include "fn_title.h"
@@ -19,7 +21,7 @@
 // 0x41be00
 FnGame::FnGame() {
   name_ = "fnGame";
-  unknown_14_ = NULL;
+  background_ = NULL;
   hud_ = NULL;
   mode_ = 0;
 }
@@ -238,14 +240,65 @@ void FnGame::Move() {
   g_actor_system.MoveAll();
 }
 
+// 0x41bf50
+// TODO: nonmatching: the original loads g_application.input into ecx
+// (eax, which held `pause`, here).
+int FnGame::Initialize() {
+  g_global.ClearStage();
+  g_global.ResetGame();
+  g_game.Start(&g_global.rules);
+  Control01::ResetWeapon();
+  stage_score_ = 0;
+  exit_time_ = 0;
+  exit_frames_ = 0;
+  flags_ = 0;
+  BackgroundGrid* background = new BackgroundGrid;
+  background_ = background;
+  if (background == NULL) {
+    Error("ﾒﾓﾘが足りません");
+    return 0;
+  }
+  background->app_ = &g_application;
+  background->color_ = 0xff004030;
+  background->speed_ = 8.0f;
+  g_application.tasks.AddBack(background_, 2);
+  GameHud* hud = new GameHud;
+  hud_ = hud;
+  if (hud == NULL) {
+    Error("ﾒﾓﾘが足りません");
+    return 0;
+  }
+  g_application.overlays.Add(hud, 2, NULL);
+  SetState(kStateStart);
+  int pause = g_global.flags & cGlobal::kFlagPause;
+  switch (mode_) {
+    case 0:
+      if (g_bgm.loaded()) {
+        flags_ |= kFlagMusic;
+      }
+      break;
+    case 1:
+      flags_ |= kFlagPlayback | kFlagReplayList;
+      break;
+    case 2:
+      g_application.sound->MuteGroup(1, -1);
+      flags_ |= kFlagPlayback;
+      return 1;
+  }
+  if (pause) {
+    g_application.input->set_time_stop_mask(0x8000);
+  }
+  return 1;
+}
+
 // 0x41c0e0
 void FnGame::Finalize() {
   g_replay.Close();
   g_application.input->set_time_stop_mask(0);
   g_actor_system.DestroyAll();
   g_global.ResetSound();
-  g_application.tasks.Delete(unknown_14_);
-  unknown_14_ = NULL;
+  g_application.tasks.Delete(background_);
+  background_ = NULL;
   g_application.overlays.Delete(hud_);
   hud_ = NULL;
 }

@@ -6,8 +6,8 @@
 #include "hl_input.h"
 #include "user_func.h"
 
+class BackgroundGrid;
 class GameHud;
-class Task;
 
 class FnGame : public UserFunc {
  public:
@@ -66,18 +66,18 @@ class FnGame : public UserFunc {
     kStateGameOver = 50,  // 50-51
   };
 
-  Task* unknown_14_;           // 0x14
-  GameHud* hud_;               // 0x18
-  unsigned int flags_;         // 0x1c
-  int mode_;                   // 0x20
-  int bgm_mode_;               // 0x24, BgmMode
-  short exit_frames_;          // 0x28, frames until the stage ends, 0: running
-  short exit_time_;            // 0x2a
-  unsigned short state_;       // 0x2c
-  unsigned short state_time_;  // 0x2e, frames in state_
-  int stage_score_;            // 0x30, the score when the stage started
-  unsigned short keys_;        // 0x34, held this frame
-  unsigned short pressed_;     // 0x36, pressed this frame
+  BackgroundGrid* background_;  // 0x14
+  GameHud* hud_;                // 0x18
+  unsigned int flags_;          // 0x1c
+  int mode_;                    // 0x20
+  int bgm_mode_;                // 0x24, BgmMode
+  short exit_frames_;           // 0x28, frames until the stage ends, 0: running
+  short exit_time_;             // 0x2a
+  unsigned short state_;        // 0x2c
+  unsigned short state_time_;   // 0x2e, frames in state_
+  int stage_score_;             // 0x30, the score when the stage started
+  unsigned short keys_;         // 0x34, held this frame
+  unsigned short pressed_;      // 0x36, pressed this frame
 };
 
 extern FnGame g_fn_game;  // 0x467c98
