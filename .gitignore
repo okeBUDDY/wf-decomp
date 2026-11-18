@@ -1,0 +1,12 @@
+/build/
+/orig/*
+!/orig/README.md
+/lib/src/
+__pycache__/
+*.pyc
+*.obj
+*.exe
+*.lib
+*.pdb
+*.ilk
+*.cod
