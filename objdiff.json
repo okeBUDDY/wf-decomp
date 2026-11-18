@@ -118,6 +118,11 @@
       "base_path": "build/obj/src/profile.obj"
     },
     {
+      "name": "record",
+      "target_path": "build/target/record.obj",
+      "base_path": "build/obj/src/record.obj"
+    },
+    {
       "name": "score_table",
       "target_path": "build/target/score_table.obj",
       "base_path": "build/obj/src/score_table.obj"

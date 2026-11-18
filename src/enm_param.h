@@ -164,7 +164,12 @@ struct EnmState {
   unsigned int step_mask;    // 0x4c, the steps added so far
   short step_count;          // 0x50
   short step_total;          // 0x52
-  char steps[24][2];         // 0x54
+  char steps[19][2];         // 0x54
+  char title[2];             // 0x7a, words of the boss's title, -1: none
+  short unknown_7c_;         // 0x7c
+  short unknown_7e_;         // 0x7e
+  short unknown_80_;         // 0x80
+  short unknown_82_;         // 0x82
 };
 
 class CEnmParam : public System {

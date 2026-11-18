@@ -14,19 +14,37 @@ class cGlobal : public System {
   virtual void Pause() {}
   virtual void Resume() {}
 
-  int unknown_08_;      // 0x08
-  int stage;            // 0x0c, the current stage (from 0)
-  int unknown_10_[2];   // 0x10
-  int score;            // 0x18
-  int unknown_1c_;      // 0x1c
-  short unknown_20_;    // 0x20
-  short deaths;         // 0x22, in this game
-  int unknown_24_;      // 0x24
-  void* unknown_28_;    // 0x28
-  float music_volume;   // 0x2c
-  float effect_volume;  // 0x30
+  int unknown_08_;         // 0x08
+  int stage;               // 0x0c, the current stage (from 0)
+  int unknown_10_[2];      // 0x10
+  int score;               // 0x18
+  int unknown_1c_;         // 0x1c
+  short unknown_20_;       // 0x20
+  short deaths;            // 0x22, in this game
+  int unknown_24_;         // 0x24
+  void* unknown_28_;       // 0x28
+  float music_volume;      // 0x2c
+  float effect_volume;     // 0x30
+  char replay_path[0x48];  // 0x34, of the replay to play, "" for none
+  char last_record[0x48];  // 0x7c, where the last game was saved
+
+  // Creates the record directory; returns 1.
+  int InitRecords();   // 0x4186f0
+  void ClearReplay();  // 0x418710
 };
 
 extern cGlobal g_global;  // 0x467538
+
+// The rating of the last game.
+struct GameRating {
+  char stage;  // where the game ended
+  char grade;  // 0..6
+  char title;  // with grades 5 and 6: the first word of the boss's title
+};
+
+extern GameRating g_rating;  // 0x468fa0
+
+// Rates the game that just ended.
+void RateGame();  // 0x418b60
 
 #endif  // WF_CGLOBAL_H_
