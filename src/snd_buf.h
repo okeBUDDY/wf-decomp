@@ -10,6 +10,7 @@
 #include "object.h"
 
 class CSndFile;
+class CSndBufList;
 
 class CSndBuf : public Object {
  public:
@@ -39,8 +40,12 @@ class CSndBuf : public Object {
   // Gives back a buffer returned by GetBuffer().
   virtual void ReleaseBuffer(IDirectSoundBuffer* buffer);  // 0x40ded0
 
+  // Volume group (0..3) of the buffer.
+  int group() const { return flags_ & 0xff; }
+
  private:
   friend class CSndBufList;
+  friend class SoundSystem;
 
   int CreateBuffer(WAVEFORMATEX* format, int size);  // 0x40def0
   CSndFile* OpenSndFile(const char* path,
@@ -64,41 +69,10 @@ class CSndBuf : public Object {
   char* path_;                  // 0x24
 };
 
-class CSndBufList {
- public:
-  // scalar deleting dtor 0x408ea0
-  virtual ~CSndBufList() {}
-  // Appends `buffer` and gives it the next id.
-  void Add(CSndBuf* buffer) {
-    buffer->next_ = NULL;
-    buffer->prev_ = tail_;
-    if (head_ != NULL) {
-      tail_->next_ = buffer;
-    } else {
-      head_ = buffer;
-    }
-    tail_ = buffer;
-    buffer->id_ = count_++;
-  }
-  void Remove(CSndBuf* buffer);  // 0x40dfd0
-
- private:
-  int count_;      // 0x04, ids handed out so far
-  CSndBuf* head_;  // 0x08
-  CSndBuf* tail_;  // 0x0c
-};
-
-// The sound system ("HLSound").
-class SoundSystem : public Object {
- public:
-  // Stops `buffer` on `channel` (-1: every channel).
-  void Stop(CSndBuf* buffer, int channel);  // 0x409420
-
-  char unknown_08_[0x20];    // 0x08
-  IDirectSound* dsound_;     // 0x28, NULL without DirectSound
-};
-
+class SoundSystem;
 extern SoundSystem* g_sound_system;  // 0x468f98
 extern CSndBufList* g_snd_buf_list;  // 0x468f9c
+
+#include "snd_buf_list.h"
 
 #endif  // WF_SND_BUF_H_

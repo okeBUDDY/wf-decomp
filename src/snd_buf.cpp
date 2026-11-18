@@ -5,6 +5,7 @@
 
 #include "snd_file.h"
 #include "snd_file_seq.h"
+#include "snd_sys.h"
 
 static char kName[] = "  CSndBuf";  // 0x45d338
 

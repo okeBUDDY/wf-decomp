@@ -398,7 +398,7 @@ unit obj71_421200   # eh cut=5
     .xdata$x  0x45b974 0x45b998
 
 unit obj72_4217b0   # eh cut=3
-    .text     0x4217b0 0x4219f0
+    .text     0x4217b0 0x4219cc   # import thunks 0x4219cc-0x4219f0 come from the DirectX import libraries
     .text$x   0x4504f0 0x450510
     .rdata    0x45367c 0x45369c
     .xdata$x  0x45b998 0x45b9bc
