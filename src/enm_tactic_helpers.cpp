@@ -8,7 +8,7 @@
 #include "actor_control.h"
 
 // 0x416170
-int CEnmParam::IsSideBeaten(int unused, int percent) {
+int CEnmParam::IsSideBeaten(Actor* boss, int percent) {
   if (state_.step_mask & 2) {
     int left = parts_alive_[0] * 100 / unknown_f4_[0];
     int right = parts_alive_[1] * 100 / unknown_f4_[1];
@@ -28,7 +28,7 @@ int CEnmParam::IsSideBeaten(int unused, int percent) {
 // 0x4163f0
 // TODO: nonmatching (VC folds the step of case 2 into a store of 3; the
 // original increments it)
-void CEnmParam::RunOpening(int unused, int next_step) {
+void CEnmParam::RunOpening(Actor* boss, int next_step) {
   if (list_218_.step >= next_step) {
     return;
   }

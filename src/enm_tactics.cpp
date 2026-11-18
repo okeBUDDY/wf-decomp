@@ -4,7 +4,7 @@
 #include "enm_param.h"
 
 // 0x4161d0
-int CEnmParam::Tactic4161d0(int unused) {
+int CEnmParam::Tactic4161d0(Actor* boss) {
   switch (list_218_.step) {
     case 0:
       lists_c4_[0].Start(0x30001, 100);
@@ -19,7 +19,7 @@ int CEnmParam::Tactic4161d0(int unused) {
       break;
     case 1:
       if (list_9c_.op == 0) {
-        if (IsSideBeaten(unused, 0)) {
+        if (IsSideBeaten(boss, 0)) {
           return 1;
         }
         if (--list_218_.arg <= 0) {
@@ -37,13 +37,13 @@ int CEnmParam::Tactic4161d0(int unused) {
 }
 
 // 0x4162f0
-int CEnmParam::Tactic4162f0(int unused) {
+int CEnmParam::Tactic4162f0(Actor* boss) {
   switch (list_218_.step) {
     case 0:
       lists_c4_[0].Start(0x30001, 70);
       lists_c4_[1].Start(0x30001, 70);
       list_9c_.Start(0x10002, 0);
-      if (IsSideBeaten(unused, 50)) {
+      if (IsSideBeaten(boss, 50)) {
         list_b0_.Start(0x20001, 0);
       }
       ++list_218_.step;
@@ -61,8 +61,8 @@ int CEnmParam::Tactic4162f0(int unused) {
 }
 
 // 0x416560
-int CEnmParam::Tactic416560(int unused) {
-  RunOpening(unused, 10);
+int CEnmParam::Tactic416560(Actor* boss) {
+  RunOpening(boss, 10);
   switch (list_218_.step) {
     case 10:
       lists_c4_[0].Start(0x30001, 100);
@@ -83,7 +83,7 @@ int CEnmParam::Tactic416560(int unused) {
 // 0x416630
 // TODO: nonmatching (VC loads, increments and stores the step where the
 // original increments it in memory)
-int CEnmParam::Tactic416630(int unused) {
+int CEnmParam::Tactic416630(Actor* boss) {
   switch (list_218_.step) {
     case 0:
       lists_c4_[0].Start(0x30001, 50);
@@ -125,7 +125,7 @@ int CEnmParam::Tactic416630(int unused) {
 }
 
 // 0x4167a0
-int CEnmParam::Tactic4167a0(int unused) {
+int CEnmParam::Tactic4167a0(Actor* boss) {
   switch (list_218_.step) {
     case 0:
       if (core_power_[0][6] <= 200 && core_power_[1][6] <= 200) {
@@ -159,7 +159,7 @@ int CEnmParam::Tactic4167a0(int unused) {
 }
 
 // 0x4168e0
-int CEnmParam::Tactic4168e0(int unused) {
+int CEnmParam::Tactic4168e0(Actor* boss) {
   switch (list_218_.step) {
     case 0:
       lists_c4_[0].Start(0x30001, 200);
@@ -181,7 +181,7 @@ int CEnmParam::Tactic4168e0(int unused) {
 }
 
 // 0x4169c0
-int CEnmParam::Tactic4169c0(int unused) {
+int CEnmParam::Tactic4169c0(Actor* boss) {
   switch (list_218_.step) {
     case 0:
       lists_c4_[0].Start(0x30001, 70);
@@ -205,8 +205,8 @@ int CEnmParam::Tactic4169c0(int unused) {
 // 0x416ac0
 // TODO: nonmatching (case 12 stores the step before the time; the original
 // stores the time first)
-int CEnmParam::Tactic416ac0(int unused) {
-  RunOpening(unused, 10);
+int CEnmParam::Tactic416ac0(Actor* boss) {
+  RunOpening(boss, 10);
   switch (list_218_.step) {
     case 10:
       lists_c4_[0].Start(0x30001, 100);
@@ -251,8 +251,8 @@ int CEnmParam::Tactic416ac0(int unused) {
 }
 
 // 0x416cb0
-int CEnmParam::Tactic416cb0(int unused) {
-  RunOpening(unused, 10);
+int CEnmParam::Tactic416cb0(Actor* boss) {
+  RunOpening(boss, 10);
   switch (list_218_.step) {
     case 10:
       lists_c4_[0].Start(0x30001, 200);
@@ -282,7 +282,7 @@ int CEnmParam::Tactic416cb0(int unused) {
 }
 
 // 0x417010
-int CEnmParam::Tactic417010(int unused) {
+int CEnmParam::Tactic417010(Actor* boss) {
   switch (list_218_.step) {
     case 0:
       lists_c4_[0].Start(0x30001, 200);
@@ -300,7 +300,7 @@ int CEnmParam::Tactic417010(int unused) {
 }
 
 // 0x4170c0
-int CEnmParam::Tactic4170c0(int unused) {
+int CEnmParam::Tactic4170c0(Actor* boss) {
   switch (list_218_.step) {
     case 0:
       lists_c4_[0].Start(0x30001, 100);
@@ -315,6 +315,62 @@ int CEnmParam::Tactic4170c0(int unused) {
   }
   if (list_9c_.op == 0) {
     list_9c_.Start(0x10002, 300);
+  }
+  return 0;
+}
+
+// 0x417430
+int CEnmParam::Tactic417430(Actor* boss) {
+  switch (list_218_.step) {
+    case 0: {
+      int time = (rand() % 5 + 5) * 60;
+      if (!GlowArmor(boss, time)) {
+        return 1;
+      }
+      lists_c4_[0].Start(0x30001, 70);
+      lists_c4_[1].Start(0x30001, 70);
+      list_218_.time = time;
+      list_9c_.Start(0x10002, 0);
+      ++list_218_.step;
+    }
+      // Fall through.
+    case 1:
+      if (list_218_.time <= 0) {
+        if (list_9c_.op == 0) {
+          return 1;
+        }
+      } else if (list_9c_.op == 0) {
+        list_9c_.Start(0x10002, 0);
+      }
+      break;
+  }
+  return 0;
+}
+
+// 0x417520
+// TODO: nonmatching (VC folds the step of case 1 into a store of 2; the
+// original increments it, as in RunOpening)
+int CEnmParam::Tactic417520(Actor* boss) {
+  switch (list_218_.step) {
+    case 2:
+      if (list_218_.time <= 0) {
+        return 1;
+      }
+      break;
+    case 1:
+      if (trans_count_ <= 0) {
+        list_218_.time = 90;
+        ++list_218_.step;
+      }
+      break;
+    case 0:
+      if (!SignalUnknown104(boss)) {
+        return 1;
+      }
+      lists_c4_[0].Start(0x30001, 70);
+      lists_c4_[1].Start(0x30001, 70);
+      ++list_218_.step;
+      break;
   }
   return 0;
 }

@@ -219,24 +219,27 @@ class CEnmParam : public System {
   void FormatResult(char* text, int* columns, int* lines);  // 0x41a090
   void ClearUnknown32c();                                   // 0x417c00
 
-  // The battle tactics run by list_218_; each returns 1 when it is over.
+  // The battle tactics run by list_218_ on the boss; each returns 1 when
+  // it is over.
   // Nonzero when the stronger side (by the percentage of its parts alive)
   // is the one unknown_14c_ does not name, and the weaker one is down to
   // `percent`.
-  int IsSideBeaten(int unused, int percent);  // 0x416170
-  int Tactic4161d0(int unused);               // 0x4161d0
-  int Tactic4162f0(int unused);               // 0x4162f0
+  int IsSideBeaten(Actor* boss, int percent);  // 0x416170
+  int Tactic4161d0(Actor* boss);               // 0x4161d0
+  int Tactic4162f0(Actor* boss);               // 0x4162f0
   // The opening the next tactic shares: steps 0 to 3, then `next_step`.
-  void RunOpening(int unused, int next_step);  // 0x4163f0
-  int Tactic416560(int unused);                // 0x416560
-  int Tactic416630(int unused);                // 0x416630
-  int Tactic4167a0(int unused);                // 0x4167a0
-  int Tactic4168e0(int unused);                // 0x4168e0
-  int Tactic4169c0(int unused);                // 0x4169c0
-  int Tactic416ac0(int unused);                // 0x416ac0
-  int Tactic416cb0(int unused);                // 0x416cb0
-  int Tactic417010(int unused);                // 0x417010
-  int Tactic4170c0(int unused);                // 0x4170c0
+  void RunOpening(Actor* boss, int next_step);  // 0x4163f0
+  int Tactic416560(Actor* boss);                // 0x416560
+  int Tactic416630(Actor* boss);                // 0x416630
+  int Tactic4167a0(Actor* boss);                // 0x4167a0
+  int Tactic4168e0(Actor* boss);                // 0x4168e0
+  int Tactic4169c0(Actor* boss);                // 0x4169c0
+  int Tactic416ac0(Actor* boss);                // 0x416ac0
+  int Tactic416cb0(Actor* boss);                // 0x416cb0
+  int Tactic417010(Actor* boss);                // 0x417010
+  int Tactic4170c0(Actor* boss);
+  int Tactic417430(Actor* boss);  // 0x417430
+  int Tactic417520(Actor* boss);  // 0x417520                // 0x4170c0
   // Makes the armored parts glow for `time` frames (sending event 8 to
   // `actor`); 0 without armored parts.
   int GlowArmor(Actor* actor, int time);  // 0x4173a0
