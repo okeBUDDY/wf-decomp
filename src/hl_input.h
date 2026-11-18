@@ -122,6 +122,9 @@ class HLInput : public System {
   int EnumDevices(Application* app, HLDevSet* set);  // 0x405ea0
 
   HLInpDev* pad(int index) const { return pads_[index]; }
+  unsigned short pad_count() const { return pad_count_; }
+  // Uses the device `guid` (NULL: the keyboard) for pad `index`.
+  void set_pad_guid(int index, const GUID* guid) { guids_[index] = guid; }
   // The buttons that stop and restart the time (0: none).
   void set_time_stop_mask(unsigned short mask) { time_stop_mask_ = mask; }
 

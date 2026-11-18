@@ -148,6 +148,11 @@
       "base_path": "build/obj/src/hl_device.obj"
     },
     {
+      "name": "hl_device_init",
+      "target_path": "build/target/hl_device_init.obj",
+      "base_path": "build/obj/src/hl_device_init.obj"
+    },
+    {
       "name": "hl_image",
       "target_path": "build/target/hl_image.obj",
       "base_path": "build/obj/src/hl_image.obj"

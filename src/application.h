@@ -43,8 +43,10 @@ struct AppSettings {
     kReset = 0x10000,  // go back to reset_func
   };
   enum Options {
+    kDeviceDialog = 0x1,   // ask for the devices in the start-up dialog
     kPauseInactive = 0x2,  // pause while the window is inactive
     kLog = 0x4,            // write "<name>.log"
+    kScreenChoice = 0x8,   // the player picks window or full screen
     kSyncKeys = 0x10,      // F1-F4 pick the HLSync mode
     kSystemKeys = 0x20,    // Esc quits, F12 resets
     kHideCursor = 0x40,    // full screen: hide the cursor
@@ -56,7 +58,7 @@ struct AppSettings {
       : instance(NULL),
         window(NULL),
         graphics_flags(kDirectDraw),
-        options(0x1 | 0x8 | kSyncKeys),
+        options(kDeviceDialog | kScreenChoice | kSyncKeys),
         flags(0),
         width(640),
         height(480),

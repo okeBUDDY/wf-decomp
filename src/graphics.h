@@ -47,6 +47,8 @@ class Graphics : public System {
   // Adds the DirectDraw devices with 3D textures to `set`. Returns 0 when
   // there is none.
   int EnumDevices(HLDevSet* set);  // 0x405a30
+  // Uses the display `device` (NULL: the primary one).
+  void set_device(GUID* device) { device_ = device; }
 
   // The back buffer everything is drawn to.
   HLSurface* back() { return &back_; }

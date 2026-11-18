@@ -46,13 +46,27 @@ class Profile {
       WritePrivateProfileString(section_, key, value, path_);
     }
   }
+  // Writes `value` as "1" or "0" to `key` of the current section.
+  void WriteBool(const char* key, int value) {
+    if (path_ != NULL && section_[0] != '\0') {
+      WritePrivateProfileString(section_, key, value ? "1" : "0", path_);
+    }
+  }
   // Uses "<name>.ini" next to the executable. Returns 0 without memory.
   int Open(const char* name);  // 0x406910
   // Reads `key` as a number (any base strtol takes), or returns `def`.
   int GetInt(const char* key, int def);  // 0x40cd00
   // Reads `key` as a flag (anything but "0" is set), or returns `def`
-  // as 0 or 1.
-  int GetBool(const char* key, int def);  // 0x404660
+  // as 0 or 1. Emitted out of line by hl_device.cpp (0x404660).
+  int GetBool(const char* key, int def) {
+    if (path_ != NULL && section_[0] != '\0') {
+      GetPrivateProfileString(section_, key, "", value_, kValueSize, path_);
+      if (value_[0] != '\0') {
+        return value_[0] != '0';
+      }
+    }
+    return def != 0;
+  }
   // Writes `value` printed with `format` to `key`.
   void WriteInt(const char* key, int value, const char* format);  // 0x40cd50
 

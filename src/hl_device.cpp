@@ -6,6 +6,8 @@
 #include <string.h>
 
 #include "application.h"
+#include "graphics.h"
+#include "hl_input.h"
 #include "profile.h"
 
 // What an empty set shows and stores.
@@ -137,12 +139,12 @@ void HLDevice::InitDialog(HWND dialog) {
   pad_ = 0;
   if (app_->flags & AppSettings::kFullScreen) {
     CheckRadioButton(dialog, 0x3e9, 0x3ea, 0x3ea);
-    if (!(app_->options & 0x8)) {
+    if (!(app_->options & AppSettings::kScreenChoice)) {
       EnableWindow(GetDlgItem(dialog, 0x3e9), FALSE);
     }
   } else {
     CheckRadioButton(dialog, 0x3e9, 0x3ea, 0x3e9);
-    if (!(app_->options & 0x8)) {
+    if (!(app_->options & AppSettings::kScreenChoice)) {
       EnableWindow(GetDlgItem(dialog, 0x3ea), FALSE);
     }
   }
@@ -253,4 +255,92 @@ INT_PTR CALLBACK HLDevice::DialogProc(HWND dialog, UINT message, WPARAM wparam,
       break;
   }
   return FALSE;
+}
+
+// 0x404030
+int HLDevSet::Assign(const HLDevSet& other) {
+  if (entries_ == NULL) {
+    if (!Alloc()) {
+      return 0;
+    }
+  }
+  count_ = other.count_;
+  selected_ = other.selected_;
+  kind_ = other.kind_;
+  guid_ = other.guid_;
+  memcpy(entries_, other.entries_, kMaxEntries * sizeof(Entry));
+  return 1;
+}
+
+// 0x404980
+void HLDevice::LoadSettings() {
+  app_->profile.SetSection("DirectX");
+  if (app_->options & AppSettings::kScreenChoice) {
+    if (app_->profile.GetBool("FullScreen",
+                              app_->flags & AppSettings::kFullScreen)) {
+      app_->flags |= AppSettings::kFullScreen;
+    } else {
+      app_->flags &= ~AppSettings::kFullScreen;
+    }
+  }
+  flags_ |= kFlagRemember;
+  if (app_->graphics_flags & AppSettings::kDirectDraw) {
+    app_->profile.ReadString("DrawDevice", g_text_buffer, sizeof(g_text_buffer),
+                             "");
+    if (!graphics_.Select(g_text_buffer)) {
+      flags_ &= ~kFlagRemember;
+    }
+  }
+  if (app_->graphics_flags & AppSettings::kSound) {
+    app_->profile.ReadString("SoundDevice", g_text_buffer,
+                             sizeof(g_text_buffer), "");
+    if (!sound_.Select(g_text_buffer)) {
+      flags_ &= ~kFlagRemember;
+    }
+  }
+  if (app_->graphics_flags & AppSettings::kInput) {
+    char key[] = "InputDevice1";
+    for (int i = 0; i < pad_count_; ++i) {
+      app_->profile.GetString(key, "", g_text_buffer, sizeof(g_text_buffer));
+      if (!pads_[i].Select(g_text_buffer)) {
+        flags_ &= ~kFlagRemember;
+        pads_[i].Select(static_cast<unsigned char>(i));
+      }
+      ++key[sizeof(key) - 2];
+    }
+  }
+  if (app_->profile.GetBool("ViewDialog", 1)) {
+    flags_ &= ~kFlagRemember;
+  }
+}
+
+// 0x404bb0
+void HLDevice::SaveSettings() {
+  app_->profile.SetSection("DirectX");
+  if (app_->options & AppSettings::kScreenChoice) {
+    app_->profile.WriteBool("FullScreen",
+                            app_->flags & AppSettings::kFullScreen);
+  }
+  app_->profile.WriteBool("ViewDialog", !(flags_ & kFlagRemember));
+  if (app_->graphics_flags & AppSettings::kDirectDraw) {
+    const char* name = graphics_.selected_name();
+    app_->profile.WriteString("DrawDevice", name);
+    app_->graphics->set_device(graphics_.guid());
+    Log("DrawDevice=%s", name);
+  }
+  if (app_->graphics_flags & AppSettings::kSound) {
+    const char* name = sound_.selected_name();
+    app_->profile.WriteString("SoundDevice", name);
+    Log("SoundDevice=%s", name);
+  }
+  if (app_->graphics_flags & AppSettings::kInput) {
+    char key[] = "InputDevice1";
+    for (int i = 0; i < pad_count_; ++i) {
+      app_->input->set_pad_guid(i, pads_[i].guid());
+      const char* name = pads_[i].selected_name();
+      app_->profile.WriteString(key, name);
+      Log("%s=%s", key, name);
+      ++key[sizeof(key) - 2];
+    }
+  }
 }

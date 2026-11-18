@@ -6,7 +6,13 @@
 
 #include <windows.h>
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "system.h"
+
+// What an empty set shows and stores.
+extern char kNoDevice[];  // 0x45d1ac
 
 struct Application;
 
@@ -55,6 +61,29 @@ class HLDevSet : public Object {
   }
 
   unsigned short count() const { return count_; }
+  // The GUID of the selected device, or NULL for the default one.
+  GUID* guid() { return kind_ == kGuid ? &guid_ : NULL; }
+  // The name of the selected device, or kNoDevice.
+  const char* selected_name() const {
+    if (entries_ != NULL && count_ != 0) {
+      return entries_[selected_].name;
+    }
+    return kNoDevice;
+  }
+  // Allocates the entries and empties the set. Returns 0 without memory.
+  int Alloc() {
+    count_ = selected_ = 0;
+    kind_ = kDefault;
+    entries_ = static_cast<Entry*>(malloc(kMaxEntries * sizeof(Entry)));
+    if (entries_ == NULL) {
+      return 0;
+    }
+    memset(entries_, 0, kMaxEntries * sizeof(Entry));
+    return 1;
+  }
+  // Copies the entries and the selection of `other`. Returns 0 without
+  // memory.
+  int Assign(const HLDevSet& other);  // 0x404030
 
  private:
   friend class HLDevice;
@@ -94,6 +123,12 @@ class HLDevice : public System {
   void InitDialog(HWND dialog);  // 0x404480
   // Reads the choices back from the dialog.
   void ReadDialog(HWND dialog);  // 0x4045e0
+  // Reads the choices from the [DirectX] section of the profile; clears
+  // kFlagRemember when one of them is missing.
+  void LoadSettings();  // 0x404980
+  // Writes the choices to the profile and hands the chosen devices to the
+  // systems.
+  void SaveSettings();  // 0x404bb0
 
   Application* app_;          // 0x08
   unsigned int flags_;        // 0x0c, Flags

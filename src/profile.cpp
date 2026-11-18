@@ -16,17 +16,6 @@ int Profile::GetInt(const char* key, int def) {
   return def;
 }
 
-// 0x404660
-int Profile::GetBool(const char* key, int def) {
-  if (path_ != NULL && section_[0] != '\0') {
-    GetPrivateProfileString(section_, key, "", value_, kValueSize, path_);
-    if (value_[0] != '\0') {
-      return value_[0] != '0';
-    }
-  }
-  return def != 0;
-}
-
 // 0x4046b0
 char* Profile::ReadString(const char* key, char* out, int size,
                           const char* def) {
