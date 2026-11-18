@@ -1,5 +1,6 @@
 #include "snd_sys.h"
 
+#include <mmsystem.h>
 #include <string.h>
 
 #include "hl_device.h"
@@ -33,7 +34,7 @@ SoundSystem::SoundSystem() {
   head_ = NULL;
   state_ = 0;
   muted_groups_ = 0;
-  reserved_40_ = 0;
+  playing_count_ = 0;
   name_ = kName;
 }
 
@@ -108,6 +109,28 @@ int SoundSystem::EnumDevices(HLDevSet* set) {
     return 0;
   }
   return set->count() != 0;
+}
+
+// 0x409270
+int SoundThread::Run() {
+  time_ = timeGetTime() * 0.001f;
+  while (running_) {
+    float now = timeGetTime() * 0.001f;
+    float elapsed = now - time_;
+    time_ = now;
+    EnterCriticalSection(&system_->lock_);
+    int count = 0;
+    for (Channel* channel = system_->head_; channel != NULL;) {
+      Channel* next = channel->next_;
+      channel->Update(elapsed);
+      ++count;
+      channel = next;
+    }
+    system_->playing_count_ = count;
+    LeaveCriticalSection(&system_->lock_);
+    Sleep(30);
+  }
+  return 0;
 }
 
 // 0x409330

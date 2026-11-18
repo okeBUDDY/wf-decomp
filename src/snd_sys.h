@@ -82,6 +82,7 @@ class Channel {
 
  private:
   friend class SoundSystem;
+  friend class SoundThread;
 
   static void Lock();
   static void Unlock();
@@ -157,7 +158,7 @@ class SoundSystem : public System {
   Channel* channels_;            // 0x34
   Channel* head_;                // 0x38, playing channels
   Channel* tail_;                // 0x3c
-  int reserved_40_;              // 0x40
+  int playing_count_;            // 0x40, channels Update()d last
   SoundThread thread_;           // 0x44
   CSndBufList buffers_;          // 0x60
   WAVEFORMATEX format_;          // 0x70
