@@ -106,6 +106,21 @@ class EnmList {
     time = 0;
   }
 
+  // Waits `frames` frames (time counts down) and goes on to the next step.
+  // The store through a pointer keeps VC from tracking the step across it:
+  // the original increments the step in memory right after the store.
+  void Wait(int frames) {
+    int* timer = &time;
+    *timer = frames;
+    ++step;
+  }
+  // Sets the argument and goes on to the next step (as Wait).
+  void SetArgAndNext(int new_arg) {
+    int* value = &arg;
+    *value = new_arg;
+    ++step;
+  }
+
   int arg;   // 0x04, of the operation
   int time;  // 0x08, frames since the operation started
   int op;    // 0x0c, the operation, 0: none

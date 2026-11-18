@@ -26,8 +26,6 @@ int CEnmParam::IsSideBeaten(Actor* boss, int percent) {
 }
 
 // 0x4163f0
-// TODO: nonmatching (VC folds the step of case 2 into a store of 3; the
-// original increments it)
 void CEnmParam::RunOpening(Actor* boss, int next_step) {
   if (list_218_.step >= next_step) {
     return;
@@ -58,8 +56,7 @@ void CEnmParam::RunOpening(Actor* boss, int next_step) {
       break;
     case 2:
       if (list_9c_.op == 0 && list_b0_.op == 0) {
-        list_218_.time = 60;
-        list_218_.step++;
+        list_218_.Wait(60);
       }
       break;
     case 3:

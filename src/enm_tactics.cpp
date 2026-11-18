@@ -81,15 +81,12 @@ int CEnmParam::Tactic416560(Actor* boss) {
 }
 
 // 0x416630
-// TODO: nonmatching (VC loads, increments and stores the step where the
-// original increments it in memory)
 int CEnmParam::Tactic416630(Actor* boss) {
   switch (list_218_.step) {
     case 0:
       lists_c4_[0].Start(0x30001, 50);
       lists_c4_[1].op = 0;
-      list_218_.arg = rand() % 3 + 3;
-      ++list_218_.step;
+      list_218_.SetArgAndNext(rand() % 3 + 3);
       // Fall through.
     case 1:
       if (core_power_[1][4] == 0) {
@@ -101,8 +98,7 @@ int CEnmParam::Tactic416630(Actor* boss) {
     case 2:
       if (list_b0_.op == 0 || (state_.flags & 2)) {
         lists_c4_[1].Start(0x30004, 4);
-        list_218_.time = 60;
-        ++list_218_.step;
+        list_218_.Wait(60);
       }
       break;
     case 3:
@@ -203,8 +199,6 @@ int CEnmParam::Tactic4169c0(Actor* boss) {
 }
 
 // 0x416ac0
-// TODO: nonmatching (case 12 stores the step before the time; the original
-// stores the time first)
 int CEnmParam::Tactic416ac0(Actor* boss) {
   RunOpening(boss, 10);
   switch (list_218_.step) {
@@ -224,8 +218,7 @@ int CEnmParam::Tactic416ac0(Actor* boss) {
     case 12:
       if (list_b0_.op == 0 || (state_.flags & 2)) {
         lists_c4_[1].Start(0x30004, 4);
-        list_218_.time = 60;
-        ++list_218_.step;
+        list_218_.Wait(60);
       }
       break;
     case 13:
@@ -282,8 +275,6 @@ int CEnmParam::Tactic416cb0(Actor* boss) {
 }
 
 // 0x416e10
-// TODO: nonmatching (VC folds the step of case 2 into a store of 3, as in
-// RunOpening)
 int CEnmParam::Tactic416e10(Actor* boss) {
   switch (list_218_.step) {
     case 0:
@@ -303,8 +294,7 @@ int CEnmParam::Tactic416e10(Actor* boss) {
       break;
     case 2:
       if (list_9c_.op == 0 && list_b0_.op == 0) {
-        list_218_.time = 60;
-        ++list_218_.step;
+        list_218_.Wait(60);
       }
       break;
     case 3:
@@ -398,8 +388,6 @@ int CEnmParam::Tactic417430(Actor* boss) {
 }
 
 // 0x417520
-// TODO: nonmatching (VC folds the step of case 1 into a store of 2; the
-// original increments it, as in RunOpening)
 int CEnmParam::Tactic417520(Actor* boss) {
   switch (list_218_.step) {
     case 2:
@@ -409,8 +397,7 @@ int CEnmParam::Tactic417520(Actor* boss) {
       break;
     case 1:
       if (trans_count_ <= 0) {
-        list_218_.time = 90;
-        ++list_218_.step;
+        list_218_.Wait(90);
       }
       break;
     case 0:
@@ -426,8 +413,6 @@ int CEnmParam::Tactic417520(Actor* boss) {
 }
 
 // 0x4175d0
-// TODO: nonmatching (case 0 stores the time after the step, like case 12
-// of Tactic416ac0)
 int CEnmParam::Tactic4175d0(Actor* boss) {
   switch (list_218_.step) {
     case 0: {
@@ -436,8 +421,7 @@ int CEnmParam::Tactic4175d0(Actor* boss) {
       int time = (rand() % 20 + 20) * 60;
       GlowArmor(boss, time);
       list_b0_.Start(0x20003, time);
-      list_218_.time = 60;
-      ++list_218_.step;
+      list_218_.Wait(60);
       break;
     }
     case 1:
