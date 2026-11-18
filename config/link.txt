@@ -1,0 +1,24 @@
+# LINK 7.10 command line used to rebuild wf.exe (see tools/link.py).
+# {OBJS} expands to the game unit objects in split order (decompiled or blob).
+/NOLOGO
+/SUBSYSTEM:WINDOWS
+/MACHINE:X86
+/OPT:REF
+/OPT:ICF
+/INCREMENTAL:NO
+{OBJS}
+wf.res
+winmm.lib
+ddraw.lib
+dsound.lib
+dinput.lib
+dxguid.lib
+uuid.lib
+png.lib
+vorbisfile.lib
+libcmt.lib
+kernel32.lib
+user32.lib
+gdi32.lib
+ogg.lib
+vorbis.lib

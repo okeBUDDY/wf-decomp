@@ -1,0 +1,17 @@
+# Game object files of the original link, in link order. See tools/splits.py.
+# (initial single-unit split; refined below)
+unit game
+    .text     0x401000 0x4219f0
+    .text$x   0x44fed0 0x450510
+    .text$yc  0x450510 0x4507c0
+    .text$yd  0x4507c0 0x45092a
+    .rdata    0x451268 0x45369c
+    .xdata$x  0x45b378 0x45b9bc
+    .CRT$XCU  0x45d008 0x45d05c
+    .data     0x45d098 0x45dea0
+    .bss      0x467318 0x46927c
+    extern _png_create_write_struct 0x424191
+    extern _png_set_IHDR 0x424190
+    extern __fltused 0x431afa
+    extern __except_list 0x431f3c
+    extern _atof 0x432c7d

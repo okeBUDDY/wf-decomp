@@ -1,63 +1,182 @@
 {
-  "_comment": "Third-party static libraries linked into wf.exe. Built with VS.NET 2002 (cl 13.00.9466). Flags were determined by matching code against wf.exe (see docs/libraries.md).",
+  "_comment": "Third-party static libraries linked into wf.exe. Built with VS.NET 2002 (cl 13.00.9466). Flags were determined by matching code against wf.exe. 'archive' names the .lib the objects go into: libpng and zlib objects interleave in wf.exe, so they were one library.",
   "libs": {
     "ogg": {
       "tarball": "libogg-1.0.tar.gz",
       "sha1": "2929e8867e566e9f7029cfacf0b4ccbe2f1f6cec",
       "dir": "libogg-1.0",
       "compiler": "vc70",
-      "flags": ["/MT", "/W2", "/GX", "/O2", "/Ob1"],
-      "defines": ["WIN32", "NDEBUG", "_MBCS", "_LIB"],
-      "include": ["include"],
-      "sources": ["src/bitwise.c", "src/framing.c"]
+      "flags": [
+        "/MT",
+        "/W2",
+        "/GX",
+        "/O2",
+        "/Ob1"
+      ],
+      "defines": [
+        "WIN32",
+        "NDEBUG",
+        "_MBCS",
+        "_LIB"
+      ],
+      "include": [
+        "include"
+      ],
+      "sources": [
+        "src/bitwise.c",
+        "src/framing.c"
+      ],
+      "archive": "ogg"
     },
     "vorbis": {
       "tarball": "libvorbis-1.0.tar.gz",
       "sha1": "2b414cb4cf7d022d39b7be7049f2c84a287a4fc7",
       "dir": "libvorbis-1.0",
       "compiler": "vc70",
-      "flags": ["/MT", "/W2", "/GX", "/O2", "/Ob1"],
-      "defines": ["WIN32", "NDEBUG", "_MBCS", "_LIB"],
-      "include": ["include", "@ogg/include"],
-      "sources": ["lib/analysis.c", "lib/bitrate.c", "lib/block.c", "lib/codebook.c",
-                  "lib/envelope.c", "lib/floor0.c", "lib/floor1.c", "lib/info.c",
-                  "lib/lpc.c", "lib/lsp.c", "lib/mapping0.c", "lib/mdct.c", "lib/psy.c",
-                  "lib/registry.c", "lib/res0.c", "lib/sharedbook.c", "lib/smallft.c",
-                  "lib/synthesis.c", "lib/window.c"]
+      "flags": [
+        "/MT",
+        "/W2",
+        "/GX",
+        "/O2",
+        "/Ob1"
+      ],
+      "defines": [
+        "WIN32",
+        "NDEBUG",
+        "_MBCS",
+        "_LIB"
+      ],
+      "include": [
+        "include",
+        "@ogg/include"
+      ],
+      "sources": [
+        "lib/analysis.c",
+        "lib/bitrate.c",
+        "lib/block.c",
+        "lib/codebook.c",
+        "lib/envelope.c",
+        "lib/floor0.c",
+        "lib/floor1.c",
+        "lib/info.c",
+        "lib/lpc.c",
+        "lib/lsp.c",
+        "lib/mapping0.c",
+        "lib/mdct.c",
+        "lib/psy.c",
+        "lib/registry.c",
+        "lib/res0.c",
+        "lib/sharedbook.c",
+        "lib/smallft.c",
+        "lib/synthesis.c",
+        "lib/window.c"
+      ],
+      "archive": "vorbis",
+      "swap_symbols": {
+        "lsp.obj": [
+          "_frexp",
+          "__CIacos"
+        ]
+      },
+      "_swap_note": "wf.exe pulls acos.obj before frexp.obj in the second libcmt pass, so the original lsp.obj referenced __CIacos before _frexp. Code is unaffected."
     },
     "vorbisfile": {
       "tarball": "libvorbis-1.0.tar.gz",
       "sha1": "2b414cb4cf7d022d39b7be7049f2c84a287a4fc7",
       "dir": "libvorbis-1.0",
       "compiler": "vc70",
-      "flags": ["/MT", "/W2", "/GX", "/O2", "/Ob1"],
-      "defines": ["WIN32", "NDEBUG", "_MBCS", "_LIB"],
-      "include": ["include", "@ogg/include"],
-      "sources": ["lib/vorbisfile.c"]
+      "flags": [
+        "/MT",
+        "/W2",
+        "/GX",
+        "/O2",
+        "/Ob1"
+      ],
+      "defines": [
+        "WIN32",
+        "NDEBUG",
+        "_MBCS",
+        "_LIB"
+      ],
+      "include": [
+        "include",
+        "@ogg/include"
+      ],
+      "sources": [
+        "lib/vorbisfile.c"
+      ],
+      "archive": "vorbisfile"
     },
     "zlib": {
       "tarball": "zlib-1.1.4.tar.gz",
       "sha1": "a9d8553979956b54e887d0f090267bcec2856423",
       "dir": "zlib-1.1.4",
       "compiler": "vc70",
-      "flags": ["/MT", "/W3", "/O1", "/Ob0"],
-      "defines": ["WIN32", "NDEBUG"],
+      "flags": [
+        "/MT",
+        "/W3",
+        "/O1",
+        "/Ob0"
+      ],
+      "defines": [
+        "WIN32",
+        "NDEBUG"
+      ],
       "include": [],
-      "sources": ["adler32.c", "compress.c", "crc32.c", "deflate.c", "gzio.c",
-                  "infblock.c", "infcodes.c", "inffast.c", "inflate.c", "inftrees.c",
-                  "infutil.c", "trees.c", "uncompr.c", "zutil.c"]
+      "sources": [
+        "adler32.c",
+        "compress.c",
+        "crc32.c",
+        "deflate.c",
+        "gzio.c",
+        "infblock.c",
+        "infcodes.c",
+        "inffast.c",
+        "inflate.c",
+        "inftrees.c",
+        "infutil.c",
+        "trees.c",
+        "uncompr.c",
+        "zutil.c"
+      ],
+      "archive": "png"
     },
     "png": {
       "tarball": "libpng-1.2.5.tar.gz",
       "sha1": "b0d2c54ebc6c25bd364b20f54eef0c82331d0759",
       "dir": "libpng-1.2.5",
       "compiler": "vc70",
-      "flags": ["/MT", "/W3", "/O1", "/Ob0"],
-      "defines": ["WIN32", "NDEBUG"],
-      "include": ["@zlib"],
-      "sources": ["png.c", "pngerror.c", "pngget.c", "pngmem.c", "pngpread.c",
-                  "pngread.c", "pngrio.c", "pngrtran.c", "pngrutil.c", "pngset.c",
-                  "pngtrans.c", "pngwio.c", "pngwrite.c", "pngwtran.c", "pngwutil.c"]
+      "flags": [
+        "/MT",
+        "/W3",
+        "/O1",
+        "/Ob0"
+      ],
+      "defines": [
+        "WIN32",
+        "NDEBUG"
+      ],
+      "include": [
+        "@zlib"
+      ],
+      "sources": [
+        "png.c",
+        "pngerror.c",
+        "pngget.c",
+        "pngmem.c",
+        "pngpread.c",
+        "pngread.c",
+        "pngrio.c",
+        "pngrtran.c",
+        "pngrutil.c",
+        "pngset.c",
+        "pngtrans.c",
+        "pngwio.c",
+        "pngwrite.c",
+        "pngwtran.c",
+        "pngwutil.c"
+      ],
+      "archive": "png"
     }
   }
 }

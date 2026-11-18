@@ -12,6 +12,7 @@ import os
 import shutil
 import tarfile
 
+from coffpatch import swap_undefined_symbols
 from wfcommon import BUILD, CONFIG, THIRDPARTY, VC70, VC71, run_wine, wine_env, winpath
 
 SRC = os.path.join(BUILD, "lib", "src")
@@ -58,12 +59,17 @@ def build_lib(name, libs, flags=None, jobs=4, gy=False):
             if rc != 0:
                 raise RuntimeError(out)
             objs.append(obj)
-    libpath = os.path.join(BUILD, "lib", name + ".lib")
+    for objname, (a, b) in cfg.get("swap_symbols", {}).items():
+        swap_undefined_symbols(os.path.join(outdir, objname), a, b)
+    return objs
+
+
+def archive(libname, objs):
+    libpath = os.path.join(BUILD, "lib", libname + ".lib")
     if os.path.exists(libpath):
         os.remove(libpath)
     run_wine(f"{VC71}/bin/lib.exe", ["/nologo", "/OUT:" + winpath(libpath)] + [winpath(o) for o in objs],
              wine_env())
-    return libpath
 
 
 def main():
@@ -75,9 +81,19 @@ def main():
     a = ap.parse_args()
     libs = json.load(open(os.path.join(CONFIG, "libs.json")))["libs"]
     names = a.only.split(",") if a.only else list(libs)
+    archives = {}
     for n in names:
-        p = build_lib(n, libs, a.flags.split() if a.flags else None, a.j, a.gy)
-        print("built", p)
+        objs = build_lib(n, libs, a.flags.split() if a.flags else None, a.j, a.gy)
+        archives.setdefault(libs[n].get("archive", n), []).extend(objs)
+    for lib, objs in archives.items():
+        if a.only:  # partial rebuild: keep the other members of the archive
+            for n, cfg in libs.items():
+                if cfg.get("archive", n) == lib and n not in names:
+                    d = os.path.join(BUILD, "lib", n)
+                    objs += [os.path.join(d, os.path.splitext(os.path.basename(s))[0] + ".obj")
+                             for s in cfg["sources"]]
+        archive(lib, objs)
+        print("built", lib + ".lib")
 
 
 if __name__ == "__main__":

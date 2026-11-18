@@ -1,0 +1,26 @@
+# Library symbols missing from library-symbols.csv (identified by hand / link map)
+# address name size type
+004231ce _png_get_io_ptr 8 lib
+00431ae0 ??3@YAXPAX@Z 5 lib
+00431b50 ??2@YAPAXI@Z 14 lib
+00432341 _fread 4c lib
+00432494 _fwrite 4c lib
+00432c7c @__security_check_cookie@4 e lib
+00432ebb _malloc 12 lib
+00432f95 _tolower 22 lib
+004330dd _srand d lib
+004332cc _exit 11 lib
+004333d5 _toupper 22 lib
+0045369c _c_dfDIJoystick 18 libdata
+004536b4 _c_dfDIKeyboard 18 libdata
+004536cc _GUID_SysKeyboard 10 libdata
+0045376c _IID_IDirectInputDevice7A 10 libdata
+0045377c _IID_IDirectInput7A 10 libdata
+0045378c _IID_IDirect3DTnLHalDevice 10 libdata
+0045379c _IID_IDirect3DMMXDevice 10 libdata
+004537ac _IID_IDirect3DHALDevice 10 libdata
+004537bc _IID_IDirect3DRGBDevice 10 libdata
+004537cc _IID_IDirect3D7 10 libdata
+004537dc _IID_IDirectDraw7 10 libdata
+004537ec _GUID_NULL 10 libdata
+0045f3b8 ___security_cookie 4 libdata

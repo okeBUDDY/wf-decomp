@@ -10,16 +10,20 @@ import csv
 import os
 import sys
 
-from wfcommon import BUILD, CONFIG, ORIG_EXE, PE, coff_members
+from wfcommon import BUILD, CONFIG, ORIG_EXE, PE, Coff
 
 LIBMAP = {"libogg": "ogg", "libvorbis": ("vorbis", "vorbisfile"), "zlib": "zlib", "libpng": "png"}
 
 
 def lib_functions(libname):
-    """name -> (bytes, maskset, objname) for each function in a .lib."""
+    """name -> (bytes, maskset, objname) for each function in build/lib/<libname>/*.obj."""
     out = {}
-    for c in coff_members(os.path.join(BUILD, "lib", libname + ".lib")):
-        objname = c.name.replace("\\", "/").split("/")[-1]
+    d = os.path.join(BUILD, "lib", libname)
+    for fn in sorted(os.listdir(d)):
+        if not fn.endswith(".obj"):
+            continue
+        c = Coff(open(os.path.join(d, fn), "rb").read(), fn)
+        objname = fn
         for s in c.sections:
             if not s["flags"] & 0x20 or not s["data"]:
                 continue

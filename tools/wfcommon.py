@@ -35,7 +35,26 @@ def vc71_env():
     )
 
 
+_WINESERVER_STARTED = False
+
+
+def ensure_wineserver(env):
+    """Start a persistent wineserver for the prefix (once per process), so each
+    cl/link call doesn't cold-start one (3-7 s -> ~0.1 s per call)."""
+    global _WINESERVER_STARTED
+    if _WINESERVER_STARTED:
+        return
+    _WINESERVER_STARTED = True
+    try:
+        subprocess.Popen(["wineserver", "-p"], env=env, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    except OSError:
+        pass
+
+
 def run_wine(exe, args, env, cwd=None, check=True):
+    ensure_wineserver(env)
     r = subprocess.run(["wine", exe] + list(args), env=env, cwd=cwd,
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out = r.stdout.decode("latin-1").replace("\r", "")
@@ -174,3 +193,27 @@ def coff_members(path):
             yield Coff(body, name)
         except Exception:
             continue
+
+
+def import_symbols(lib_path):
+    """Parse short-format import members: returns list of
+    (symbol, dll, import_name_or_ordinal, name_type)."""
+    out = []
+    for name, body in ar_members(lib_path):
+        if len(body) < 20:
+            continue
+        sig1, sig2, ver, mach, ts, size, hint, typ = struct.unpack_from("<HHHHIIHH", body, 0)
+        if sig1 != 0 or sig2 != 0xFFFF:
+            continue
+        rest = body[20:20 + size]
+        sym, dll = rest.split(b"\0")[:2]
+        sym = sym.decode()
+        ntype = (typ >> 2) & 7
+        if ntype == 0:
+            imp = hint  # ordinal
+        else:
+            imp = sym
+            if ntype in (2, 3):
+                imp = imp.lstrip("?@_") if ntype == 2 else imp.lstrip("?@_").split("@")[0]
+        out.append((sym, dll.decode(), imp, ntype))
+    return out
