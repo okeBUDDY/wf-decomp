@@ -113,6 +113,11 @@
       "base_path": "build/obj/src/hl_input.obj"
     },
     {
+      "name": "hl_math",
+      "target_path": "build/target/hl_math.obj",
+      "base_path": "build/obj/src/hl_math.obj"
+    },
+    {
       "name": "hl_surface",
       "target_path": "build/target/hl_surface.obj",
       "base_path": "build/obj/src/hl_surface.obj"
