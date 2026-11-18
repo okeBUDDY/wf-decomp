@@ -149,7 +149,10 @@ class Comparer:
             elif got != want:
                 bad_relocs += 1
                 notes.append(f"reloc +{off:#x} {target_name} -> {got:#x}, original {want:#x}")
-        diff = sum(1 for i in range(min(len(data), size)) if not mask[i] and data[i] != orig[i])
+        diffs = [i for i in range(min(len(data), size)) if not mask[i] and data[i] != orig[i]]
+        diff = len(diffs)
+        if diff and VERBOSE:
+            notes.append("at " + " ".join(f"+{i:#x}" for i in diffs[:8]))
         if diff:
             notes.append(f"{diff} bytes differ")
         ok = not notes
@@ -185,8 +188,11 @@ class RelocIndex(Resolver):
         return [r for r in self.relocs if lo <= r[0] and r[0] + 4 <= hi]
 
 
+VERBOSE = "-v" in sys.argv
+
+
 def main():
-    verbose = "-v" in sys.argv
+    verbose = VERBOSE
     srcs = [a for a in sys.argv[1:] if not a.startswith("-")]
     srcs = srcs or sorted(glob.glob(os.path.join(ROOT, "src", "**", "*.cpp"), recursive=True))
     cmp = Comparer()

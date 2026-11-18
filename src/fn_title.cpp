@@ -3,23 +3,29 @@
 
 #include <string.h>
 
+#include "actor.h"
 #include "actor_system.h"
 #include "application.h"
 #include "background.h"
 #include "cglobal.h"
+#include "fn_game.h"
+#include "fn_option.h"
 #include "fonts.h"
 #include "game_data.h"
 #include "game_hud.h"
+#include "hl_input.h"
 #include "hls_pat.h"
 #include "hls_txt.h"
 #include "score_table.h"
+#include "snd_sys.h"
+#include "sounds.h"
 #include "sprite.h"
 
 // 0x41df30
 FnTitle::FnTitle() {
   name_ = "fnTitle";
   texts_[0] = texts_[1] = texts_[2] = NULL;
-  unknown_50_ = 0;
+  menu_ = 0;
 }
 
 // 0x41df70
@@ -109,14 +115,14 @@ int FnTitle::Initialize() {
   logo_[1] = g_actor_system.Spawn(&desc);
 
   hex_scale_ = 0;
-  time_ = 100;
-  unknown_56_ = 0;
-  unknown_50_ = 0;
-  unknown_48_ = 0;
+  time_ = kStepLogo;
+  step_time_ = 0;
+  menu_ = 0;
+  title_shown_ = 0;
   scores_shown_ = 0;
   menu_x_ = -240;
   cursor_alpha_ = 0;
-  unknown_46_ = 0;
+  logo_alpha_ = 0;
   flags_ = 0;
   strcpy(texts_[1]->text(), kMenuItems[0]);
   g_global.screen_fade->FadeIn(120);
@@ -166,4 +172,216 @@ void FnTitle::Draw() {
     texts_[2]->Print(32, 48, palette, scores_shown_);
   }
   g_actor_system.DrawAll();
+}
+
+// 0x41e300
+void FnTitle::Move() {
+  ++step_time_;
+  unsigned short time = time_;
+  switch (time_) {
+    case kStepLogo:
+      if (g_global.screen_fade->fade_frames() == 0) {
+        logo_alpha_ = 0;
+        time_ = time + 1;
+      }
+      break;
+    case kStepLogo + 1:
+      logo_alpha_ += 4;
+      if (logo_alpha_ >= 255) {
+        logo_alpha_ = 255;
+        time_ = time + 1;
+      }
+      logo_[1]->color = logo_alpha_ << 24 | 0xffffff;
+      logo_[0]->color = logo_[1]->color;
+      break;
+    case kStepLogo + 2:
+      if (step_time_ == 120) {
+        time_ = time + 1;
+      }
+      break;
+    case kStepLogo + 3:
+      logo_alpha_ -= 4;
+      if (logo_alpha_ <= 0) {
+        logo_alpha_ = 0;
+        time_ = time + 1;
+      }
+      logo_[1]->color = logo_alpha_ << 24 | 0xffffff;
+      logo_[0]->color = logo_[1]->color;
+      break;
+    case kStepLogo + 4:
+      if (step_time_ == 60) {
+        time_ = kStepIntro;
+      }
+      break;
+    case kStepIntro:
+      if (g_global.screen_fade->fade_frames() == 0) {
+        sweep_offset_ = 480;
+        time_ = time + 1;
+      }
+      break;
+    case kStepIntro + 1:
+      if ((sweep_offset_ *= 0.8f) < 1.0f) {
+        sweep_offset_ = 0;
+        time_ = time + 1;
+      }
+      sweeps_[0]->SetX(sweep_offset_ + 320);
+      sweeps_[1]->SetX(320 - sweep_offset_);
+      break;
+    case kStepIntro + 2:
+      if (step_time_ == 13) {
+        time_ = time + 1;
+      }
+      sweeps_[0]->SetY(sweeps_[0]->y() - 4);
+      sweeps_[1]->SetY(sweeps_[1]->y() + 4);
+      break;
+    case kStepIntro + 3:
+      if (step_time_ % 3 == 0) {
+        ++title_shown_;
+        strncpy(texts_[0]->text(), kTitle, title_shown_);
+        texts_[0]->text()[title_shown_] = '\0';
+        if (title_shown_ >= title_length_) {
+          ++time_;
+        }
+      }
+      break;
+    case kStepIntro + 4:
+      if (step_time_ == 8) {
+        time_ = time + 1;
+      }
+      sweeps_[0]->SetY(sweeps_[0]->y() + 8);
+      sweeps_[1]->SetY(sweeps_[1]->y() + 8);
+      subtitle_->SetY(subtitle_->y() + 8);
+      break;
+    case kStepIntro + 5:
+      if (step_time_ == 14) {
+        time_ = time + 1;
+      }
+      sweeps_[0]->SetX(sweeps_[0]->x() + 11);
+      sweeps_[1]->SetX(sweeps_[1]->x() + 11);
+      subtitle_->SetX(subtitle_->x() + 11);
+      break;
+    case kStepIntro + 6:
+      if ((hex_scale_ += 4) >= 65) {
+        hex_scale_ = 65;
+        time_ = kStepTitle;
+      }
+      break;
+    case kStepTitle:
+      sweeps_[0]->SetPosition(474, 252);
+      sweeps_[1]->SetPosition(474, 356);
+      subtitle_->SetPosition(338, 368);
+      logo_[1]->color = 0xffffff;
+      logo_[0]->color = 0xffffff;
+      strcpy(texts_[0]->text(), kTitle);
+      hex_scale_ = 65;
+      g_global.screen_fade->SetColor(0, 0, 0, 0);
+      flags_ |= kFlagTitleShown;
+      ++time_;
+      break;
+    case kStepMenu:
+      if (menu_x_ != 0) {
+        menu_x_ = static_cast<short>(
+            (1.0f - g_sin_table[(step_time_ << 8) / 15 & 0x3ff]) * -240);
+      } else {
+        flags_ |= kFlagMenuCursor;
+        time_ = time + 1;
+      }
+      // Falls through.
+    case kStepMenu + 1: {
+      unsigned short pressed = g_application.input->pad(0)->pressed();
+      if (pressed &
+          (FnGame::kKeyFire | FnGame::kKeySlow | FnGame::kKeySwitch)) {
+        switch (menu_) {
+          case kMenuStart:
+            g_fn_game.SetMode(0, NULL);
+            g_application.user_func->Finish(&g_fn_game);
+            break;
+          case kMenuReplay:
+            g_global.ClearReplay();
+            if (g_global.NextReplay(g_text_buffer)) {
+              g_fn_game.SetMode(1, g_text_buffer);
+              time_ = kStepSelected;
+            }
+            break;
+          default:
+            time_ = kStepSelected;
+            break;
+        }
+        g_application.sound->channel(kSndSwitch)
+            ->Assign(&g_sounds[kSndSwitch], 0, 1.0f);
+        break;
+      }
+      if (pressed & (HLInpDev::kUp | HLInpDev::kDown)) {
+        if (pressed & HLInpDev::kDown) {
+          if (++menu_ >= kMenuItemCount) {
+            menu_ = 0;
+          }
+        } else {
+          if (--menu_ < 0) {
+            menu_ = kMenuItemCount - 1;
+          }
+        }
+        texts_[1]->SetText(kMenuItems[menu_]);
+        cursor_alpha_ = 255;
+        g_application.sound->channel(kSndFireMe)
+            ->Assign(&g_sounds[kSndFireMe], 0, 1.0f);
+        if (step_time_ > 480) {
+          step_time_ = 480;
+        }
+      }
+      if (step_time_ >= 960) {
+        time_ = kStepDemo;
+      }
+      break;
+    }
+    case kStepDemo:
+    case kStepSelected:
+      g_global.screen_fade->FadeTo(60, 0, 0, 0, 255);
+      ++time_;
+      break;
+    case kStepDemo + 1:
+      if (g_global.screen_fade->fade_frames() == 0) {
+        if (g_global.NextReplay(g_text_buffer)) {
+          g_fn_game.SetMode(2, g_text_buffer);
+          g_application.user_func->Finish(&g_fn_game);
+        } else {
+          g_application.user_func->Finish(&g_fn_title);
+        }
+      }
+      break;
+    case kStepSelected + 1:
+      if (g_global.screen_fade->fade_frames() == 0) {
+        switch (menu_) {
+          case kMenuReplay:
+            g_application.user_func->Finish(&g_fn_game);
+            break;
+          case kMenuOption:
+            g_application.user_func->Finish(&g_fn_option);
+            break;
+          case kMenuExit:
+            g_application.Quit();
+            break;
+        }
+      }
+      break;
+  }
+  if (!(flags_ & kFlagTitleShown) &&
+      (g_application.input->pad(0)->pressed() &
+       (FnGame::kKeyFire | FnGame::kKeySlow | FnGame::kKeySwitch))) {
+    menu_x_ = 0;
+    time_ = kStepTitle;
+  }
+  if (flags_ & kFlagMenuCursor) {
+    cursor_alpha_ -= 4;
+    if (cursor_alpha_ <= 0) {
+      cursor_alpha_ = 255;
+    }
+    if (scores_shown_ < scores_length_ && (g_application.frame_count & 1)) {
+      ++scores_shown_;
+    }
+  }
+  if (time != time_) {
+    step_time_ = 0;
+  }
+  g_actor_system.MoveAll();
 }

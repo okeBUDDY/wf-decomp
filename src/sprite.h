@@ -50,6 +50,8 @@ class Sprite : public Task {
   void FadeOut(short frames);  // 0x41bf00
   // Fades from the current colour to (`r`, `g`, `b`, `a`) in `frames`.
   void FadeTo(short frames, int r, int g, int b, int a);  // 0x41bca0
+  // The frames left of the fade (0 while not fading).
+  short fade_frames() const { return fade_frames_; }
 
   Application* app_;  // 0x14
 

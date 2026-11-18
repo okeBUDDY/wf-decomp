@@ -125,6 +125,21 @@ class Actor {
     }
     sprite = new_sprite;
   }
+  float x() const { return transform->m[2][0]; }
+  float y() const { return transform->m[2][1]; }
+  void SetX(float new_x) {
+    transform->m[2][0] = new_x;
+    flags |= kMoved;
+  }
+  void SetY(float new_y) {
+    transform->m[2][1] = new_y;
+    flags |= kMoved;
+  }
+  void SetPosition(float new_x, float new_y) {
+    transform->m[2][0] = new_x;
+    transform->m[2][1] = new_y;
+    flags |= kMoved;
+  }
   // Sets the scale; changing matrix_angle makes the matrix be rebuilt.
   void SetScale(float new_scale) {
     scale = new_scale;
