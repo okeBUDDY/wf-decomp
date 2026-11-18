@@ -15,6 +15,16 @@ class Thread {
   // Asks Run() to return and waits up to two seconds before killing the
   // thread.
   void Stop();  // 0x40fca0
+  void Suspend() {
+    if (handle_ != NULL) {
+      SuspendThread(handle_);
+    }
+  }
+  void Resume() {
+    if (handle_ != NULL) {
+      ResumeThread(handle_);
+    }
+  }
   HANDLE handle() const { return handle_; }
 
  protected:
@@ -22,10 +32,10 @@ class Thread {
 
   static DWORD WINAPI ThreadProc(void* param);  // 0x40fd20
 
-  DWORD id_;        // 0x04
-  HANDLE handle_;   // 0x08
-  int running_;     // 0x0c, cleared to stop Run()
-  int exit_code_;   // 0x10
+  DWORD id_;       // 0x04
+  HANDLE handle_;  // 0x08
+  int running_;    // 0x0c, cleared to stop Run()
+  int exit_code_;  // 0x10
 };
 
 #endif  // WF_THREAD_H_

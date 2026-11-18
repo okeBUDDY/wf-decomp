@@ -26,6 +26,14 @@ class CSndBufList {
     buffer->id_ = count_++;
   }
   void Remove(CSndBuf* buffer);  // 0x40dfd0
+  // Releases every buffer, last first.
+  void ReleaseAll() {
+    for (CSndBuf* buffer = tail_; buffer != NULL; buffer = buffer->prev_) {
+      buffer->Release();
+    }
+    tail_ = NULL;
+    head_ = NULL;
+  }
   // Releases every buffer; returns 1.
   int Clear();  // 0x409330
 

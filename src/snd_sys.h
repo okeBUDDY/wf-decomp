@@ -5,8 +5,9 @@
 #define WF_SND_SYS_H_
 
 #include <windows.h>
-#include <mmsystem.h>
+
 #include <dsound.h>
+#include <mmsystem.h>
 
 #include "application.h"
 #include "object.h"
@@ -16,10 +17,14 @@
 class CSndBuf;
 class SoundSystem;
 
+// Seconds since Windows started.
+inline float GetTime() { return timeGetTime() * 0.001f; }
+
 // One playing sound (vtable 0x451de4).
 class Channel {
  public:
   enum Flags {
+    kPauseCountMask = 0xffff,
     kLoop = 0x10000,
     kFading = 0x4000000,
     kStopAfterFade = 0x8000000,
@@ -52,12 +57,17 @@ class Channel {
   void Release();                // 0x409370
   int Play();                    // 0x409500
   // Pan from -1 (left) to 1 (right).
-  void SetPan(float pan);  // 0x40f4c0
+  void SetPan(float pan);              // 0x40f4c0
   void SetVolumeLocked(float volume);  // 0x40f530
   // Fades from `from` to `to` (negative: current volume) in `time` seconds,
   // then stops the channel when `stop` is set.
   void Fade(float from, float to, float time, int stop);  // 0x40f570
-  int Start();  // 0x40f650
+  int Start();                                            // 0x40f650
+
+  unsigned int pause_count() const { return flags_ & kPauseCountMask; }
+  void set_pause_count(unsigned int count) {
+    flags_ = (flags_ & ~kPauseCountMask) | count;
+  }
 
   static SoundSystem* system_;  // 0x468fa8
 
@@ -98,8 +108,9 @@ class SoundSystem : public Object {
   virtual ~SoundSystem() {}
   virtual int Initialize(Application* app);  // 0x409580
   virtual void Finalize();                   // 0x409810
-  virtual void Method3();                    // 0x4098e0
-  virtual void Method4();                    // 0x409980
+  // Stops every channel and the mixing thread until Resume().
+  virtual void Pause();   // 0x4098e0
+  virtual void Resume();  // 0x409980
 
   // Stops every channel playing `buffer`; without a buffer, every channel
   // of `group` (-1: all channels).
@@ -112,13 +123,15 @@ class SoundSystem : public Object {
   int CreateMixer();                                // 0x408cb0
 
  public:
-  GUID* device_;                 // 0x08
-  int reserved_0c_;              // 0x0c
-  int channel_count_;            // 0x10
+  enum State { kPaused = 1 };
 
-  unsigned int muted_groups_;  // 0x14, bit per CSndBuf group
-  float group_volume_[4];      // 0x18
-  IDirectSound* dsound_;       // 0x28, NULL without DirectSound
+  GUID* device_;        // 0x08
+  unsigned int state_;  // 0x0c
+  int channel_count_;   // 0x10
+
+  unsigned int muted_groups_;    // 0x14, bit per CSndBuf group
+  float group_volume_[4];        // 0x18
+  IDirectSound* dsound_;         // 0x28, NULL without DirectSound
   IDirectSoundBuffer* primary_;  // 0x2c
   Application* app_;             // 0x30
   Channel* channels_;            // 0x34

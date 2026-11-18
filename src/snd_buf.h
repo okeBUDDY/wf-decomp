@@ -4,8 +4,9 @@
 #define WF_SND_BUF_H_
 
 #include <windows.h>
-#include <mmsystem.h>
+
 #include <dsound.h>
+#include <mmsystem.h>
 
 #include "object.h"
 
@@ -27,7 +28,8 @@ class CSndBuf : public Object {
   // 0x40e210
   virtual const char* GetName() { return "CSndBuf"; }
   virtual void Release();  // 0x40e230
-  virtual void Update() {}
+  // Called when the sound system pauses.
+  virtual void Suspend() {}
   // Reloads the samples after the buffer was lost.
   virtual void Restore();  // 0x40e720
   // Loads `path` into a new buffer; `channel` (0..3) is kept in the flags.

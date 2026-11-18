@@ -6,6 +6,7 @@
 #define WF_SND_FILE_H_
 
 #include <windows.h>
+
 #include <mmsystem.h>
 #include <vorbis/vorbisfile.h>
 
@@ -58,9 +59,7 @@ class CSndFileWAV : public CSndFile {
     }
   }
   // 0x40e090
-  virtual int Read(void* buffer, int size) {
-    return file_->Read(buffer, size);
-  }
+  virtual int Read(void* buffer, int size) { return file_->Read(buffer, size); }
   // 0x40e0a0
   virtual void Seek(int position) {
     file_->Seek(data_offset_ + position, SEEK_SET);
@@ -83,10 +82,10 @@ class CSndFileOGG : public CSndFile {
   virtual void Seek(int position);           // 0x40e790
 
  private:
-  int reserved_;             // 0x0c
-  OggVorbis_File vorbis_;    // 0x10
-  int block_align_;          // 0x2e0
-  int position_;             // 0x2e4
+  int reserved_;           // 0x0c
+  OggVorbis_File vorbis_;  // 0x10
+  int block_align_;        // 0x2e0
+  int position_;           // 0x2e4
 };
 
 #endif  // WF_SND_FILE_H_

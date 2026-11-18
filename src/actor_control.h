@@ -52,9 +52,9 @@ class PartControl : public ScoredControl {
 
 class LinkedPartControl : public PartControl {
  public:
-  virtual void OnDestroy(Actor* actor);                      // 0x4195f0
-  virtual int OnMove(Actor* actor);                          // 0x419cc0
-  virtual void OnEvent(Actor* actor, int x, int y);          // 0x419370
+  virtual void OnDestroy(Actor* actor);                        // 0x4195f0
+  virtual int OnMove(Actor* actor);                            // 0x419cc0
+  virtual void OnEvent(Actor* actor, int x, int y);            // 0x419370
   virtual void OnChildDestroyed(Actor* parent, Actor* child);  // 0x419400
   // 0x40fe30
   virtual int GetScore(Actor* actor);
@@ -74,7 +74,7 @@ class CorePartControl : public PartControl {
 
 class Control01 : public ActorControl {
  public:
-  virtual int Initialize();                          // 0x412fe0
+  virtual int Initialize();  // 0x412fe0
   virtual void Finalize() {}
   virtual int OnCreate(Actor* actor, void* param);   // 0x413550
   virtual void OnDestroy(Actor* actor);              // 0x412fa0
@@ -84,31 +84,31 @@ class Control01 : public ActorControl {
 
 class Control08 : public ActorControl {
  public:
-  virtual int Initialize();                          // 0x412c80
+  virtual int Initialize();  // 0x412c80
   virtual void Finalize() {}
-  virtual int OnCreate(Actor* actor, void* param);   // 0x412cb0
+  virtual int OnCreate(Actor* actor, void* param);  // 0x412cb0
   virtual void OnDestroy(Actor* actor) {}
-  virtual int OnMove(Actor* actor);                  // 0x412e70
+  virtual int OnMove(Actor* actor);  // 0x412e70
 };
 
 class Control16 : public ActorControl {
  public:
-  virtual int Initialize();                          // 0x410540
+  virtual int Initialize();  // 0x410540
   virtual void Finalize() {}
-  virtual int OnCreate(Actor* actor, void* param);   // 0x410640
-  virtual void OnDestroy(Actor* actor);              // 0x4104d0
-  virtual int OnMove(Actor* actor);                  // 0x4104e0
+  virtual int OnCreate(Actor* actor, void* param);  // 0x410640
+  virtual void OnDestroy(Actor* actor);             // 0x4104d0
+  virtual int OnMove(Actor* actor);                 // 0x4104e0
 };
 
 // Controls whose Initialize() only returns 1 (0x410340).
-#define WF_SIMPLE_CONTROL(name)                       \
-  class name : public ActorControl {                  \
-   public:                                            \
-    virtual int Initialize() { return 1; }            \
-    virtual void Finalize() {}                        \
-    virtual int OnCreate(Actor* actor, void* param);  \
-    virtual void OnDestroy(Actor* actor) {}           \
-    virtual int OnMove(Actor* actor);                 \
+#define WF_SIMPLE_CONTROL(name)                      \
+  class name : public ActorControl {                 \
+   public:                                           \
+    virtual int Initialize() { return 1; }           \
+    virtual void Finalize() {}                       \
+    virtual int OnCreate(Actor* actor, void* param); \
+    virtual void OnDestroy(Actor* actor) {}          \
+    virtual int OnMove(Actor* actor);                \
   }
 
 WF_SIMPLE_CONTROL(Control17);  // OnCreate 0x410930, OnMove 0x410500
@@ -131,7 +131,7 @@ class Control20 : public ActorControl {
 
 class Control35 : public ActorControl {
  public:
-  virtual int Initialize();                         // 0x412820
+  virtual int Initialize();  // 0x412820
   virtual void Finalize() {}
   virtual int OnCreate(Actor* actor, void* param);  // 0x412950
   virtual void OnDestroy(Actor* actor);             // 0x4127c0
@@ -156,7 +156,7 @@ class Control45 : public ScoredControl {
   virtual void Finalize() {}
   virtual int OnCreate(Actor* actor, void* param);  // 0x414830
   virtual void OnDestroy(Actor* actor) {}
-  virtual int OnMove(Actor* actor);                 // 0x414ac0
+  virtual int OnMove(Actor* actor);  // 0x414ac0
   virtual int GetScore(Actor* actor) { return 100; }
   virtual int GetHitPoints(Actor* actor) { return 2; }
 };
@@ -167,14 +167,14 @@ class Control48 : public ScoredControl {
   virtual void Finalize() {}
   virtual int OnCreate(Actor* actor, void* param);  // 0x413d50
   virtual void OnDestroy(Actor* actor) {}
-  virtual int OnMove(Actor* actor);                 // 0x413c30
+  virtual int OnMove(Actor* actor);  // 0x413c30
   virtual int GetScore(Actor* actor) { return 100; }
   virtual int GetHitPoints(Actor* actor) { return 5; }
 };
 
 class Control32 : public PartControl {
  public:
-  virtual int Initialize();                                    // 0x411500
+  virtual int Initialize();  // 0x411500
   virtual void Finalize() {}
   virtual int OnCreate(Actor* actor, void* param);             // 0x4116f0
   virtual void OnDestroy(Actor* actor);                        // 0x411550
@@ -200,35 +200,31 @@ class Control34 : public LinkedPartControl {
 };
 
 // Core part controls: score, hit points and level are constants.
-#define WF_CORE_CONTROL(name, score, hit_points, level) \
-  class name : public CorePartControl {                 \
-   public:                                              \
-    virtual int Initialize();                           \
-    virtual void Finalize() {}                          \
-    virtual int OnCreate(Actor* actor, void* param);    \
-    virtual int OnMove(Actor* actor);                   \
-    virtual int GetScore(Actor* actor) { return score; } \
-    virtual int GetHitPoints(Actor* actor) {            \
-      return hit_points;                                \
-    }                                                   \
-    virtual int GetLevel() { return level; }            \
-    virtual void Setup(Actor* actor, int rank);        \
+#define WF_CORE_CONTROL(name, score, hit_points, level)           \
+  class name : public CorePartControl {                           \
+   public:                                                        \
+    virtual int Initialize();                                     \
+    virtual void Finalize() {}                                    \
+    virtual int OnCreate(Actor* actor, void* param);              \
+    virtual int OnMove(Actor* actor);                             \
+    virtual int GetScore(Actor* actor) { return score; }          \
+    virtual int GetHitPoints(Actor* actor) { return hit_points; } \
+    virtual int GetLevel() { return level; }                      \
+    virtual void Setup(Actor* actor, int rank);                   \
   }
 
 // Controls 44 and 47 keep Initialize() { return 1; }.
-#define WF_CORE_CONTROL_SIMPLE(name, score, hit_points, level) \
-  class name : public CorePartControl {                        \
-   public:                                                     \
-    virtual int Initialize() { return 1; }                     \
-    virtual void Finalize() {}                                 \
-    virtual int OnCreate(Actor* actor, void* param);           \
-    virtual int OnMove(Actor* actor);                          \
-    virtual int GetScore(Actor* actor) { return score; }       \
-    virtual int GetHitPoints(Actor* actor) {                   \
-      return hit_points;                                       \
-    }                                                          \
-    virtual int GetLevel() { return level; }                   \
-    virtual void Setup(Actor* actor, int rank);        \
+#define WF_CORE_CONTROL_SIMPLE(name, score, hit_points, level)    \
+  class name : public CorePartControl {                           \
+   public:                                                        \
+    virtual int Initialize() { return 1; }                        \
+    virtual void Finalize() {}                                    \
+    virtual int OnCreate(Actor* actor, void* param);              \
+    virtual int OnMove(Actor* actor);                             \
+    virtual int GetScore(Actor* actor) { return score; }          \
+    virtual int GetHitPoints(Actor* actor) { return hit_points; } \
+    virtual int GetLevel() { return level; }                      \
+    virtual void Setup(Actor* actor, int rank);                   \
   }
 
 WF_CORE_CONTROL(Control40, 1000, 20, 0);

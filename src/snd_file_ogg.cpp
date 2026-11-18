@@ -45,8 +45,8 @@ int CSndFileOGG::Read(void* buffer, int size) {
   }
   int left = size;
   while (left > 0) {
-    int read = ov_read(&vorbis_, static_cast<char*>(buffer), left, 0, 2, 1,
-                       NULL);
+    int read =
+        ov_read(&vorbis_, static_cast<char*>(buffer), left, 0, 2, 1, NULL);
     if (read <= 0) {
       return size - left;
     }

@@ -14,8 +14,8 @@ IDirectSoundBuffer* CSndBuf::GetBuffer() {
   if (buffer_ != NULL) {
     if (flags_ & kBufferInUse) {
       IDirectSoundBuffer* duplicate;
-      if (g_sound_system->dsound_->DuplicateSoundBuffer(buffer_,
-                                                         &duplicate) != DS_OK) {
+      if (g_sound_system->dsound_->DuplicateSoundBuffer(buffer_, &duplicate) !=
+          DS_OK) {
         return NULL;
       }
       return duplicate;
@@ -141,8 +141,7 @@ CSndFile* CSndBuf::OpenSndFile(const char* path, WAVEFORMATEX* format) {
 }
 
 // 0x40e420
-int CSndBuf::Fill(void* out, CSndFile* file, int offset, int size,
-                  int loop) {
+int CSndBuf::Fill(void* out, CSndFile* file, int offset, int size, int loop) {
   char* dest = static_cast<char*>(out);
   int read = file->Read(dest, size);
   if (read >= size) {
@@ -179,8 +178,7 @@ int CSndBuf::Write(CSndFile* file, int offset, int size, int loop) {
   DWORD size1;
   void* data2;
   DWORD size2;
-  if (buffer_->Lock(offset, size, &data1, &size1, &data2, &size2, 0) !=
-      DS_OK) {
+  if (buffer_->Lock(offset, size, &data1, &size1, &data2, &size2, 0) != DS_OK) {
     return 0;
   }
   int result = Fill(data1, file, offset, size, loop);
@@ -198,9 +196,9 @@ int CSndBuf::SetPath(const char* path, CSndFile* file, WAVEFORMATEX* format) {
   strcpy(path_, path);
   // "buffer created"
   Log("[%d]:\312\336\257\314\247\220\266\220\254: \"%s\"", id_, path);
-  Log("[%d]:%dByte(%dByte) %dch %dHz %dbit %4.2fsec", id_, file->size(),
-      size_, format->nChannels, format->nSamplesPerSec,
-      format->wBitsPerSample, seconds_);
+  Log("[%d]:%dByte(%dByte) %dch %dHz %dbit %4.2fsec", id_, file->size(), size_,
+      format->nChannels, format->nSamplesPerSec, format->wBitsPerSample,
+      seconds_);
   return 1;
 }
 

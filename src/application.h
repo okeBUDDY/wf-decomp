@@ -7,9 +7,9 @@
 
 struct Application {
   char unknown_00_[0xc];
-  HWND window;                 // 0x0c
+  HWND window;  // 0x0c
   char unknown_10_[0x12];
-  short sound_channels;        // 0x22
+  short sound_channels;  // 0x22
 };
 
 #endif  // WF_APPLICATION_H_

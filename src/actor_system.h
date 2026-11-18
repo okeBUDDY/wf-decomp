@@ -14,7 +14,7 @@ class ActorSystem : public Object {
   int Register(int id, ActorControl* control);  // 0x407980
 
  private:
-  char unknown_08_[0x20];   // 0x08
+  char unknown_08_[0x20];    // 0x08
   ActorControl** controls_;  // 0x28, indexed by id
 };
 
