@@ -17,10 +17,10 @@ Actor* CEnmParam::StartBattle(Actor* player) {
     slot->flags &= 0xffff;
   }
   turn_speed_ = state_.unknown_2a_ * 2 / 1024 + 1;
-  unknown_88_[0] = state_.unknown_28_ * 50 / 1024 + 10;
+  fire_rate_ = state_.unknown_28_ * 50 / 1024 + 10;
   state_.flags &= 0xffff0000;
-  unknown_88_[2] = 0;
-  unknown_88_[1] = 0;
+  fire_wait_[1] = 0;
+  fire_wait_[0] = 0;
   turret_count_ = 0;
   unknown_98_ = state_.max_depth * 2;
   if (unknown_98_ < 5) {
@@ -183,16 +183,16 @@ void CEnmParam::RunBattle(Actor* player, Actor* boss) {
       --list_218_.time;
     }
   }
-  if (unknown_88_[1] > 0) {
-    unknown_88_[1] -= unknown_88_[0];
-    if (unknown_88_[1] < 0) {
-      unknown_88_[1] = 0;
+  if (fire_wait_[0] > 0) {
+    fire_wait_[0] -= fire_rate_;
+    if (fire_wait_[0] < 0) {
+      fire_wait_[0] = 0;
     }
   }
-  if (unknown_88_[2] > 0) {
-    unknown_88_[2] -= unknown_88_[0];
-    if (unknown_88_[2] < 0) {
-      unknown_88_[2] = 0;
+  if (fire_wait_[1] > 0) {
+    fire_wait_[1] -= fire_rate_;
+    if (fire_wait_[1] < 0) {
+      fire_wait_[1] = 0;
     }
   }
   state_.flags &= ~0xff;

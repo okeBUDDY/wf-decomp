@@ -17,6 +17,7 @@ is written to build/target/<src>.obj, and objdiff.json is (re)generated.
 usage: compare.py [-v] [src/foo.cpp ...]
 """
 import glob
+import re
 import json
 import os
 import struct
@@ -90,7 +91,8 @@ def compile_source(src):
     args = CFLAGS + ["/I" + winpath(i) for i in incs] + ["/Fo" + winpath(obj), winpath(sjis)]
     env = dict(vc71_env(), **CL_LOCALE)
     rc, out = run_wine(f"{VC71}/bin/cl.exe", args, env, check=False)
-    out = out.replace(winpath(SJIS_DIR), winpath(SRC_DIR))
+    out = re.sub(re.escape(winpath(SJIS_DIR)), winpath(SRC_DIR).replace("\\", "\\\\"), out,
+                 flags=re.IGNORECASE)
     lines = [ln for ln in out.splitlines() if ln.strip() and ln.strip() != os.path.basename(src)]
     if lines:
         print("\n".join(lines))

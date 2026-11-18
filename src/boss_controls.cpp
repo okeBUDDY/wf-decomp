@@ -306,6 +306,200 @@ void Control32::RunProgram9c(Actor* actor, EnmList* program) {
   ++program->time;
 }
 
+// 0x4119d0
+void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
+  switch (program->op) {
+    case 0x30001: {
+      if (g_enm_param.fire_wait_[side] > 0) {
+        break;
+      }
+      int count = ListWeapons(side, weapons_);
+      if (count == 0) {
+        program->op = 0;
+        return;
+      }
+      int weapon = weapons_[rand() % count];
+      SignalSide(actor, side, (rand() & 3) ? 5 : 7,
+                 (0x10000 << weapon) | 0x10a);
+      int add = g_enm_param.core_power_[side][weapon] * 10;
+      if (program->arg > 0) {
+        add = add * 100 / program->arg;
+      }
+      g_enm_param.fire_wait_[side] += add;
+      break;
+    }
+    case 0x30002:
+    case 0x30003:
+      switch (program->step) {
+        case 0:
+          if (g_enm_param.fire_wait_[side] > 0) {
+            break;
+          }
+          if (g_enm_param.core_power_[side][program->arg] <= 0) {
+            program->op = 0;
+            return;
+          }
+          CorePartControl::max_unknown_22_ = 0;
+          SignalSide(actor, side, 5, (0x10000 << program->arg) | 0x10a);
+          g_enm_param.fire_wait_[side] +=
+              g_enm_param.core_power_[side][program->arg] * 10;
+          program->time =
+              program->op == 0x30003 ? CorePartControl::max_unknown_22_ : 0;
+          ++program->step;
+          break;
+        case 1:
+          if (--program->time < 0 && g_enm_param.fire_wait_[side] <= 0) {
+            program->op = 0;
+          }
+          break;
+      }
+      break;
+    case 0x30004:
+    case 0x30005:
+      switch (program->step) {
+        case 0:
+          if (g_enm_param.fire_wait_[side] > 0) {
+            break;
+          }
+          if (g_enm_param.core_power_[side][program->arg] <= 0) {
+            program->op = 0;
+            return;
+          }
+          CorePartControl::max_unknown_22_ = 0;
+          SignalSide(actor, side, 5, (0x10000 << program->arg) | 0x90a);
+          g_enm_param.fire_wait_[side] +=
+              g_enm_param.core_power_[side][program->arg] * 10;
+          program->time =
+              program->op == 0x30005 ? CorePartControl::max_unknown_22_ : 0;
+          ++program->step;
+          break;
+        case 1:
+          if (--program->time < 0 && g_enm_param.fire_wait_[side] <= 0) {
+            program->op = 0;
+          }
+          break;
+      }
+      break;
+    case 0x30006:
+    case 0x30007:
+      switch (program->step) {
+        case 0: {
+          if (g_enm_param.fire_wait_[side] > 0) {
+            break;
+          }
+          if (!ListWeapons(side, weapons_)) {
+            program->op = 0;
+            return;
+          }
+          CorePartControl::max_unknown_22_ = 0;
+          SignalSide(actor, side, 5, 0xffff010a);
+          g_enm_param.fire_wait_[side] += (g_enm_param.core_power_[side][0] +
+                                           g_enm_param.core_power_[side][1] +
+                                           g_enm_param.core_power_[side][2] +
+                                           g_enm_param.core_power_[side][3] +
+                                           g_enm_param.core_power_[side][4] +
+                                           g_enm_param.core_power_[side][5] +
+                                           g_enm_param.core_power_[side][6]) *
+                                          10;
+          program->time =
+              program->op == 0x30007 ? CorePartControl::max_unknown_22_ : 0;
+          ++program->step;
+          break;
+        }
+        case 1:
+          if (--program->time < 0 && g_enm_param.fire_wait_[side] <= 0) {
+            program->op = 0;
+          }
+          break;
+      }
+      break;
+  }
+}
+
+// 0x412530
+// TODO: nonmatching (register choice: the original keeps `program` in edi
+// and the angle in ebx, and adds the new angles for StartTurn() in 16 bits,
+// as if its parameter were a short; StartTurn() itself matches only with
+// an int)
+void Control32::RunProgramB0(Actor* actor, EnmList* program) {
+  Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
+  PartWork* part = reinterpret_cast<PartWork*>(actor->work);
+  if (part->flags & Control32Work::kTurning) {
+    if (program->time >= work->turn_end) {
+      actor->angle = work->turn + work->turn_from;
+      part->flags &= ~Control32Work::kTurning;
+      g_enm_param.state_.flags |= 2;
+      program->op = 0;
+      return;
+    }
+    int turned;
+    if (program->time >= work->turn_peak) {
+      int left = work->turn_end - program->time;
+      turned = abs(work->turn) - left * left / 180;
+      if (program->op == 0x20004) {
+        g_enm_param.state_.flags |= 2;
+      }
+    } else if (program->time >= 90) {
+      turned = program->time - 45;
+      if (program->op == 0x20004) {
+        short off =
+            (AngleToPlayer(actor) - 0x200 - program->arg - actor->angle) &
+            0x3ff;
+        if (off >= 0x200) {
+          off -= 0x400;
+        }
+        if (off > -32 && off < 32) {
+          work->turn_peak = program->time;
+          work->turn_end = program->time + 90;
+          short done = actor->angle - work->turn_from;
+          work->turn = done + (done < 0 ? -45 : 45);
+        }
+      }
+    } else {
+      turned = program->time * program->time / 180;
+    }
+    if (work->turn <= 0) {
+      turned = -turned;
+    }
+    actor->angle = work->turn_from + turned;
+    ++program->time;
+    return;
+  }
+  int angle;
+  switch (program->op) {
+    case 0x20001:
+      angle = actor->angle + ((rand() & 1) ? 0x200 : -0x200);
+      break;
+    case 0x20002:
+      actor->angle = (actor->angle - program->arg) & 0x3ff;
+      if (static_cast<short>(actor->angle) >= 0x200) {
+        actor->angle -= 0x400;
+      }
+      actor->angle += program->arg;
+      angle = program->arg;
+      break;
+    case 0x20003:
+      angle = actor->angle + ((program->arg - 90) & ~0x3ff) + 0x400;
+      break;
+    case 0x20004: {
+      unsigned short from = actor->angle;
+      short off = (AngleToPlayer(actor) - 0x200 - program->arg - from) & 0x3ff;
+      if (off >= 0x200) {
+        off -= 0x400;
+      }
+      angle = from + off;
+      break;
+    }
+    default:
+      ++program->time;
+      return;
+  }
+  if (!StartTurn(actor, program, angle)) {
+    program->op = 0;
+  }
+  ++program->time;
+}
+
 // 0x412750
 int Control32::OnMove(Actor* actor) {
   if (g_enm_param.list_9c_.op != 0) {

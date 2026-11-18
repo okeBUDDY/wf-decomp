@@ -324,7 +324,8 @@ class CEnmParam : public System {
 
   EnmState state_;       // 0x08
   int turn_speed_;       // 0x84, of the turrets, per frame
-  int unknown_88_[3];    // 0x88
+  int fire_rate_;        // 0x88, the fire waits count down by it
+  int fire_wait_[2];     // 0x8c, per side, before the next volley
   int turret_count_;     // 0x94, of control 35
   int unknown_98_;       // 0x98
   EnmList list_9c_;      // 0x9c
