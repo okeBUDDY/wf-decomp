@@ -235,6 +235,14 @@ class CEnmParam : public System {
   int Tactic4169c0(int unused);                // 0x4169c0
   int Tactic416ac0(int unused);                // 0x416ac0
   int Tactic416cb0(int unused);                // 0x416cb0
+  int Tactic417010(int unused);                // 0x417010
+  int Tactic4170c0(int unused);                // 0x4170c0
+  // Makes the armored parts glow for `time` frames (sending event 8 to
+  // `actor`); 0 without armored parts.
+  int GlowArmor(Actor* actor, int time);  // 0x4173a0
+  // Sends event 4 to `actor` when parts with PartWork flag 0x20000 are
+  // left; 0 without them.
+  int SignalUnknown104(Actor* actor);  // 0x4173f0
   // The slot of the part at `code`, NULL without one.
   EnmSlot* FindSlot(unsigned int code) {
     if (code != 0) {

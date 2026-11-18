@@ -4,6 +4,9 @@
 // across the calls.
 #include "enm_param.h"
 
+#include "actor.h"
+#include "actor_control.h"
+
 // 0x416170
 int CEnmParam::IsSideBeaten(int unused, int percent) {
   if (state_.step_mask & 2) {
@@ -65,4 +68,27 @@ void CEnmParam::RunOpening(int unused, int next_step) {
       }
       break;
   }
+}
+
+// 0x4173a0
+int CEnmParam::GlowArmor(Actor* actor, int time) {
+  if (armored_parts_[0] <= 0 && armored_parts_[1] <= 0) {
+    return 0;
+  }
+  glow_time = time;
+  if (actor->control != NULL) {
+    actor->control->OnEvent(actor, 8, 0x110a);
+  }
+  return 1;
+}
+
+// 0x4173f0
+int CEnmParam::SignalUnknown104(Actor* actor) {
+  if (unknown_104_[0] <= 0 && unknown_104_[1] <= 0) {
+    return 0;
+  }
+  if (actor->control != NULL) {
+    actor->control->OnEvent(actor, 4, 0xffff310a);
+  }
+  return 1;
 }

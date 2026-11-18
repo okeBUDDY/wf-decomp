@@ -280,3 +280,41 @@ int CEnmParam::Tactic416cb0(int unused) {
   }
   return 0;
 }
+
+// 0x417010
+int CEnmParam::Tactic417010(int unused) {
+  switch (list_218_.step) {
+    case 0:
+      lists_c4_[0].Start(0x30001, 200);
+      lists_c4_[1].Start(0x30001, 200);
+      list_b0_.Start(0x20003, (rand() % 20 + 20) * 60);
+      ++list_218_.step;
+      break;
+    case 1:
+      if (list_9c_.op == 0 && list_b0_.op == 0) {
+        return 1;
+      }
+      break;
+  }
+  return 0;
+}
+
+// 0x4170c0
+int CEnmParam::Tactic4170c0(int unused) {
+  switch (list_218_.step) {
+    case 0:
+      lists_c4_[0].Start(0x30001, 100);
+      lists_c4_[1].Start(0x30001, 100);
+      // Fall through.
+    case 1:
+      if (list_b0_.op == 0) {
+        list_b0_.Start(0x20002, 0);
+        ++list_218_.step;
+      }
+      break;
+  }
+  if (list_9c_.op == 0) {
+    list_9c_.Start(0x10002, 300);
+  }
+  return 0;
+}
