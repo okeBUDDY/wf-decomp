@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "hl_device.h"
 #include "snd_buf.h"
 
 static char kName[] = "HLSound";  // 0x45d25c
@@ -10,6 +11,17 @@ SoundSystem* g_sound_system;  // 0x468f98
 CSndBufList* g_snd_buf_list;  // 0x468f9c
 
 void ResetStreams();  // 0x40ea20
+
+// 0x408e40
+BOOL CALLBACK SoundSystem::EnumDeviceProc(GUID* guid, LPCSTR description,
+                                          LPCSTR module, void* context) {
+  IDirectSound* dsound;
+  if (DirectSoundCreate(guid, &dsound, NULL) == DS_OK) {
+    static_cast<HLDevSet*>(context)->Add(guid, description, 0);
+    dsound->Release();
+  }
+  return TRUE;
+}
 
 // 0x408f90
 SoundSystem::SoundSystem() {
@@ -94,6 +106,14 @@ int SoundSystem::SetFormat(int rate, int bits, int channels) {
   Log("\217o\227\315\314\253\260\317\257\304:%dch %dHz %dbit", channels, rate,
       bits);
   return 1;
+}
+
+// 0x409240
+int SoundSystem::EnumDevices(HLDevSet* set) {
+  if (DirectSoundEnumerate(EnumDeviceProc, set) != DS_OK) {
+    return 0;
+  }
+  return set->count() != 0;
 }
 
 // 0x409330
@@ -278,6 +298,40 @@ void SoundSystem::Resume() {
   thread_.Resume();
   LeaveCriticalSection(&lock_);
   state_ &= ~kPaused;
+}
+
+// 0x409a50
+void SoundSystem::MuteGroup(int mute, int group) {
+  EnterCriticalSection(&lock_);
+  Channel* channel = head_;
+  if (group >= 0) {
+    if (mute) {
+      muted_groups_ |= 1 << group;
+    } else {
+      muted_groups_ &= ~(1 << group);
+    }
+    for (; channel != NULL; channel = channel->next_) {
+      if (channel->sound_->group() == group && channel->buffer_ != NULL) {
+        if (mute) {
+          channel->buffer_->Stop();
+        } else if (channel->flags_ & 0x1) {  // bit 0: meaning unknown
+          channel->Play();
+        }
+      }
+    }
+  } else {
+    muted_groups_ = mute ? 0xffffffff : 0;
+    for (; channel != NULL; channel = channel->next_) {
+      if (channel->buffer_ != NULL) {
+        if (mute) {
+          channel->buffer_->Stop();
+        } else if (channel->flags_ & 0x1) {
+          channel->Play();
+        }
+      }
+    }
+  }
+  LeaveCriticalSection(&lock_);
 }
 
 // 0x408cb0

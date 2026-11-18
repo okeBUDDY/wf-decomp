@@ -15,6 +15,7 @@
 #include "thread.h"
 
 class CSndBuf;
+class HLDevSet;
 class SoundSystem;
 
 // Seconds since Windows started.
@@ -127,12 +128,19 @@ class SoundSystem : public System {
   // Mutes (`mute`) or unmutes `group` (-1: every group), stopping or
   // restarting its channels.
   void MuteGroup(int mute, int group);  // 0x409a50
+  // Adds the DirectSound devices to `set`; 0 when there is none.
+  int EnumDevices(HLDevSet* set);  // 0x409240
   // Sets the volume of `group` (-1: every group).
   void SetGroupVolume(float volume, int group);  // 0x409030
 
  private:
-  int SetFormat(int rate, int bits, int channels);  // 0x4090e0
-  int CreateMixer();                                // 0x408cb0
+  // DirectSoundEnumerate() callback: adds each device that can be created
+  // to the HLDevSet `context`.
+  static BOOL CALLBACK EnumDeviceProc(GUID* guid, LPCSTR description,
+                                      LPCSTR module,
+                                      void* context);  // 0x408e40
+  int SetFormat(int rate, int bits, int channels);     // 0x4090e0
+  int CreateMixer();                                   // 0x408cb0
 
  public:
   enum State { kPaused = 1 };

@@ -113,6 +113,11 @@
       "base_path": "build/obj/src/hl_3d.obj"
     },
     {
+      "name": "hl_image",
+      "target_path": "build/target/hl_image.obj",
+      "base_path": "build/obj/src/hl_image.obj"
+    },
+    {
       "name": "hl_input",
       "target_path": "build/target/hl_input.obj",
       "base_path": "build/obj/src/hl_input.obj"

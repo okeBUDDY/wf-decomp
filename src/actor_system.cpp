@@ -44,6 +44,8 @@ int ActorSystem::Register(int id, ActorControl* control) {
   return 0;
 }
 
+HLSNullObject g_null_sprite;  // 0x468ed8
+
 // 0x407a10
 void ActorSystem::SetDamageSound(int damage, CSndBuf* sound, Channel* channel) {
   switch (damage) {
