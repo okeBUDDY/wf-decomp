@@ -26,6 +26,7 @@ class HLSObject {
   virtual void Hit(HLSHitImage* image, int x, int y, DWORD id) {}  // 0x407360
 
  protected:
+  friend class ActorSystem;
   HLSurface* texture_;  // 0x04, used by HLSPat
 };
 

@@ -3,6 +3,8 @@
 #ifndef WF_HLS_HIT_IMAGE_H_
 #define WF_HLS_HIT_IMAGE_H_
 
+#include <string.h>
+
 #include "object.h"
 
 class HLSurface;
@@ -20,8 +22,12 @@ class HLSHitImage : public Object {
   // coordinates) with `id`.
   void Fill(int x, int y, int width, int height,
             unsigned long id);  // 0x407720
+  // Clears the image to 0 (no actor).
+  void Clear() { memset(bits_, 0, size_); }
 
  private:
+  friend class Actor;
+
   unsigned short* bits_;  // 0x08, malloc()ed
   HLSurface* surface_;    // 0x0c
   int size_;              // 0x10, bytes
@@ -29,5 +35,8 @@ class HLSHitImage : public Object {
   short height_;          // 0x16
   short shift_;           // 0x18, screen to image: >> shift_
 };
+
+// The hit image of the actors.
+extern HLSHitImage g_hit_image;  // 0x468ee0
 
 #endif  // WF_HLS_HIT_IMAGE_H_

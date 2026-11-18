@@ -13,10 +13,10 @@ struct Application;
 class HLMesh;
 class HLSurface;
 
-// A 2D transform: x' = x * m[0][0] + y * m[1][0] + m[2][0], and the same
-// with column 1 for y'.
+// A 2D transform in a 4x4 matrix: x' = x * m[0][0] + y * m[1][0] + m[2][0],
+// and the same with column 1 for y'.
 struct Transform {
-  float m[3][4];
+  float m[4][4];
 };
 
 // A texture coordinate.
@@ -29,12 +29,16 @@ struct TexCoord {
 void TransformPoint(D3DTLVERTEX* out, const Transform* transform,
                     const D3DVECTOR* point);  // 0x402370
 
+// `out` = `a` x `b`.
+void MultiplyTransform(Transform* out, const Transform* a,
+                       const Transform* b);  // 0x4023d0
+
 // Math tables and scratch space, allocated by HL3D::CreateBuffers().
-extern float* g_sin_table;         // 0x468878, sin of 1024 steps a turn (+256)
-extern float* g_angle_table;       // 0x46887c, the radians of each step
-extern float* g_vector_work;       // 0x468870, 0x78 bytes
-extern float* g_matrix_work;       // 0x468874, 0x280 bytes
-extern float g_base_matrix[4][4];  // 0x468830
+extern float* g_sin_table;       // 0x468878, sin of 1024 steps a turn (+256)
+extern float* g_angle_table;     // 0x46887c, the radians of each step
+extern float* g_vector_work;     // 0x468870, 0x78 bytes
+extern float* g_matrix_work;     // 0x468874, 0x280 bytes
+extern Transform g_base_matrix;  // 0x468830
 
 class HL3D : public System {
  public:
@@ -94,6 +98,7 @@ class HL3D : public System {
   }
 
  private:
+  friend class ActorSystem;
   friend class HLMesh;
   friend class HLSTxtSys;
 

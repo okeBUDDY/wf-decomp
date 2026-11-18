@@ -147,9 +147,10 @@ int HL3D::CreateBuffers() {
     Error("\322\323\330\202\252\221\253\202\350\202\334\202\271\202\361");
     return 0;
   }
-  g_base_matrix[0][0] = g_base_matrix[1][1] = g_base_matrix[2][2] = 1.0f;
-  g_base_matrix[0][1] = g_base_matrix[0][2] = g_base_matrix[1][0] =
-      g_base_matrix[1][2] = g_base_matrix[2][0] = g_base_matrix[2][1] = 0.0f;
+  g_base_matrix.m[0][0] = g_base_matrix.m[1][1] = g_base_matrix.m[2][2] = 1.0f;
+  g_base_matrix.m[0][1] = g_base_matrix.m[0][2] = g_base_matrix.m[1][0] =
+      g_base_matrix.m[1][2] = g_base_matrix.m[2][0] = g_base_matrix.m[2][1] =
+          0.0f;
   g_sin_table = static_cast<float*>(malloc(0x500 * sizeof(float)));
   g_angle_table = static_cast<float*>(malloc(0x400 * sizeof(float)));
   if (g_sin_table == NULL || g_angle_table == NULL) {
