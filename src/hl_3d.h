@@ -46,6 +46,9 @@ inline void TranslateTransform(Transform* transform, float x, float y) {
   transform->m[2][1] += y;
 }
 
+// Rotates `transform` by `radians`.
+void RotateTransformRad(Transform* transform, float radians);  // 0x402670
+
 // `out` = `a` x `b`.
 void MultiplyTransform(Transform* out, const Transform* a,
                        const Transform* b);  // 0x4023d0

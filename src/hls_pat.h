@@ -100,6 +100,8 @@ class HLSPatFile : public Object {
   int Load(const char* name, int min_count);  // 0x40a320
   // The pattern `index`, or NULL before the file is loaded.
   HLSPat* Get(int index) const { return pats_ != NULL ? pats_[index] : NULL; }
+  // The texture of the patterns.
+  HLSurface* texture() { return &texture_; }
 
  private:
   HLSurface texture_;  // 0x08

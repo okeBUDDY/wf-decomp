@@ -41,6 +41,9 @@ class HLSTxt : public HLSObject {
   // or in the colors of `palette` (its first one for plain text).
   void Print(int x, int y, D3DCOLOR color, int count);           // 0x41ca70
   void Print(int x, int y, const D3DCOLOR* palette, int count);  // 0x41dfd0
+  // Print(int, int, D3DCOLOR, int) where the original inlines it (defined
+  // in the files that use it).
+  inline void PrintInline(int x, int y, D3DCOLOR color, int count);
   // Frees the text object.
   void Release();  // 0x40a9d0
   // The text buffer.

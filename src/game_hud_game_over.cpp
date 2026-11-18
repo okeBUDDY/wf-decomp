@@ -6,13 +6,27 @@
 #include <string.h>
 
 #include "application.h"
+#include "background.h"
 #include "cglobal.h"
 #include "enm_param.h"
 #include "fonts.h"
+#include "game_data.h"
 #include "hl_3d.h"
+#include "hl_surface.h"
+#include "hls_pat.h"
 #include "hls_txt.h"
 #include "snd_sys.h"
 #include "sounds.h"
+
+inline void HLSTxt::BindTexture() {
+  SetTexture(system_->app_->d3d, texture_, 0);
+}
+
+inline void HLSTxt::PrintInline(int x, int y, D3DCOLOR color, int count) {
+  BindTexture();
+  system_->Print(static_cast<float>(x), static_cast<float>(y), text_, NULL,
+                 color, count);
+}
 
 // 0x420250
 int GameHud::Lerp(int* out, int from, int to, int frames, int time) {
@@ -86,6 +100,161 @@ void GameHud::LoadParams() {
   }
   shown_params_[0] = params_[0];
   UpdateChart();
+}
+
+// The band behind the frame (etc0.pat).
+static D3DVECTOR kBand[4] = {
+    {-256, -24, 0}, {768, -24, 0}, {-256, 24, 0}, {768, 24, 0}};  // 0x45dd48
+static POINTS kBandTexels[4] = {
+    {0, 208}, {1024, 208}, {0, 256}, {1024, 256}};  // 0x45dd78
+// The line under the boss's title.
+static D3DVECTOR kTitleLine[3] = {
+    {-20, 20, 0}, {0, 0, 0}, {360, 0, 0}};  // 0x45dd88
+// The weapon icons (etc2.pat) and their texels by weapon.
+static D3DVECTOR kWeaponIcon[4] = {
+    {-16, 0, 0}, {64, 0, 0}, {-16, 24, 0}, {64, 24, 0}};  // 0x45ddac
+static POINTS kWeaponTexels[7][4] = {
+    {{96, 128}, {176, 128}, {96, 152}, {176, 152}},
+    {{96, 152}, {176, 152}, {96, 176}, {176, 176}},
+    {{96, 176}, {176, 176}, {96, 200}, {176, 200}},
+    {{96, 200}, {176, 200}, {96, 224}, {176, 224}},
+    {{96, 224}, {176, 224}, {96, 248}, {176, 248}},
+    {{176, 128}, {256, 128}, {176, 152}, {256, 152}},
+    {{176, 152}, {256, 152}, {176, 176}, {256, 176}}};  // 0x45dde0
+// The level bar of a weapon, 64 pixels at level 1024.
+static D3DVECTOR kWeaponBar[4] = {
+    {0, 2, 0}, {64, 2, 0}, {0, 12, 0}, {64, 12, 0}};  // 0x45de50
+
+// 0x420500
+// TODO: nonmatching: for the title line the original loads title_slide_
+// for the int conversion before it clears transform.m[1][0]; the rest
+// matches.
+void GameHud::DrawGameOver() {
+  HL3D* d3d;
+  Transform transform;
+  transform.m[2][2] = 1;
+  transform.m[1][1] = 1;
+  transform.m[0][0] = 1;
+  transform.m[1][2] = 0;
+  transform.m[1][0] = 0;
+  transform.m[0][2] = 0;
+  transform.m[0][1] = 0;
+  transform.m[2][0] = 0;
+  transform.m[2][1] = 0;
+  ScaleTransform(&transform, 1.0f, frame_open_);
+  TranslateTransform(
+      &transform,
+      -static_cast<float>(
+          static_cast<unsigned int>(g_application.frame_count & 0x3f) * 4),
+      -200);
+  RotateTransformRad(&transform, 0.52359879f);
+  SetTexture(g_application.d3d, g_etc_pats[0].texture(), 0);
+  Transform band;
+  band.m[0][0] = transform.m[0][0];
+  band.m[0][1] = transform.m[0][1];
+  band.m[0][2] = transform.m[0][2];
+  band.m[1][0] = transform.m[1][0];
+  band.m[1][1] = transform.m[1][1];
+  band.m[1][2] = transform.m[1][2];
+  band.m[2][0] = transform.m[2][0] + 160;
+  band.m[2][1] = transform.m[2][1] + 200;
+  band.m[2][2] = transform.m[2][2];
+  g_application.d3d->DrawTexels(D3DPT_TRIANGLESTRIP, &band, kBand, kBandTexels,
+                                0xc8ff4000, 4);
+  RotateTransform(&transform, 0x200);
+  TranslateTransform(&transform, 160, 200);
+  g_application.d3d->DrawTexels(D3DPT_TRIANGLESTRIP, &transform, kBand,
+                                kBandTexels, 0xc8ff4000, 4);
+
+  D3DCOLOR chart_color = static_cast<int>(chart_alpha_ * 200) << 24 | 0xff80;
+  D3DCOLOR info_color = static_cast<int>(info_alpha_ * 128) << 24 | 0xff8000;
+  transform.m[2][2] = 1;
+  transform.m[1][1] = 1;
+  transform.m[0][0] = 1;
+  transform.m[1][2] = 0;
+  transform.m[1][0] = 0;
+  transform.m[0][2] = 0;
+  transform.m[0][1] = 0;
+  transform.m[2][0] = 160;
+  transform.m[2][1] = 200;
+  g_etc_pats[1].Get(1)->Draw(&transform, chart_color, 0);
+  g_application.d3d->ClearTexture();
+  g_application.d3d->DrawPoints(D3DPT_TRIANGLEFAN, &transform, &chart_center_,
+                                info_color, 8);
+  if (band_height_ > 0) {
+    transform.m[2][2] = 1;
+    transform.m[1][1] = 1;
+    transform.m[0][0] = 1;
+    transform.m[1][2] = 0;
+    transform.m[1][0] = 0;
+    transform.m[0][2] = 0;
+    transform.m[0][1] = 0;
+    transform.m[2][0] = 0;
+    transform.m[2][1] = 0;
+    ScaleTransform(&transform, band_height_, band_height_);
+    RotateTransform(&transform, g_application.frame_count * -3);
+    TranslateTransform(&transform, 160, 200);
+    g_application.d3d->DrawPoints(D3DPT_LINESTRIP, &transform, g_hexagon,
+                                  0xc800ff80, 7);
+  }
+
+  SetTexture(g_application.d3d, g_etc_pats[2].texture(), 0);
+  float x = 360;
+  float y = 172;
+  for (int i = 0; i < g_enm_param.state_.weapon_count; ++i) {
+    transform.m[2][2] = 1;
+    transform.m[1][1] = 1;
+    transform.m[0][0] = 1;
+    transform.m[1][2] = 0;
+    transform.m[1][0] = 0;
+    transform.m[0][2] = 0;
+    transform.m[0][1] = 0;
+    transform.m[2][0] = x;
+    transform.m[2][1] = y;
+    g_application.d3d->DrawTexels(D3DPT_TRIANGLESTRIP, &transform, kWeaponIcon,
+                                  kWeaponTexels[g_enm_param.state_.weapons[i]],
+                                  chart_color, 4);
+    x -= 21;
+    y += 36;
+  }
+  g_application.d3d->ClearTexture();
+  x = 360;
+  y = 172;
+  for (int i = 0; i < g_enm_param.state_.weapon_count; ++i) {
+    transform.m[2][2] = 1;
+    transform.m[1][1] = 1;
+    transform.m[0][0] = 1;
+    transform.m[1][2] = 0;
+    transform.m[1][0] = 0;
+    transform.m[0][2] = 0;
+    transform.m[0][1] = 0;
+    transform.m[2][0] = 0;
+    transform.m[2][1] = 0;
+    ScaleTransform(&transform, shown_params_[6 + i] / 1024.0f, 1.0f);
+    TranslateTransform(&transform, x, y);
+    g_application.d3d->DrawPoints(D3DPT_TRIANGLESTRIP, &transform, kWeaponBar,
+                                  info_color, 4);
+    x -= 21;
+    y += 36;
+  }
+
+  transform.m[2][2] = 1;
+  transform.m[1][1] = 1;
+  transform.m[0][0] = 1;
+  transform.m[1][2] = 0;
+  transform.m[1][0] = 0;
+  transform.m[0][2] = 0;
+  transform.m[0][1] = 0;
+  transform.m[2][0] = title_slide_ + 360;
+  transform.m[2][1] = 404;
+  title_pos_.x = static_cast<int>(title_slide_) + 360;
+  g_application.d3d->DrawPoints(D3DPT_LINESTRIP, &transform, kTitleLine,
+                                0xc8ffc800, 3);
+  game_over_texts_[0]->PrintInline(title_pos_.x, title_pos_.y - 20, 0xc8ffc800,
+                                   -1);
+  game_over_texts_[2]->PrintInline(title_pos_.x + 20, title_pos_.y, 0xc8ffc800,
+                                   -1);
+  game_over_texts_[1]->PrintInline(title_pos_.x + 144, 408, 0xc8ffc800, -1);
 }
 
 // 0x420bd0
