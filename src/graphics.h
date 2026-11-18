@@ -52,6 +52,7 @@ class Graphics : public System {
   HLSurface* back() { return &back_; }
 
  private:
+  friend class HL3D;
   friend class HLSurface;
 
   static BOOL WINAPI EnumDeviceProc(GUID* guid, LPSTR description, LPSTR name,

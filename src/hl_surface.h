@@ -10,6 +10,7 @@
 #include "object.h"
 
 class Graphics;
+struct IDirect3DDevice7;
 
 class HLSurface : public Object {
  public:
@@ -44,6 +45,8 @@ class HLSurface : public Object {
   void Release();  // 0x40ba80
   // Creates a `width` x `height` surface. Returns 0 on error.
   int Create(int width, int height, unsigned short mode);  // 0x40bda0
+  // Picks the texture formats `device` supports; 0 when one is missing.
+  int InitTextureFormats(IDirect3DDevice7* device);  // 0x40bb10
   // Copies `pixels` into the surface.
   void Load(void* pixels, unsigned short mode);  // 0x40bff0
   // Restores the surface after a mode change, reloading its pixels.

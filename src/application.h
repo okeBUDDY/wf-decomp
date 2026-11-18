@@ -31,8 +31,9 @@ struct AppSettings {
   };
   enum Flags {
     kFullScreen = 0x1,
-    kRunning = 0x100,    // the main loop is running
-    kSkipFrame = 0x200,  // the frame is not drawn
+    kNoHardware3D = 0x2,  // use only the software Direct3D devices
+    kRunning = 0x100,     // the main loop is running
+    kSkipFrame = 0x200,   // the frame is not drawn
     kPaused = 0x400,
     kTimeStopped = 0x800,  // tasks and the stage do not move
     kStopTime = 0x1000,    // stop the time after this frame

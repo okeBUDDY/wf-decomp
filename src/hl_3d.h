@@ -13,17 +13,17 @@ struct Application;
 class HLMesh;
 class HLSurface;
 
-// A D3DCOLOR split into its bytes.
-struct Color {
-  unsigned char b;
-  unsigned char g;
-  unsigned char r;
-  unsigned char a;
-};
+// Math tables and scratch space, allocated by HL3D::CreateBuffers().
+extern float* g_sin_table;         // 0x468878, sin of 1024 steps a turn (+256)
+extern float* g_angle_table;       // 0x46887c, the radians of each step
+extern float* g_vector_work;       // 0x468870, 0x78 bytes
+extern float* g_matrix_work;       // 0x468874, 0x280 bytes
+extern float g_base_matrix[4][4];  // 0x468830
 
 class HL3D : public System {
  public:
   enum Flags { kInScene = 0x10000 };
+  enum { kMaxVertices = 0x800, kMaxMeshes = 128 };
 
   HL3D();                                    // 0x402bb0
   virtual int Initialize(Application* app);  // 0x4030c0
@@ -45,8 +45,17 @@ class HL3D : public System {
   }
   // Sets the texture of `stage` unless it is the current one.
   void SetTexture(HLSurface* texture, int stage);  // 0x407880
-  // Sets color_ to `num` / `den` of the way from `from` to `to`.
-  void LerpColor(D3DCOLOR from, D3DCOLOR to, int num, int den);  // 0x407900
+
+  // Sets the alpha of the material's diffuse color.
+  void SetAlpha(float alpha);  // 0x402a00
+  // Turns alpha blending on or off; a zero blend factor keeps the current.
+  void SetBlend(BOOL enable, DWORD src, DWORD dest);  // 0x402a50
+  // Sets the color and alpha operation of `stage` (and their arguments
+  // when they are non-zero).
+  void SetTextureOp(DWORD op, DWORD arg1, DWORD arg2, DWORD stage);  // 0x402ac0
+  // Chooses linear or point filtering for `stage`.
+  void SetFilter(BOOL linear, DWORD stage);  // 0x402b50
+  void SetLighting(BOOL enable);             // 0x4030a0
 
   void EndScene() {
     if (flags_ & kInScene) {
@@ -58,6 +67,18 @@ class HL3D : public System {
  private:
   friend class HLMesh;
 
+  // Creates the device `guid` (and its z-buffer) on the back buffer.
+  // Returns 0, with the reason in g_text_buffer, when it cannot.
+  int CreateDevice(REFCLSID guid, BOOL hardware);  // 0x402ed0
+  // Allocates the vertices, the math tables and the mesh slots.
+  int CreateBuffers();    // 0x402bf0
+  void ReleaseBuffers();  // 0x4028d0
+  // EnumZBufferFormats() callback: keeps in the DDSURFACEDESC2 `context`
+  // the format closest to the depth asked for in its dwFlags (the distance
+  // goes in dwWidth).
+  static HRESULT CALLBACK EnumZBufferProc(DDPIXELFORMAT* format,
+                                          void* context);  // 0x4029c0
+
   IDirect3D7* d3d_;               // 0x08
   IDirect3DDevice7* device_;      // 0x0c
   int unknown_10_;                // 0x10
@@ -66,12 +87,10 @@ class HL3D : public System {
   Application* app_;              // 0x1c
   HLSurface* texture_;            // 0x20, set by SetTexture()
   unsigned int flags_;            // 0x24, Flags
-  int unknown_28_;                // 0x28
-  Color color_;                   // 0x2c
-  char unknown_30_[0x3c];
-  int unknown_6c_;   // 0x6c
-  int unknown_70_;   // 0x70
-  HLMesh** meshes_;  // 0x74
+  D3DMATERIAL7 material_;         // 0x28
+  int vertex_count_;              // 0x6c, vertices used in vertices_
+  D3DTLVERTEX* vertices_;         // 0x70, kMaxVertices
+  HLMesh** meshes_;               // 0x74
 };
 
 #endif  // WF_HL_3D_H_

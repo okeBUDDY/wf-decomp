@@ -47,5 +47,7 @@ class Game {
 
 extern Game g_game;      // 0x4675fc
 extern Actor* g_player;  // 0x467324
+// The boss actor (control 20) while one is alive.
+extern Actor* g_boss;  // 0x467320
 
 #endif  // WF_GAME_H_

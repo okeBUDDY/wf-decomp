@@ -130,13 +130,3 @@ HLSHitImage::HLSHitImage() {
   surface_ = NULL;
   name_ = "HLSHitImage";
 }
-
-// 0x407900
-void HL3D::LerpColor(D3DCOLOR from, D3DCOLOR to, int num, int den) {
-  const Color* a = reinterpret_cast<const Color*>(&from);
-  const Color* b = reinterpret_cast<const Color*>(&to);
-  color_.b = a->b + (b->b - a->b) * num / den;
-  color_.g = a->g + (b->g - a->g) * num / den;
-  color_.r = a->r + (b->r - a->r) * num / den;
-  color_.a = a->a + (b->a - a->a) * num / den;
-}

@@ -1,6 +1,17 @@
 #include "actor_system.h"
 
+#include "actor.h"
 #include "actor_control.h"
+
+// 0x407900
+void Actor::LerpColor(DWORD from, DWORD to, int num, int den) {
+  const Color* a = reinterpret_cast<const Color*>(&from);
+  const Color* b = reinterpret_cast<const Color*>(&to);
+  color.b = a->b + (b->b - a->b) * num / den;
+  color.g = a->g + (b->g - a->g) * num / den;
+  color.r = a->r + (b->r - a->r) * num / den;
+  color.a = a->a + (b->a - a->a) * num / den;
+}
 
 // 0x407980
 int ActorSystem::Register(int id, ActorControl* control) {

@@ -1,6 +1,8 @@
 #include "actor_control.h"
 
+#include "actor.h"
 #include "actor_system.h"
+#include "game.h"
 
 // 0x40fef0
 ActorControl::~ActorControl() {}
@@ -81,3 +83,15 @@ int RegisterActorControls() {
   }
   return 1;
 }
+
+// 0x4104d0
+void Control16::OnDestroy(Actor* actor) { g_game.SpawnPlayer(); }
+
+// 0x4104e0
+int Control16::OnMove(Actor* actor) { return actor->age <= 60; }
+
+// 0x410500
+int Control17::OnMove(Actor* actor) { return actor->age <= 18; }
+
+// 0x410520
+void Control20::OnDestroy(Actor* actor) { g_boss = NULL; }
