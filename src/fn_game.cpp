@@ -4,6 +4,7 @@
 #include "actor_system.h"
 #include "application.h"
 #include "cglobal.h"
+#include "game_hud.h"
 #include "hl_input.h"
 #include "replay.h"
 #include "snd_file_seq.h"
@@ -14,7 +15,7 @@
 FnGame::FnGame() {
   name_ = "fnGame";
   unknown_14_ = NULL;
-  unknown_18_ = NULL;
+  hud_ = NULL;
   mode_ = 0;
 }
 
@@ -89,6 +90,6 @@ void FnGame::Finalize() {
   g_global.ResetSound();
   g_application.tasks.Delete(unknown_14_);
   unknown_14_ = NULL;
-  g_application.overlays.Delete(unknown_18_);
-  unknown_18_ = NULL;
+  g_application.overlays.Delete(hud_);
+  hud_ = NULL;
 }

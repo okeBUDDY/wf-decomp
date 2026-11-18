@@ -6,6 +6,7 @@
 #include "hl_input.h"
 #include "user_func.h"
 
+class GameHud;
 class Task;
 
 class FnGame : public UserFunc {
@@ -42,7 +43,7 @@ class FnGame : public UserFunc {
 
  private:
   Task* unknown_14_;        // 0x14
-  Task* unknown_18_;        // 0x18
+  GameHud* hud_;            // 0x18
   unsigned int flags_;      // 0x1c
   int mode_;                // 0x20
   int unknown_24_;          // 0x24

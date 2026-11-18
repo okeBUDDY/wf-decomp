@@ -157,20 +157,20 @@ matches.
 
 ## Decompiled code
 
-481 of 828 game functions match (50.55% of the 130497 game code bytes; `tools/compare.py`).
+542 of 828 game functions match (55.29% of the 130497 game code bytes; `tools/compare.py`).
 All of them are linked into `build/wf.exe` from source. Per file (matched/compiled; the
 rest are `// TODO: nonmatching` drafts):
 
 | Area | Files | Matched |
 |---|---|---|
-| Core objects | `object.cpp` 13/13, `task.cpp` 8/9, `task_list_delete.cpp` 1/1, `thread.cpp` 2/2, `file.cpp` 5/5, `pack.cpp` 6/8, `path_util.cpp` 2/2, `profile.cpp` 3/3 | 40/43 |
-| Application, globals | `application.cpp` 13/14, `cglobal.cpp` 3/3, `game.cpp` 10/10, `fn_game.cpp` 6/6, `graphics.cpp` 13/13 | 45/46 |
-| HL library (device, input, 3D, surfaces) | `hl_window.cpp` 11/11, `hl_sync.cpp` 17/17, `hl_input.cpp` 18/19, `hl_3d.cpp` 14/14, `hl_math.cpp` 2/2, `hl_surface.cpp` 7/8, `sprite.cpp` 1/1, `line_sprites.cpp` 8/9 | 78/81 |
-| HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 21/21, `hls_txt.cpp` 15/18, `hls_hit_image.cpp` 8/8 | 60/63 |
-| Sound | `snd_sys.cpp` 21/22, `snd_buf.cpp` 26/27, `snd_channel.cpp` 10/10, `snd_strm.cpp` 10/11, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 20/21, `snd_file_seq.cpp` 31/34 | 132/139 |
-| Actors and controls | `actor_system.cpp` 25/27, `actor_control.cpp` 62/68, `core_controls.cpp` 33/37, `boss_controls.cpp` 14/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 4/5, `explosion_controls.cpp` 4/10, `player.cpp` 5/10, `background.cpp` 7/8 | 158/186 |
+| Core objects | `object.cpp` 13/13, `task.cpp` 8/9, `task_list_delete.cpp` 1/1, `thread.cpp` 2/2, `file.cpp` 6/6, `pack.cpp` 6/8, `path_util.cpp` 2/2, `profile.cpp` 5/5 | 43/46 |
+| Application, globals, stages | `application.cpp` 14/15, `cglobal.cpp` 12/13, `game.cpp` 10/10, `fn_game.cpp` 14/14, `fn_option.cpp` 5/6, `fn_title.cpp` 4/4, `game_hud.cpp` 7/7, `game_hud_game_over.cpp` 2/2, `game_hud_name_entry.cpp` 2/2, `game_hud_result.cpp` 2/2, `graphics.cpp` 13/13 | 85/88 |
+| HL library (device, input, 3D, images, surfaces) | `hl_window.cpp` 11/11, `hl_sync.cpp` 17/17, `hl_input.cpp` 18/19, `hl_3d.cpp` 14/14, `hl_math.cpp` 2/2, `hl_image.cpp` 22/23, `hl_surface.cpp` 7/8, `sprite.cpp` 8/8, `line_sprites.cpp` 9/10 | 108/112 |
+| HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 21/21, `hls_txt.cpp` 15/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 62/65 |
+| Sound | `snd_sys.cpp` 24/25, `snd_buf.cpp` 26/27, `snd_channel.cpp` 10/10, `snd_strm.cpp` 10/11, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 20/21, `snd_file_seq.cpp` 32/35 | 136/143 |
+| Actors and controls | `actor_system.cpp` 31/33, `actor_control.cpp` 62/68, `core_controls.cpp` 33/37, `boss_controls.cpp` 14/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 4/5, `explosion_controls.cpp` 5/11, `player.cpp` 5/10, `background.cpp` 7/8 | 165/193 |
 | Enemy generator (boss design) | `enm_param.cpp` 19/27, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 63/71 |
-| Scores and replays | `score_table.cpp` 16/20, `replay.cpp` 15/17, `record.cpp` 3/5 | 34/42 |
+| Scores and replays | `score_table.cpp` 16/20, `replay.cpp` 17/19, `record.cpp` 3/5 | 36/44 |
 
 Known compiler behaviour worth remembering:
 
