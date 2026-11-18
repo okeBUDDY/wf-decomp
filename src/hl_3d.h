@@ -85,6 +85,26 @@ class HL3D : public System {
                     const D3DVECTOR* points, const TexCoord* coords,
                     D3DCOLOR color, int count);  // 0x409ed0
 
+  // Transforms `count` points by `transform` and draws them untextured in
+  // `color`.
+  void DrawPoints(D3DPRIMITIVETYPE type, const Transform* transform,
+                  const D3DVECTOR* points, D3DCOLOR color,
+                  int count);  // 0x415040
+  // Draws without a texture from now on.
+  void ClearTexture() {
+    if (texture_ != NULL) {
+      device_->SetTexture(0, NULL);
+      texture_ = NULL;
+    }
+  }
+  // Blends by the source alpha into `dest` times the screen.
+  __forceinline void SetAlphaBlend(DWORD dest) {
+    device_->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, TRUE);
+    device_->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+    device_->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
+    device_->SetRenderState(D3DRENDERSTATE_DESTBLEND, dest);
+  }
+
   // Draws `count` transformed vertices.
   void DrawPrimitive(D3DPRIMITIVETYPE type, D3DTLVERTEX* vertices, int count) {
     device_->DrawPrimitive(type, D3DFVF_TLVERTEX, vertices, count, 0);

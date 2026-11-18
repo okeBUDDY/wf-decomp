@@ -143,6 +143,11 @@
       "base_path": "build/obj/src/score_table.obj"
     },
     {
+      "name": "shockwave",
+      "target_path": "build/target/shockwave.obj",
+      "base_path": "build/obj/src/shockwave.obj"
+    },
+    {
       "name": "snd_buf",
       "target_path": "build/target/snd_buf.obj",
       "base_path": "build/obj/src/snd_buf.obj"

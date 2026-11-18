@@ -6,6 +6,8 @@
 
 #include "system.h"
 
+class Sprite;
+
 class cGlobal : public System {
  public:
   cGlobal();                                 // 0x4010a0
@@ -22,7 +24,7 @@ class cGlobal : public System {
   short unknown_20_;       // 0x20
   short deaths;            // 0x22, in this game
   int unknown_24_;         // 0x24
-  void* unknown_28_;       // 0x28
+  Sprite* screen_fade;     // 0x28, the overlay that flashes the screen
   float music_volume;      // 0x2c
   float effect_volume;     // 0x30
   char replay_path[0x48];  // 0x34, of the replay to play, "" for none
