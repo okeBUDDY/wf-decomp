@@ -38,8 +38,16 @@ class FnGame : public UserFunc {
   // Rates the game that just ended (g_rating).
   void RateGame();  // 0x418b60
 
+  // How the music goes from stage to stage (the BGM MODE option).
+  enum BgmMode {
+    kBgmLoop = 0,    // plays on
+    kBgmFade = 1,    // fades out after each boss and in at the next stage
+    kBgmRewind = 2,  // restarts at each stage
+  };
+
   // 0 while recording, else playing back.
   int mode() const { return mode_; }
+  void set_bgm_mode(int mode) { bgm_mode_ = mode; }
   unsigned short keys() const { return keys_; }
   unsigned short pressed() const { return pressed_; }
 
@@ -62,7 +70,7 @@ class FnGame : public UserFunc {
   GameHud* hud_;               // 0x18
   unsigned int flags_;         // 0x1c
   int mode_;                   // 0x20
-  int unknown_24_;             // 0x24
+  int bgm_mode_;               // 0x24, BgmMode
   short exit_frames_;          // 0x28, frames until the stage ends, 0: running
   short exit_time_;            // 0x2a
   unsigned short state_;       // 0x2c

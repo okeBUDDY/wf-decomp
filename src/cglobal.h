@@ -29,16 +29,17 @@ class cGlobal : public System {
  public:
   enum Flags {
     kFlagStageReplays = 0x1,  // keep a replay of every stage
+    kFlagPause = 0x2,         // the game pauses while the window is inactive
     kFlagEnglish = 0x4,       // English boss titles
   };
 
   unsigned int flags;      // 0x08, Flags
   int stage;               // 0x0c, the current stage (from 0)
-  int unknown_10_[2];      // 0x10
+  GameRules rules;         // 0x10, of the games started
   ScoreEntry entry;        // 0x18, of the current game
   Sprite* screen_fade;     // 0x28, the overlay that flashes the screen
-  float music_volume;      // 0x2c
-  float effect_volume;     // 0x30
+  float effect_volume;     // 0x2c
+  float music_volume;      // 0x30
   char replay_path[0x48];  // 0x34, of the replay to play, "" for none
   char last_record[0x48];  // 0x7c, where the last game was saved
 
@@ -46,9 +47,9 @@ class cGlobal : public System {
   void ClearStage();  // 0x4011a0
   // Stops every sound and restores the volumes.
   void ResetSound();  // 0x4011f0
-  // Set the volume of the music (sound group 0) and the effects (1).
-  void SetMusicVolume(float volume);   // 0x41c6a0
-  void SetEffectVolume(float volume);  // 0x41c6c0
+  // Set the volume of the effects (sound group 0) and the music (1).
+  void SetEffectVolume(float volume);  // 0x41c6a0
+  void SetMusicVolume(float volume);   // 0x41c6c0
   // Clears the state of the game before a new one.
   void ResetGame();  // 0x401240
 

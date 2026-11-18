@@ -27,7 +27,7 @@ Fonts g_fonts;  // 0x467ec0
 
 // 0x4010a0
 cGlobal::cGlobal() {
-  music_volume = effect_volume = 1.0f;
+  effect_volume = music_volume = 1.0f;
   name_ = "cGlobal";
   g_boss = g_player = NULL;
 }
@@ -67,8 +67,8 @@ void cGlobal::ClearStage() {
 void cGlobal::ResetSound() {
   g_application.sound->Stop(NULL, -1);
   g_application.sound->MuteGroup(0, -1);
-  g_application.sound->SetGroupVolume(music_volume, 0);
-  g_application.sound->SetGroupVolume(effect_volume, 1);
+  g_application.sound->SetGroupVolume(effect_volume, 0);
+  g_application.sound->SetGroupVolume(music_volume, 1);
 }
 
 // 0x401240

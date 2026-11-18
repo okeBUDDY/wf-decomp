@@ -46,6 +46,15 @@ class HLInpDev : public Object {
 
   unsigned short buttons() const { return buttons_; }
   unsigned short pressed() const { return pressed_; }
+  // The device code of trigger `index`, 0 past the last one.
+  int trigger(unsigned int index) const {
+    return index < kMaxTriggers ? trigger_map_[index] : 0;
+  }
+  void set_trigger(unsigned int index, int code) {
+    if (index < kMaxTriggers) {
+      trigger_map_[index] = static_cast<unsigned char>(code);
+    }
+  }
 
  protected:
   friend class HLInput;

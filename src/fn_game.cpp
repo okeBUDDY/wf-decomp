@@ -72,7 +72,7 @@ void FnGame::Exit(int fade, int wait) {
 void FnGame::SetSeqFlags() {
   ClearSeqFlags();
   g_seq_flags[0] = 1;
-  g_seq_flags[4] = static_cast<unsigned char>(unknown_24_);
+  g_seq_flags[4] = static_cast<unsigned char>(bgm_mode_);
 }
 
 // 0x41c190
@@ -103,7 +103,7 @@ void FnGame::Move() {
       ++g_global.stage;
       if (flags_ & kFlagMusic) {
         RateGame();
-        switch (unknown_24_) {
+        switch (bgm_mode_) {
           case 1:
             if (g_global.stage > 1) {
               g_application.sound->channel(kChannelBgm)
@@ -130,7 +130,7 @@ void FnGame::Move() {
       g_game.OnBossDestroyed();
       g_replay.Close();
       if (flags_ & kFlagMusic) {
-        switch (unknown_24_) {
+        switch (bgm_mode_) {
           case 1:
             g_application.sound->channel(kChannelBgm)
                 ->Fade(1.0f, 0.0f, 5.0f, 0);
@@ -195,7 +195,7 @@ void FnGame::Move() {
       }
       if (flags_ & kFlagMusic) {
         SetSeqFlags();
-        if (unknown_24_ != 2) {
+        if (bgm_mode_ != 2) {
           g_application.sound->channel(kChannelBgm)
               ->Assign(&g_bgm, Channel::kLoop, 1.0f);
         }
@@ -224,8 +224,8 @@ void FnGame::Move() {
       }
     }
     float volume = 1.0f - static_cast<float>(exit_time_) / exit_frames_;
-    g_application.sound->SetGroupVolume(g_global.music_volume * volume, 0);
-    g_application.sound->SetGroupVolume(g_global.effect_volume * volume, 1);
+    g_application.sound->SetGroupVolume(g_global.effect_volume * volume, 0);
+    g_application.sound->SetGroupVolume(g_global.music_volume * volume, 1);
   }
   g_replay.GetInput(&keys_, &pressed_);
   if (flags_ & kFlagMusic) {
@@ -236,18 +236,6 @@ void FnGame::Move() {
     g_seq_flags[3] = static_cast<unsigned char>(seconds);
   }
   g_actor_system.MoveAll();
-}
-
-// 0x41c6a0
-void cGlobal::SetMusicVolume(float volume) {
-  music_volume = volume;
-  g_application.sound->SetGroupVolume(volume, 0);
-}
-
-// 0x41c6c0
-void cGlobal::SetEffectVolume(float volume) {
-  effect_volume = volume;
-  g_application.sound->SetGroupVolume(volume, 1);
 }
 
 // 0x41c0e0

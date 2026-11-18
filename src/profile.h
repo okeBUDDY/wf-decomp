@@ -4,6 +4,8 @@
 
 #include <windows.h>
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // A scratch buffer for profile values and paths.
@@ -55,20 +57,36 @@ class Profile {
   // Uses "<name>.ini" next to the executable. Returns 0 without memory.
   int Open(const char* name);  // 0x406910
   // Reads `key` as a number (any base strtol takes), or returns `def`.
-  int GetInt(const char* key, int def);  // 0x40cd00
+  // Emitted out of line by hl_window.cpp (0x40cd00).
+  int GetInt(const char* key, int def) {
+    if (path_ != NULL && section_[0] != '\0') {
+      GetPrivateProfileString(section_, key, "", value_, kValueSize, path_);
+      if (value_[0] != '\0') {
+        return strtol(value_, NULL, 0);
+      }
+    }
+    return def;
+  }
   // Reads `key` as a flag (anything but "0" is set), or returns `def`
   // as 0 or 1. Emitted out of line by hl_device.cpp (0x404660).
   int GetBool(const char* key, int def) {
     if (path_ != NULL && section_[0] != '\0') {
       GetPrivateProfileString(section_, key, "", value_, kValueSize, path_);
-      if (value_[0] != '\0') {
-        return value_[0] != '0';
+      char c = value_[0];
+      if (c != '\0') {
+        return c != '0';
       }
     }
     return def != 0;
   }
-  // Writes `value` printed with `format` to `key`.
-  void WriteInt(const char* key, int value, const char* format);  // 0x40cd50
+  // Writes `value` printed with `format` to `key`. Emitted out of line by
+  // hl_window.cpp (0x40cd50).
+  void WriteInt(const char* key, int value, const char* format) {
+    if (path_ != NULL && section_[0] != '\0') {
+      sprintf(value_, format, value);
+      WritePrivateProfileString(section_, key, value_, path_);
+    }
+  }
 
  private:
   char* path_;     // 0x04

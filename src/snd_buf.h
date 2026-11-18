@@ -46,6 +46,7 @@ class CSndBuf : public Object {
 
   // Volume group (0..3) of the buffer.
   int group() const { return flags_ & 0xff; }
+  unsigned int loaded() const { return flags_ & kLoaded; }
 
  protected:
   friend class CSndBufList;
