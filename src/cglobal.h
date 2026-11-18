@@ -76,7 +76,4 @@ struct GameRating {
 
 extern GameRating g_rating;  // 0x468fa0
 
-// Rates the game that just ended.
-void RateGame();  // 0x418b60
-
 #endif  // WF_CGLOBAL_H_

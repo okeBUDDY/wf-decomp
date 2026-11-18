@@ -8,9 +8,304 @@
   ],
   "units": [
     {
+      "name": "actor_control",
+      "target_path": "build/target/actor_control.obj",
+      "base_path": "build/obj/src/actor_control.obj"
+    },
+    {
+      "name": "actor_system",
+      "target_path": "build/target/actor_system.obj",
+      "base_path": "build/obj/src/actor_system.obj"
+    },
+    {
+      "name": "application",
+      "target_path": "build/target/application.obj",
+      "base_path": "build/obj/src/application.obj"
+    },
+    {
+      "name": "background",
+      "target_path": "build/target/background.obj",
+      "base_path": "build/obj/src/background.obj"
+    },
+    {
+      "name": "boss_controls",
+      "target_path": "build/target/boss_controls.obj",
+      "base_path": "build/obj/src/boss_controls.obj"
+    },
+    {
+      "name": "boss_helpers",
+      "target_path": "build/target/boss_helpers.obj",
+      "base_path": "build/obj/src/boss_helpers.obj"
+    },
+    {
+      "name": "cglobal",
+      "target_path": "build/target/cglobal.obj",
+      "base_path": "build/obj/src/cglobal.obj"
+    },
+    {
+      "name": "core_controls",
+      "target_path": "build/target/core_controls.obj",
+      "base_path": "build/obj/src/core_controls.obj"
+    },
+    {
+      "name": "effect_controls",
+      "target_path": "build/target/effect_controls.obj",
+      "base_path": "build/obj/src/effect_controls.obj"
+    },
+    {
+      "name": "enm_battle",
+      "target_path": "build/target/enm_battle.obj",
+      "base_path": "build/obj/src/enm_battle.obj"
+    },
+    {
+      "name": "enm_param",
+      "target_path": "build/target/enm_param.obj",
+      "base_path": "build/obj/src/enm_param.obj"
+    },
+    {
+      "name": "enm_plan",
+      "target_path": "build/target/enm_plan.obj",
+      "base_path": "build/obj/src/enm_plan.obj"
+    },
+    {
+      "name": "enm_tactic_helpers",
+      "target_path": "build/target/enm_tactic_helpers.obj",
+      "base_path": "build/obj/src/enm_tactic_helpers.obj"
+    },
+    {
+      "name": "enm_tactics",
+      "target_path": "build/target/enm_tactics.obj",
+      "base_path": "build/obj/src/enm_tactics.obj"
+    },
+    {
+      "name": "enm_title",
+      "target_path": "build/target/enm_title.obj",
+      "base_path": "build/obj/src/enm_title.obj"
+    },
+    {
+      "name": "explosion_controls",
+      "target_path": "build/target/explosion_controls.obj",
+      "base_path": "build/obj/src/explosion_controls.obj"
+    },
+    {
+      "name": "file",
+      "target_path": "build/target/file.obj",
+      "base_path": "build/obj/src/file.obj"
+    },
+    {
+      "name": "fn_game",
+      "target_path": "build/target/fn_game.obj",
+      "base_path": "build/obj/src/fn_game.obj"
+    },
+    {
+      "name": "fn_option",
+      "target_path": "build/target/fn_option.obj",
+      "base_path": "build/obj/src/fn_option.obj"
+    },
+    {
+      "name": "fn_title",
+      "target_path": "build/target/fn_title.obj",
+      "base_path": "build/obj/src/fn_title.obj"
+    },
+    {
+      "name": "game",
+      "target_path": "build/target/game.obj",
+      "base_path": "build/obj/src/game.obj"
+    },
+    {
+      "name": "game_hud",
+      "target_path": "build/target/game_hud.obj",
+      "base_path": "build/obj/src/game_hud.obj"
+    },
+    {
+      "name": "game_hud_game_over",
+      "target_path": "build/target/game_hud_game_over.obj",
+      "base_path": "build/obj/src/game_hud_game_over.obj"
+    },
+    {
+      "name": "game_hud_name_entry",
+      "target_path": "build/target/game_hud_name_entry.obj",
+      "base_path": "build/obj/src/game_hud_name_entry.obj"
+    },
+    {
+      "name": "game_hud_result",
+      "target_path": "build/target/game_hud_result.obj",
+      "base_path": "build/obj/src/game_hud_result.obj"
+    },
+    {
+      "name": "graphics",
+      "target_path": "build/target/graphics.obj",
+      "base_path": "build/obj/src/graphics.obj"
+    },
+    {
+      "name": "hl_3d",
+      "target_path": "build/target/hl_3d.obj",
+      "base_path": "build/obj/src/hl_3d.obj"
+    },
+    {
+      "name": "hl_device",
+      "target_path": "build/target/hl_device.obj",
+      "base_path": "build/obj/src/hl_device.obj"
+    },
+    {
+      "name": "hl_device_init",
+      "target_path": "build/target/hl_device_init.obj",
+      "base_path": "build/obj/src/hl_device_init.obj"
+    },
+    {
+      "name": "hl_image",
+      "target_path": "build/target/hl_image.obj",
+      "base_path": "build/obj/src/hl_image.obj"
+    },
+    {
+      "name": "hl_input",
+      "target_path": "build/target/hl_input.obj",
+      "base_path": "build/obj/src/hl_input.obj"
+    },
+    {
+      "name": "hl_math",
+      "target_path": "build/target/hl_math.obj",
+      "base_path": "build/obj/src/hl_math.obj"
+    },
+    {
+      "name": "hl_surface",
+      "target_path": "build/target/hl_surface.obj",
+      "base_path": "build/obj/src/hl_surface.obj"
+    },
+    {
+      "name": "hl_sync",
+      "target_path": "build/target/hl_sync.obj",
+      "base_path": "build/obj/src/hl_sync.obj"
+    },
+    {
+      "name": "hl_window",
+      "target_path": "build/target/hl_window.obj",
+      "base_path": "build/obj/src/hl_window.obj"
+    },
+    {
+      "name": "hls_anm",
+      "target_path": "build/target/hls_anm.obj",
+      "base_path": "build/obj/src/hls_anm.obj"
+    },
+    {
+      "name": "hls_hit_image",
+      "target_path": "build/target/hls_hit_image.obj",
+      "base_path": "build/obj/src/hls_hit_image.obj"
+    },
+    {
       "name": "hls_pat",
       "target_path": "build/target/hls_pat.obj",
       "base_path": "build/obj/src/hls_pat.obj"
+    },
+    {
+      "name": "hls_txt",
+      "target_path": "build/target/hls_txt.obj",
+      "base_path": "build/obj/src/hls_txt.obj"
+    },
+    {
+      "name": "hls_txt_print",
+      "target_path": "build/target/hls_txt_print.obj",
+      "base_path": "build/obj/src/hls_txt_print.obj"
+    },
+    {
+      "name": "line_sprites",
+      "target_path": "build/target/line_sprites.obj",
+      "base_path": "build/obj/src/line_sprites.obj"
+    },
+    {
+      "name": "object",
+      "target_path": "build/target/object.obj",
+      "base_path": "build/obj/src/object.obj"
+    },
+    {
+      "name": "pack",
+      "target_path": "build/target/pack.obj",
+      "base_path": "build/obj/src/pack.obj"
+    },
+    {
+      "name": "path_util",
+      "target_path": "build/target/path_util.obj",
+      "base_path": "build/obj/src/path_util.obj"
+    },
+    {
+      "name": "player",
+      "target_path": "build/target/player.obj",
+      "base_path": "build/obj/src/player.obj"
+    },
+    {
+      "name": "profile",
+      "target_path": "build/target/profile.obj",
+      "base_path": "build/obj/src/profile.obj"
+    },
+    {
+      "name": "record",
+      "target_path": "build/target/record.obj",
+      "base_path": "build/obj/src/record.obj"
+    },
+    {
+      "name": "replay",
+      "target_path": "build/target/replay.obj",
+      "base_path": "build/obj/src/replay.obj"
+    },
+    {
+      "name": "score_table",
+      "target_path": "build/target/score_table.obj",
+      "base_path": "build/obj/src/score_table.obj"
+    },
+    {
+      "name": "snd_buf",
+      "target_path": "build/target/snd_buf.obj",
+      "base_path": "build/obj/src/snd_buf.obj"
+    },
+    {
+      "name": "snd_channel",
+      "target_path": "build/target/snd_channel.obj",
+      "base_path": "build/obj/src/snd_channel.obj"
+    },
+    {
+      "name": "snd_file_ogg",
+      "target_path": "build/target/snd_file_ogg.obj",
+      "base_path": "build/obj/src/snd_file_ogg.obj"
+    },
+    {
+      "name": "snd_file_seq",
+      "target_path": "build/target/snd_file_seq.obj",
+      "base_path": "build/obj/src/snd_file_seq.obj"
+    },
+    {
+      "name": "snd_file_wav",
+      "target_path": "build/target/snd_file_wav.obj",
+      "base_path": "build/obj/src/snd_file_wav.obj"
+    },
+    {
+      "name": "snd_strm",
+      "target_path": "build/target/snd_strm.obj",
+      "base_path": "build/obj/src/snd_strm.obj"
+    },
+    {
+      "name": "snd_sys",
+      "target_path": "build/target/snd_sys.obj",
+      "base_path": "build/obj/src/snd_sys.obj"
+    },
+    {
+      "name": "sprite",
+      "target_path": "build/target/sprite.obj",
+      "base_path": "build/obj/src/sprite.obj"
+    },
+    {
+      "name": "task",
+      "target_path": "build/target/task.obj",
+      "base_path": "build/obj/src/task.obj"
+    },
+    {
+      "name": "task_list_delete",
+      "target_path": "build/target/task_list_delete.obj",
+      "base_path": "build/obj/src/task_list_delete.obj"
+    },
+    {
+      "name": "thread",
+      "target_path": "build/target/thread.obj",
+      "base_path": "build/obj/src/thread.obj"
     }
   ]
 }

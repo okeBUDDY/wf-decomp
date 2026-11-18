@@ -6,6 +6,7 @@
 
 #include "cglobal.h"
 #include "enm_param.h"
+#include "fn_game.h"
 #include "replay.h"
 #include "score_table.h"
 
@@ -110,7 +111,7 @@ static inline void SetRating(int grade, int title) {
 // 0x418b60
 // TODO: nonmatching (the original merges the stores into the tail of the
 // first case, with the values in registers).
-void RateGame() {
+void FnGame::RateGame() {
   const EnmSideStats* sides = g_enm_param.state_.sides;
   if (sides[0].mode == 0 && sides[1].mode == 0) {
     SetRating(0, 0);

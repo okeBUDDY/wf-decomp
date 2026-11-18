@@ -33,6 +33,7 @@ enum SoundId {
   kSndTrans1 = 27,   // "trans1.ogg"
   kSndTrans2 = 28,   // "trans2.ogg"
   kSounds = 32,
+  kChannelBgm = kSounds,  // the channel of g_bgm
 };
 
 extern CSndBuf g_sounds[kSounds];  // 0x4681f0

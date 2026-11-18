@@ -35,6 +35,8 @@ class FnGame : public UserFunc {
   void Exit(int fade, int wait);  // 0x41c140
   // Tells the music the game started (g_seq_flags).
   void SetSeqFlags();  // 0x41c170
+  // Rates the game that just ended (g_rating).
+  void RateGame();  // 0x418b60
 
   // 0 while recording, else playing back.
   int mode() const { return mode_; }
@@ -42,18 +44,32 @@ class FnGame : public UserFunc {
   unsigned short pressed() const { return pressed_; }
 
  private:
-  Task* unknown_14_;        // 0x14
-  GameHud* hud_;            // 0x18
-  unsigned int flags_;      // 0x1c
-  int mode_;                // 0x20
-  int unknown_24_;          // 0x24
-  short exit_frames_;       // 0x28, frames until the stage ends, 0: running
-  short exit_time_;         // 0x2a
-  short state_;             // 0x2c
-  short state_time_;        // 0x2e, frames in state_
-  int unknown_30_;          // 0x30
-  unsigned short keys_;     // 0x34, held this frame
-  unsigned short pressed_;  // 0x36, pressed this frame
+  enum Flags {
+    kFlagPlayback = 0x1,    // playing a replay back
+    kFlagReplayList = 0x2,  // then the next replay of the list
+    kFlagMusic = 0x4,       // the music plays
+  };
+  // state_.
+  enum State {
+    kStateStart = 10,     // 10-11: the player appears
+    kStateStage = 20,     // 20-21: the stage title
+    kStateBattle = 30,    // 30-31: the boss fight
+    kStateCleared = 40,   // 40-42: the boss is destroyed
+    kStateGameOver = 50,  // 50-51
+  };
+
+  Task* unknown_14_;           // 0x14
+  GameHud* hud_;               // 0x18
+  unsigned int flags_;         // 0x1c
+  int mode_;                   // 0x20
+  int unknown_24_;             // 0x24
+  short exit_frames_;          // 0x28, frames until the stage ends, 0: running
+  short exit_time_;            // 0x2a
+  unsigned short state_;       // 0x2c
+  unsigned short state_time_;  // 0x2e, frames in state_
+  int stage_score_;            // 0x30, the score when the stage started
+  unsigned short keys_;        // 0x34, held this frame
+  unsigned short pressed_;     // 0x36, pressed this frame
 };
 
 extern FnGame g_fn_game;  // 0x467c98

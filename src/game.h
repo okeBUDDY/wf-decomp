@@ -41,6 +41,7 @@ class Game {
   short extend_count() const { return extend_count_; }
 
  private:
+  friend class FnGame;
   friend class Replay;
 
   unsigned int flags_;  // 0x04

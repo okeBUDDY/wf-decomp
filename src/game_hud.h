@@ -41,7 +41,12 @@ class GameHud : public Task {
     kTextReplayHelp,
   };
 
-  GameHud();                 // 0x41f010
+  GameHud();  // 0x41f010
+
+  // Starts the screen `mode` with the next IsProtected().
+  void RequestMode(int mode) { next_mode_ = mode; }
+  // Nonzero while a screen runs or is about to.
+  int busy() const { return next_mode_ | mode_; }
   virtual int Initialize();  // 0x41f060
   virtual void Finalize();   // 0x41f280
   // Runs the current screen and ends it when it is done; always 1.

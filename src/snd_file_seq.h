@@ -5,8 +5,8 @@
 
 #include "snd_file.h"
 
-// The flags the commands of a .seq file branch on. RateGame() stores the
-// rating of a finished game in the first three (g_rating overlays them)
+// The flags the commands of a .seq file branch on. FnGame::RateGame() stores
+// the rating of a finished game in the first three (g_rating overlays them)
 // and FnGame the state of the game in the others.
 extern unsigned char g_seq_flags[8];  // 0x468fa0
 // Clears g_seq_flags.
