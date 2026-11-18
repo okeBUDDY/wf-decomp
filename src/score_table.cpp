@@ -7,9 +7,9 @@
 #include "file.h"
 #include "game.h"
 
-static const char* kRankNames[] = {"1ST", "2ND", "3RD", "4TH",
-                                   "5TH", "6TH", "7TH", "8TH"};  // 0x45de80
-char g_text_buffer[256];                                         // 0x468d90
+const char* kRankNames[ScoreTable::kEntries] = {
+    "1ST", "2ND", "3RD", "4TH", "5TH", "6TH", "7TH", "8TH"};  // 0x45de80
+char g_text_buffer[256];                                      // 0x468d90
 
 // 0x420f60
 ScoreTable::ScoreTable() {
@@ -28,7 +28,7 @@ void ScoreTable::Reset() {
     entry->score = score;
     entry->time = 0;
     entry->stage = 1;
-    entry->reserved = 0;
+    entry->deaths = 0;
     strcpy(entry->name, "---");
   }
   rank_ = -1;
@@ -82,7 +82,7 @@ int ScoreTable::Format(char* text) {
     }
     sprintf(line, "%s%s %-3.3s %010d %3d %3d  %02d:%02d:%02d%s\n\n\n", begin,
             kRankNames[i], entry->name, entry->score, entry->stage,
-            entry->reserved, entry->time / 3600, entry->time % 3600 / 60,
+            entry->deaths, entry->time / 3600, entry->time % 3600 / 60,
             entry->time % 60, end);
     line += strlen(line);
   }
@@ -218,7 +218,7 @@ void ScoreTable::Import() {
         break;
       }
       sscanf(g_text_buffer, "%d %hd %hd", &entry->score, &entry->stage,
-             &entry->reserved);
+             &entry->deaths);
       sprintf(key, "%dname", i + 1);
       g_application.profile.GetString(key, "---", entry->name,
                                       sizeof(entry->name));

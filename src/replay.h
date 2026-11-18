@@ -38,6 +38,9 @@ class Replay : public Object {
   // Returns 1 when `path` is a replay file of a version this build plays.
   int IsReplayFile(const char* path);  // 0x415ac0
 
+  int mode() const { return mode_; }
+  const char* path() const { return path_; }
+
  private:
   enum { kVersion = 103, kOldVersion = 101 };
 

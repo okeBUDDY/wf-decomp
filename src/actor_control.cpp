@@ -574,7 +574,7 @@ void PartControl::OnDestroy(Actor* actor) {
     ++g_enm_param.chain_count_;
     g_enm_param.score_chain_ += (chain - 1) * score;
   }
-  g_global.score += score * rapid * chain;
+  g_global.entry.score += score * rapid * chain;
 }
 
 // 0x4197d0

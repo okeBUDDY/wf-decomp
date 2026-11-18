@@ -43,6 +43,8 @@ class HLSTxt : public HLSObject {
   void Print(int x, int y, const D3DCOLOR* palette, int count);  // 0x41dfd0
   // Frees the text object.
   void Release();  // 0x40a9d0
+  // The text buffer.
+  char* text() { return text_; }
 
  private:
   friend class HLSTxtSys;

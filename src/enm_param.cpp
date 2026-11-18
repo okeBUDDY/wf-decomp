@@ -351,7 +351,7 @@ void CEnmParam::OnActorDestroyed(Actor* source, Actor* actor) {
     }
   }
   AddClamped(&g_enm_param.state_.unknown_26_, -50);
-  ++g_global.deaths;
+  ++g_global.entry.deaths;
   ++g_enm_param.deaths_;
 }
 

@@ -4,6 +4,7 @@
 #ifndef WF_CGLOBAL_H_
 #define WF_CGLOBAL_H_
 
+#include "score_table.h"
 #include "system.h"
 
 class Sprite;
@@ -29,11 +30,7 @@ class cGlobal : public System {
   int unknown_08_;         // 0x08
   int stage;               // 0x0c, the current stage (from 0)
   int unknown_10_[2];      // 0x10
-  int score;               // 0x18
-  int unknown_1c_;         // 0x1c
-  short unknown_20_;       // 0x20
-  short deaths;            // 0x22, in this game
-  int unknown_24_;         // 0x24
+  ScoreEntry entry;        // 0x18, of the current game
   Sprite* screen_fade;     // 0x28, the overlay that flashes the screen
   float music_volume;      // 0x2c
   float effect_volume;     // 0x30

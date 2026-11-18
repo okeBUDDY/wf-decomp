@@ -68,8 +68,8 @@ void cGlobal::ResetSound() {
 void cGlobal::ResetGame() {
   g_boss = g_player = NULL;
   stage = 0;
-  score = 0;
-  deaths = 0;
+  entry.score = 0;
+  entry.deaths = 0;
   if (g_fn_game.mode() == 0) {
     g_score_table.ClearRank();
   }

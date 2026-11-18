@@ -157,7 +157,7 @@ int Replay::LoadHeader() {
   g_game.timer_ = header.timer;
   g_game.bonus_ = 0;
   g_game.SetLives(lives + 1, extend_count);
-  g_global.score = header.score;
+  g_global.entry.score = header.score;
   g_global.stage = header.stage - 1;
   if (!g_enm_param.Load(&file_)) {
     file_.Close();
@@ -185,7 +185,7 @@ void Replay::Start(Actor* player) {
       Header header;
       header.seed = seed_;
       header.stage = g_global.stage;
-      header.score = g_global.score;
+      header.score = g_global.entry.score;
       header.timer = g_game.timer_ + g_game.bonus_;
       header.lives = g_game.lives_;
       header.extend_count = g_game.extend_count_;

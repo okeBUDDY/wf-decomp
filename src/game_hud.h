@@ -22,7 +22,22 @@ class GameHud : public Task {
     kModeResult = 3,     // the boss result (CEnmParam::FormatResult)
   };
   enum Flags {
-    kFlagSkip = 0x100,  // a button was pressed during the screen
+    kFlagSkip = 0x100,        // a button was pressed during the screen
+    kFlagScore = 0x10000,     // "1P:" and the score
+    kFlagTimer = 0x20000,     // the clock
+    kFlagLives = 0x40000,     // "LEFT:" and the extend counter
+    kFlagReplay = 0x1000000,  // the name and date of the replay played
+  };
+  // texts_.
+  enum Texts {
+    kTextScore,
+    kTextLives,
+    kTextExtend,
+    kTextSeconds,
+    kTextFrames,
+    kTextReplayName,
+    kTextReplayDate,
+    kTextReplayHelp,
   };
 
   GameHud();                 // 0x41f010
@@ -40,8 +55,17 @@ class GameHud : public Task {
   int Lerp(float* out, float from, float to, int frames, int time);  // 0x41f560
   int Lerp(int* out, int from, int to, int frames, int time);        // 0x420250
 
+  // Draw the current screen.
+  void DrawGameOver();   // 0x420500
+  void DrawNameEntry();  // 0x41f830
+  void DrawResult();     // 0x4200e0
+
   // Puts the boss chart at the origin; always 1.
-  int InitChart();         // 0x420290
+  int InitChart();  // 0x420290
+  // Set up the name entry and result screens; always 1 (folded by
+  // /OPT:ICF into 0x410340).
+  int InitNameEntryScreen();
+  int InitResultScreen();
   void InitGameOver();     // 0x4202e0
   void ReleaseGameOver();  // 0x4202f0
   // Places the corners of the boss chart from shown_params_.
@@ -60,11 +84,11 @@ class GameHud : public Task {
     unsigned int flags_;        // 0x14
     unsigned char mode_flags_;  // 0x14, the low byte, cleared by SetMode
   };
-  int mode_;        // 0x18
-  int next_mode_;   // 0x1c, started by the next IsProtected()
-  int unknown_20_;  // 0x20
-  int mode_time_;   // 0x24, frames in mode_
-  char unknown_28_[0x2c - 0x28];
+  int mode_;               // 0x18
+  int next_mode_;          // 0x1c, started by the next IsProtected()
+  int unknown_20_;         // 0x20
+  int mode_time_;          // 0x24, frames in mode_
+  int replay_name_x_;      // 0x28, right-aligned at column 80
   HLSTxt* texts_[8];       // 0x2c
   HLSTxt* mode_texts_[4];  // 0x4c, the texts of the current screen
   char unknown_5c_[0x74 - 0x5c];

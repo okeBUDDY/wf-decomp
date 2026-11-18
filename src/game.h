@@ -36,6 +36,9 @@ class Game {
   void OnBossDestroyed();    // 0x41eec0
   const GameRules& rules() const { return rules_; }
   unsigned int flags() const { return flags_; }
+  int timer() const { return timer_; }
+  short lives() const { return lives_; }
+  short extend_count() const { return extend_count_; }
 
  private:
   friend class Replay;

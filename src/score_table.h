@@ -10,7 +10,7 @@ struct ScoreEntry {
   unsigned int score;
   unsigned int time;  // seconds
   short stage;
-  short reserved;
+  short deaths;
   char name[4];
 };
 
@@ -67,5 +67,7 @@ class ScoreTable {
 };
 
 extern ScoreTable g_score_table;  // 0x467620
+// "1ST" .. "8TH".
+extern const char* kRankNames[ScoreTable::kEntries];  // 0x45de80
 
 #endif  // WF_SCORE_TABLE_H_
