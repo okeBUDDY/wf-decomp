@@ -391,7 +391,7 @@ int PartControl::InitPart(Actor* actor, void* param) {
   work->turret->start_angle = work->turret->angle;
   work->max_hit_points = actor->hit_points;
   work->flags |= PartWork::kAlive;
-  work->unknown_18_ = 0;
+  work->state = 0;
   int side = (work->slot->code & CEnmParam::kSideMask) == 0x80000000;
   ++g_enm_param.parts_alive_[side];
   if (work->flags & 0x20000) {
@@ -602,6 +602,211 @@ void PartControl::SpawnFlare(Actor* actor) {
   }
 }
 
+// 0x4198e0
+// TODO: nonmatching (`this` and `how` swap ebx and ebp).
+void PartControl::OnDamage(Actor* actor, int how) {
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  StopTrans(work, 1);
+  if (work->state == 1) {
+    work->state = 0;
+    work->flags |= PartWork::kAlive;
+  }
+  switch (how) {
+    case 6:
+      if (!(work->flags & 0x10000)) {
+        return;
+      }
+      // Fall through.
+    case 0:
+      work->flags |= PartWork::kAlive;
+      work->Enter(how);
+      return;
+    case 5:
+      if (IsOffScreen(actor)) {
+        return;
+      }
+      work->slot->power += 3;
+      if (work->slot->power > 0x400) {
+        work->slot->power = 0x400;
+      } else if (work->slot->power < 0) {
+        work->slot->power = 0;
+      }
+      break;
+    case 7:
+      if (!(work->flags & 0x10000)) {
+        return;
+      }
+      break;
+    case 4:
+      if (!(work->flags & 0x20000)) {
+        return;
+      }
+      if (work->flags & 0x8000000) {
+        work->flags &= ~0x8000000;
+        how = 3;
+      } else {
+        work->flags |= 0x8000000;
+      }
+      PlayTrans(work);
+      break;
+    case 8:
+      if (!(work->flags & 0x40000)) {
+        return;
+      }
+      break;
+    case 9:
+      if (work->slot->part->flags & 0x200) {
+        SpawnFlare(actor);
+      }
+      return;
+  }
+  work->flags &= ~PartWork::kAlive;
+  work->Enter(how);
+}
+
+// 0x419a70
+// TODO: nonmatching (close: register choice where the turret arrives).
+int PartControl::MovePart(Actor* actor) {
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  Actor* turret = work->turret;
+  switch (work->state) {
+    case 1:
+      if (work->unknown_1e_ > 0 && --work->unknown_1e_ == 0) {
+        OnDamage(actor, work->state_time);
+      }
+      break;
+    case 6:
+    case 7: {
+      unsigned short old_angle = turret->angle;
+      turret->TurnTo(g_player, g_enm_param.turn_speed_);
+      turret->angle = turret->ClampAngle(turret->angle, work->low, work->high);
+      if (old_angle == turret->angle) {
+        g_enm_param.state_.flags |= 1;
+        if (work->state == 7) {
+          OnDamage(actor, 5);
+        }
+      }
+      break;
+    }
+    case 3:
+      switch (work->state_time) {
+        case 0: {
+          unsigned short now = turret->angle;
+          short offset = (work->angle - now) & 0x3ff;
+          if (offset >= 0x200) {
+            offset -= 0x400;
+          }
+          if (abs(offset) < g_enm_param.turn_speed_) {
+            now += offset;
+            turret->angle = now;
+            StopTrans(work, 1);
+            ++work->state_time;
+          } else {
+            if (offset < 0) {
+              now -= g_enm_param.turn_speed_;
+            } else {
+              now += g_enm_param.turn_speed_;
+            }
+            turret->angle = now;
+          }
+          if (work->unknown_1e_ > 0) {
+            --work->unknown_1e_;
+          }
+          break;
+        }
+        case 1:
+          if (--work->unknown_1e_ <= 0) {
+            OnDamage(actor, 0);
+          }
+          break;
+      }
+      break;
+    case 4:
+      switch (work->state_time) {
+        case 0:
+          ++work->state_time;
+          // Fall through.
+        case 1: {
+          short goal = (work->slot->part->flags & EnmPlanPart::kAimHigh)
+                           ? work->low
+                           : work->high;
+          unsigned short now = turret->angle;
+          short offset = (goal - now) & 0x3ff;
+          if (offset >= 0x200) {
+            offset -= 0x400;
+          }
+          if (abs(offset) < g_enm_param.turn_speed_) {
+            turret->angle = now + offset;
+            StopTrans(work, 1);
+            OnDamage(actor, 0);
+          } else if (offset < 0) {
+            turret->angle = now - g_enm_param.turn_speed_;
+          } else {
+            turret->angle = now + g_enm_param.turn_speed_;
+          }
+          break;
+        }
+      }
+      break;
+  }
+  return 1;
+}
+
+// 0x419cc0
+int LinkedPartControl::OnMove(Actor* actor) {
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  if (work->state != 8) {
+    return MovePart(actor);
+  }
+  switch (work->state_time) {
+    case 0:
+      if (g_enm_param.glow_time < 120) {
+        g_enm_param.glow_time = 120;
+      }
+      SpawnGlow(actor);
+      for (Actor* child = actor->first_child; child != NULL;
+           child = child->prev_sibling) {
+        if (static_cast<HLSPat*>(child->sprite)->empty()) {
+          g_actor_system.Create(22, child, 0.0f, 0.0f, 5, 0,
+                                reinterpret_cast<void*>(g_enm_param.glow_time));
+        }
+      }
+      g_application.sound->channel(24)->Assign(&g_snd_barrier, 0, 1.0f);
+      ++work->state_time;
+      work->unknown_1e_ = 0;
+      // Fall through.
+    case 1:
+      ++work->unknown_1e_;
+      actor->LerpColor(g_enm_param.state_.color, 0xffffff00, work->unknown_1e_,
+                       60);
+      if (work->unknown_1e_ >= 60) {
+        if (actor->team == 0x61) {
+          actor->team = 0xe1;
+        }
+        work->unknown_1e_ = g_enm_param.glow_time - 120;
+        ++work->state_time;
+      }
+      break;
+    case 2:
+      if (--work->unknown_1e_ <= 0) {
+        ++work->state_time;
+      }
+      break;
+    case 3:
+      ++work->unknown_1e_;
+      actor->LerpColor(0xffffff00, g_enm_param.state_.color, work->unknown_1e_,
+                       60);
+      if (work->unknown_1e_ >= 60) {
+        if (actor->team == 0xe1) {
+          actor->team = 0x61;
+        }
+        OnDamage(actor, 0);
+      }
+      break;
+  }
+  return 1;
+}
+
 // 0x4194a0
 int PartControl::SpawnItems(Actor* actor) {
   EnmSlot* slot = reinterpret_cast<PartWork*>(actor->work)->slot;
@@ -678,4 +883,37 @@ unsigned short Actor::AngleTo(float x, float y) {
     return result;
   }
   return parent->ToLocalAngle(result);
+}
+
+// 0x4146a0
+int PartControl::IsOffScreen(Actor* actor) {
+  if (actor->screen.m[2][0] < 0.0f || actor->screen.m[2][0] > 640.0f ||
+      actor->screen.m[2][1] < 0.0f || actor->screen.m[2][1] > 480.0f) {
+    return 1;
+  }
+  return 0;
+}
+
+// 0x414a00
+void Actor::TurnTo(Actor* target, short speed) {
+  if (speed >= 0x200) {
+    angle = target != NULL
+                ? AngleTo(target->screen.m[2][0], target->screen.m[2][1])
+                : angle;
+    return;
+  }
+  unsigned short goal =
+      target != NULL ? AngleTo(target->screen.m[2][0], target->screen.m[2][1])
+                     : angle;
+  short offset = (goal - angle) & 0x3ff;
+  if (offset >= 0x200) {
+    offset -= 0x400;
+  }
+  if (abs(offset) < speed) {
+    angle += offset;
+  } else if (offset < 0) {
+    angle -= speed;
+  } else {
+    angle += speed;
+  }
 }

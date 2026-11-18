@@ -48,6 +48,7 @@ class HLSPat : public HLSObject {
   }
 
   short used() const { return used_; }
+  bool empty() const { return empty_; }
 
   static HL3D* d3d_;          // 0x468efc
   static HLSPatSys* system_;  // 0x468f00

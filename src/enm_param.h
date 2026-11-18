@@ -240,7 +240,8 @@ class CEnmParam : public System {
   // The controls read and change much of this directly.
 
   EnmState state_;       // 0x08
-  int unknown_84_[4];    // 0x84
+  int turn_speed_;       // 0x84, of the turrets, per frame
+  int unknown_88_[3];    // 0x88
   int unknown_94_;       // 0x94
   int unknown_98_;       // 0x98
   EnmList list_9c_;      // 0x9c

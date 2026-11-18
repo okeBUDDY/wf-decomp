@@ -113,6 +113,8 @@ class Actor {
   // The angle from the actor to (`x`, `y`) on the screen, relative to its
   // parent; its own angle before it has moved or when it is there.
   unsigned short AngleTo(float x, float y);  // 0x411d90
+  // Turns toward `target` (if any) by at most `speed`; at once from 0x200.
+  void TurnTo(Actor* target, short speed);  // 0x414a00
   // Moves the actor to the draw list of `new_layer`.
   void SetLayer(unsigned short new_layer);  // 0x4108c0
   // Replaces the sprite (the null sprite for NULL).

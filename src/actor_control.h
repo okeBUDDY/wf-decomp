@@ -37,10 +37,18 @@ struct PartWork {
   short low;           // 0x42, of the angles the turret may turn to
   short high;          // 0x44
   short angle;         // 0x46, where the turret starts
-  int unknown_18_;     // 0x48
-  int unknown_1c_;     // 0x4c
+  int state;           // 0x48, the last event of OnDamage()
+  short state_time;    // 0x4c
+  short unknown_1e_;   // 0x4e
   short rank;          // 0x50, of a core: its power in percent
   short unknown_22_;   // 0x52
+
+  // Enters `new_state`.
+  void Enter(int new_state) {
+    state = new_state;
+    unknown_1e_ = 0;
+    state_time = 0;
+  }
 };
 
 // A sprite spawned on a part (0x10 bytes).
@@ -104,6 +112,10 @@ class PartControl : public ScoredControl {
   // Stops trans1 when no part plays it any more; then plays trans2 when
   // `next`.
   void StopTrans(PartWork* work, int next);  // 0x419580
+  // Runs the states OnDamage() sets; returns 1.
+  int MovePart(Actor* actor);  // 0x419a70
+  // 1 when the actor is outside the screen.
+  int IsOffScreen(Actor* actor);  // 0x4146a0
   // Spawns control 23 on the part, pointing away from the boss, unless the
   // part is within a quarter turn of CEnmParam::unknown_158_ from it.
   void SpawnFlare(Actor* actor);  // 0x419850
