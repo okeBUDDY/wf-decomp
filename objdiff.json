@@ -23,6 +23,11 @@
       "base_path": "build/obj/src/game.obj"
     },
     {
+      "name": "hl_sync",
+      "target_path": "build/target/hl_sync.obj",
+      "base_path": "build/obj/src/hl_sync.obj"
+    },
+    {
       "name": "object",
       "target_path": "build/target/object.obj",
       "base_path": "build/obj/src/object.obj"
@@ -41,6 +46,11 @@
       "name": "path_util",
       "target_path": "build/target/path_util.obj",
       "base_path": "build/obj/src/path_util.obj"
+    },
+    {
+      "name": "profile",
+      "target_path": "build/target/profile.obj",
+      "base_path": "build/obj/src/profile.obj"
     },
     {
       "name": "score_table",

@@ -6,7 +6,6 @@
 #include "application.h"
 #include "file.h"
 #include "game.h"
-#include "profile.h"
 
 extern Application g_application;  // 0x467328
 
@@ -203,12 +202,13 @@ failed:
 void ScoreTable::Import() {
   File file;
   if (!file.Open(path_, File::kRead)) {
-    Profile::SetSection("Score");
+    g_application.profile.SetSection("Score");
     ScoreEntry* entry = entries_;
     for (int i = 0; i < kEntries; ++i, ++entry) {
       char key[8];
       sprintf(key, "%d", i + 1);
-      Profile::GetString(key, "", s_profile_value, sizeof(s_profile_value));
+      g_application.profile.GetString(key, "", s_profile_value,
+                                      sizeof(s_profile_value));
       if (s_profile_value[0] == '\0') {
         Reset();
         break;
@@ -216,7 +216,8 @@ void ScoreTable::Import() {
       sscanf(s_profile_value, "%d %hd %hd", &entry->score, &entry->stage,
              &entry->reserved);
       sprintf(key, "%dname", i + 1);
-      Profile::GetString(key, "---", entry->name, sizeof(entry->name));
+      g_application.profile.GetString(key, "---", entry->name,
+                                      sizeof(entry->name));
       entry->time = 0;
     }
     if (!Save()) {
