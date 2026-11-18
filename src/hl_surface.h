@@ -20,6 +20,7 @@ class HLSurface : public Object {
     kTexture = 0x4,
     kKindMask = 0xf,
     kAttached = 0x20,  // made by someone else, see Attach()
+    kAlpha = 0x40,     // with an alpha channel (32-bit images)
   };
   // Pixel format codes: the bits of each channel, A last.
   enum FormatCode {
@@ -41,6 +42,13 @@ class HLSurface : public Object {
   void Clear();  // 0x40b710
   // Locks the whole surface. Returns its pixels, or NULL.
   void* Lock();  // 0x407820
+  // Unlocks the surface if it is locked.
+  void Unlock() {
+    if (locked_bits_ != NULL) {
+      surface_->Unlock(NULL);
+      locked_bits_ = NULL;
+    }
+  }
   // Releases the surface and the buffer.
   void Release();  // 0x40ba80
   // Creates a `width` x `height` surface. Returns 0 on error.

@@ -1,13 +1,16 @@
 #include "hl_surface.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "application.h"
 #include "graphics.h"
+#include "hl_image.h"
 
-Graphics* HLSurface::graphics_;        // 0x468f70
-DDPIXELFORMAT HLSurface::formats_[3];  // 0x468f10
-short HLSurface::format_codes_[3];     // 0x468f80
+Graphics* HLSurface::graphics_;         // 0x468f70
+DDPIXELFORMAT HLSurface::formats_[3];   // 0x468f10
+short HLSurface::format_codes_[3];      // 0x468f80
+unsigned int HLSurface::texture_caps_;  // 0x468f74
 short HLSurface::format_order_[kFormatKinds][kFormatsPerKind] = {
     {k565, k5551, k555, k4444, k888, k8880, k8888, 0},
     {k565, k555, k5551, k4444, k888, k8880, k8888, 0},
@@ -137,10 +140,7 @@ void HLSurface::Release() {
   if (surface_ == NULL) {
     return;
   }
-  if (locked_bits_ != NULL) {
-    surface_->Unlock(NULL);
-    locked_bits_ = NULL;
-  }
+  Unlock();
   if (file_name_ != NULL) {
     free(file_name_);
   }
@@ -157,4 +157,197 @@ void HLSurface::Release() {
   unknown_18_ = 0;
   id_ = -1;
   mode_ = 0;
+}
+
+// 0x40bff0
+// TODO: nonmatching: the pixel conversions match, but the original keeps
+// `file` in ebx and `this` in edi (spilled), and keeps the loop counters on
+// the stack differently (0x33 bytes longer).
+int HLSurface::Load(const char* file, unsigned short mode) {
+  int result = 0;
+  HLImage image;
+  if (image.Load(file, HLImage::kAuto)) {
+    if (file_name_ != NULL && strcmp(file, file_name_) != 0) {
+      Release();
+    }
+    switch (image.bits()) {
+      case 24:
+        mode &= ~kAlpha;
+        break;
+      case 32:
+        mode |= kAlpha;
+        break;
+    }
+    if (surface_ != NULL || Create(image.width(), image.height(), mode)) {
+      unsigned char* dest = static_cast<unsigned char*>(Lock());
+      if (dest != NULL) {
+        int bytes = image.bits() / 8;
+        // Every scale_x_-th pixel of every scale_y_-th row.
+        int row_skip = (scale_y_ - 1) * bytes * image.width();
+        int step = scale_x_ * bytes;
+        int width = image.width() / scale_x_;
+        int height = image.height() / scale_y_;
+        const unsigned char* src = image.pixels();
+        switch (format_codes_[format_]) {
+          case k888: {
+            int pad = pitch_ - width * 3;
+            for (int y = 0; y < height; ++y) {
+              for (int x = 0; x < width; ++x) {
+                dest[0] = src[0];
+                dest[1] = src[1];
+                dest[2] = src[2];
+                src += step;
+                dest += 3;
+              }
+              src += row_skip;
+              dest += pad;
+            }
+            break;
+          }
+          case k565: {
+            unsigned short* out = reinterpret_cast<unsigned short*>(dest);
+            int pad = pitch_ / 2 - width;
+            for (int y = 0; y < height; ++y) {
+              for (int x = 0; x < width; ++x) {
+                *out++ = (((src[2] & 0xf8) << 5 | (src[1] & 0xfc)) << 3) |
+                         src[0] >> 3;
+                src += step;
+              }
+              src += row_skip;
+              out += pad;
+            }
+            break;
+          }
+          case k555: {
+            unsigned short* out = reinterpret_cast<unsigned short*>(dest);
+            int pad = pitch_ / 2 - width;
+            for (int y = 0; y < height; ++y) {
+              for (int x = 0; x < width; ++x) {
+                *out++ = (((src[2] & 0xf8) << 5 | (src[1] & 0xf8)) << 2) |
+                         src[0] >> 3;
+                src += step;
+              }
+              src += row_skip;
+              out += pad;
+            }
+            break;
+          }
+          case k4444: {
+            unsigned short* out = reinterpret_cast<unsigned short*>(dest);
+            int pad = pitch_ / 2 - width;
+            if (image.bits() == 24) {
+              for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                  *out++ = ((0xff00 | (src[2] & 0xf0)) << 4) |
+                           ((src[1] & 0xf0) | src[0] >> 4);
+                  src += step;
+                }
+                src += row_skip;
+                out += pad;
+              }
+            } else {
+              for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                  *out++ = (((src[3] & 0xf0) << 4 | (src[2] & 0xf0)) << 4) |
+                           ((src[1] & 0xf0) | src[0] >> 4);
+                  src += step;
+                }
+                src += row_skip;
+                out += pad;
+              }
+            }
+            break;
+          }
+          case k5551: {
+            unsigned short* out = reinterpret_cast<unsigned short*>(dest);
+            int pad = pitch_ / 2 - width;
+            if (image.bits() == 24) {
+              for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                  *out++ = (((0xff00 | (src[2] & 0xf8)) << 5 | (src[1] & 0xf8))
+                            << 2) |
+                           src[0] >> 3;
+                  src += step;
+                }
+                src += row_skip;
+                out += pad;
+              }
+            } else {
+              for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                  *out++ = (((((src[3] & 0x80) << 1 | (src[2] & 0xf8)) << 5) |
+                             (src[1] & 0xf8))
+                            << 2) |
+                           src[0] >> 3;
+                  src += step;
+                }
+                src += row_skip;
+                out += pad;
+              }
+            }
+            break;
+          }
+          case k8888: {
+            int pad = pitch_ - width * 4;
+            if (image.bits() == 24) {
+              for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                  dest[0] = src[0];
+                  dest[1] = src[1];
+                  dest[2] = src[2];
+                  dest[3] = 0xff;
+                  src += step;
+                  dest += 4;
+                }
+                src += row_skip;
+                dest += pad;
+              }
+            } else {
+              for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                  dest[0] = src[0];
+                  dest[1] = src[1];
+                  dest[2] = src[2];
+                  dest[3] = src[3];
+                  src += step;
+                  dest += 4;
+                }
+                src += row_skip;
+                dest += pad;
+              }
+            }
+            break;
+          }
+          case k8880: {
+            int pad = pitch_ - width * 4;
+            for (int y = 0; y < height; ++y) {
+              for (int x = 0; x < width; ++x) {
+                dest[0] = src[0];
+                dest[1] = src[1];
+                dest[2] = src[2];
+                dest[3] = 0;
+                src += step;
+                dest += 4;
+              }
+              src += row_skip;
+              dest += pad;
+            }
+            break;
+          }
+        }
+        if (file_name_ == NULL) {
+          file_name_ = static_cast<char*>(malloc(strlen(file) + 1));
+          if (file_name_ == NULL) {
+            return 1;
+          }
+          strcpy(file_name_, file);
+        }
+        Log("[%d]ﾌｧｲﾙﾛｰﾄﾞ:%s (%dx%d %dbit)", id_, file, image.width(),
+            image.height(), image.bits());
+        result = 1;
+      }
+    }
+  }
+  Unlock();
+  return result;
 }
