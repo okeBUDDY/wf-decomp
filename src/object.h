@@ -20,7 +20,9 @@ class Object {
   // Shows a warning box and logs "<name>:WARNING:<message>".
   void Warning(HWND window, const char* format, ...);  // 0x4038f0
   // Logs "<name>:ERROR:<message>".
-  void Error(const char* format, ...);  // 0x403970
+  void Error(const char* format, ...);
+  // The last error message, empty without one.
+  static const char* last_error() { return error_message_; }  // 0x403970
 
  protected:
   char* name_;  // 0x04, class name used in log lines

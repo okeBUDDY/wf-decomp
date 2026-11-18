@@ -5,11 +5,11 @@
 
 #include <windows.h>
 
-#include "object.h"
+#include "system.h"
 
 struct Application;
 
-class HLWindow : public Object {
+class HLWindow : public System {
  public:
   // Receives mouse events; returns nonzero when the event was handled.
   typedef int (*MouseFunc)(int event, int x, int y, int buttons, void* user);

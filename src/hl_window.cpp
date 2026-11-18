@@ -86,7 +86,7 @@ int HLWindow::OnMouse(UINT msg, WPARAM wparam, LPARAM lparam) {
 
 // 0x40cda0
 void Application::RequestCapture() {
-  if (capture_ != NULL) {
+  if (capture != NULL) {
     flags |= kCapture;
   }
 }

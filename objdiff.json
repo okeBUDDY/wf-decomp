@@ -13,6 +13,11 @@
       "base_path": "build/obj/src/actor_control.obj"
     },
     {
+      "name": "application",
+      "target_path": "build/target/application.obj",
+      "base_path": "build/obj/src/application.obj"
+    },
+    {
       "name": "file",
       "target_path": "build/target/file.obj",
       "base_path": "build/obj/src/file.obj"

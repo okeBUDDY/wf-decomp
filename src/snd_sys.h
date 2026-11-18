@@ -10,8 +10,8 @@
 #include <mmsystem.h>
 
 #include "application.h"
-#include "object.h"
 #include "snd_buf_list.h"
+#include "system.h"
 #include "thread.h"
 
 class CSndBuf;
@@ -109,7 +109,7 @@ class SoundThread : public Thread {
   float time_;           // 0x18, seconds
 };
 
-class SoundSystem : public Object {
+class SoundSystem : public System {
  public:
   SoundSystem();  // 0x408f90
   // 0x409010, scalar deleting dtor 0x408ff0

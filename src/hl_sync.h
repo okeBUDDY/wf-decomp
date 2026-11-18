@@ -5,11 +5,11 @@
 
 #include <windows.h>
 
-#include "object.h"
+#include "system.h"
 
 struct Application;
 
-class HLSync : public Object {
+class HLSync : public System {
  public:
   enum Mode {
     kVSync,     // full screen: flip

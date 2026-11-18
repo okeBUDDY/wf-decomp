@@ -25,6 +25,8 @@ class Profile {
       strcpy(out, def);
     }
   }
+  // Uses "<name>.ini" next to the executable. Returns 0 without memory.
+  int Open(const char* name);  // 0x406910
   // Reads `key` as a number (any base strtol takes), or returns `def`.
   int GetInt(const char* key, int def);  // 0x40cd00
   // Writes `value` printed with `format` to `key`.
@@ -34,7 +36,9 @@ class Profile {
   int unknown_00_;
   char* path_;     // 0x04
   char* section_;  // 0x08
-  char* value_;    // 0x0c, kValueSize bytes
+  // 0x0c, kValueSize bytes. It starts kValueSize bytes into the section
+  // buffer, so long section names run into it.
+  char* value_;
 };
 
 #endif  // WF_PROFILE_H_
