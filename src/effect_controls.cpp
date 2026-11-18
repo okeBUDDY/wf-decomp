@@ -134,12 +134,10 @@ struct FlareWork {
 extern EffectDesc g_flare_trail;  // 0x45d3e0
 
 // 0x411380
-// TODO: nonmatching (the original loads start_angle into dx and stores
-// hit_points first).
 int Control23::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
-  actor->angle = actor->start_angle;
   actor->team = 0;
+  actor->angle = actor->start_angle;
   FlareWork* work = reinterpret_cast<FlareWork*>(actor->work);
   work->timer = g_enm_param.flare_time_;
   work->max_scale = ((g_enm_param.flare_size_ - 1.0f) * 1.5f + 1.0f) * 0.2f;

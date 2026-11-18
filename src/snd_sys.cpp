@@ -270,8 +270,7 @@ void SoundSystem::Pause() {
     if (count == 0 && channel->buffer_ != NULL) {
       channel->buffer_->Stop();
     }
-    ++count;
-    channel->set_pause_count(count);
+    channel->set_pause_count(++count);
   }
   for (CSndBuf* buffer = buffers_.tail_; buffer != NULL;
        buffer = buffer->prev_) {

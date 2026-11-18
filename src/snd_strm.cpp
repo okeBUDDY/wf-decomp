@@ -136,13 +136,11 @@ void CSndStrm::Restore() {
 
 // 0x40fc10
 const char* CSndStrm::GetPath() {
-  const char* path;
   if (file_ != NULL && file_->GetName() == "CSndFileSEQ") {
-    path = static_cast<CSndFileSEQ*>(file_)->path();
-  } else {
-    path = path_;
+    CSndFileSEQ* seq = static_cast<CSndFileSEQ*>(file_);
+    return seq->path() != NULL ? seq->path() : "";
   }
-  return path != NULL ? path : "";
+  return CSndBuf::GetPath();
 }
 
 // 0x40fc50

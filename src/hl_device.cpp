@@ -207,8 +207,6 @@ HLDevice::HLDevice() {
 HLDevice::~HLDevice() {}
 
 // 0x404e40
-// TODO: nonmatching: the original loads the selection into eax, not ecx,
-// for the last SendMessageA; everything else matches.
 INT_PTR CALLBACK HLDevice::DialogProc(HWND dialog, UINT message, WPARAM wparam,
                                       LPARAM lparam) {
   if (message == WM_INITDIALOG) {
@@ -246,8 +244,8 @@ INT_PTR CALLBACK HLDevice::DialogProc(HWND dialog, UINT message, WPARAM wparam,
           if (HIWORD(wparam) == CBN_SELCHANGE) {
             device->pad_ = static_cast<unsigned short>(SendMessageA(
                 reinterpret_cast<HWND>(lparam), CB_GETCURSEL, 0, 0));
-            SendMessageA(GetDlgItem(dialog, 0x3ec), CB_SETCURSEL,
-                         device->pads_[device->pad_].selected_, 0);
+            WPARAM selected = device->pads_[device->pad_].selected_;
+            SendMessageA(GetDlgItem(dialog, 0x3ec), CB_SETCURSEL, selected, 0);
             return TRUE;
           }
           break;

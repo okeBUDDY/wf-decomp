@@ -77,11 +77,7 @@ void CSndBufList::Remove(CSndBuf* buffer) {
 }
 
 // 0x40e1d0
-// TODO: nonmatching: the original stores the vtable after id_ = -1.
 CSndBuf::CSndBuf() {
-  id_ = -1;
-  next_ = NULL;
-  prev_ = NULL;
   buffer_ = NULL;
   path_ = NULL;
   size_ = 0;

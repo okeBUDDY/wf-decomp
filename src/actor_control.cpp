@@ -876,7 +876,6 @@ unsigned short Actor::ToLocalAngle(unsigned short screen_angle) {
 }
 
 // 0x411d90
-// TODO: nonmatching (the original returns `result` with mov eax, ecx).
 unsigned short Actor::AngleTo(float x, float y) {
   if (!(flags & kMovedOnce)) {
     return angle;
@@ -886,11 +885,9 @@ unsigned short Actor::AngleTo(float x, float y) {
   if (dx == 0.0f && dy == 0.0f) {
     return angle;
   }
-  int result = 0x100 - static_cast<int>(atan2(dy, dx) * -162.97466f);
-  if (transform == &screen) {
-    return result;
-  }
-  return parent->ToLocalAngle(result);
+  unsigned short result =
+      0x100 - static_cast<int>(atan2(dy, dx) * -162.97466f);
+  return transform == &screen ? result : parent->ToLocalAngle(result);
 }
 
 // 0x4146a0

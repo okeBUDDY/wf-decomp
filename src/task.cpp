@@ -1,8 +1,7 @@
 // Node and TaskBase (one object: 0x402700-0x4028c6).
 #include "task.h"
 
-// 0x402700. NOT MATCHING yet: same instructions, but the original stores the
-// vtable pointer before the scale (and keeps 1.0f in ecx from the start).
+// 0x402700
 Node::Node() {
   position_.x = 0.0f;
   position_.y = 0.0f;
@@ -10,6 +9,7 @@ Node::Node() {
   rotation_.x = 0.0f;
   rotation_.y = 0.0f;
   rotation_.z = 0.0f;
+  SetScale(1.0f, 1.0f, 1.0f);
   mode_ = 0;
   next_ = NULL;
   prev_ = NULL;
@@ -17,7 +17,6 @@ Node::Node() {
   first_child_ = NULL;
   parent_ = NULL;
   flag_b0_ = 0;
-  SetScale(1.0f, 1.0f, 1.0f);
   visible_ = 1;
 }
 

@@ -10,10 +10,30 @@
 
 #include "object.h"
 
+class CSndBuf;
 class CSndFile;
 class CSndBufList;
 
-class CSndBuf : public Object {
+// The list link of a CSndBuf. Its inline constructor runs before CSndBuf
+// stores its vtable, which fixes the order of the stores in CSndBuf().
+class CSndBufLink : public Object {
+ protected:
+  friend class CSndBufList;
+  friend class SoundSystem;
+  friend class Channel;
+
+  CSndBufLink() {
+    id_ = -1;
+    next_ = NULL;
+    prev_ = NULL;
+  }
+
+  int id_;         // 0x08, -1 while not in the list
+  CSndBuf* prev_;  // 0x0c
+  CSndBuf* next_;  // 0x10
+};
+
+class CSndBuf : public CSndBufLink {
  public:
   enum Flags {
     kChannelMask = 0x3,
@@ -65,9 +85,6 @@ class CSndBuf : public Object {
   int SetPath(const char* path, CSndFile* file,
               WAVEFORMATEX* format);  // 0x40e560
 
-  int id_;                      // 0x08, -1 while not in the list
-  CSndBuf* prev_;               // 0x0c
-  CSndBuf* next_;               // 0x10
   IDirectSoundBuffer* buffer_;  // 0x14
   unsigned int flags_;          // 0x18
   int size_;                    // 0x1c, bytes
