@@ -62,6 +62,9 @@ class ActorSystem : public System {
   // Destroys every actor.
   void DestroyAll();  // 0x408480
 
+  // The number of live actors.
+  short count() const { return count_; }
+
   static ActorSystem* instance_;  // 0x468eb4
   static int flags_;              // 0x468eb8, 1: actors hit each other
 

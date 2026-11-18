@@ -125,6 +125,11 @@ class Actor {
     }
     sprite = new_sprite;
   }
+  // Sets the scale; changing matrix_angle makes the matrix be rebuilt.
+  void SetScale(float new_scale) {
+    scale = new_scale;
+    matrix_angle += 0x1000;
+  }
   // Sets the color to `num` / `den` of the way from `from` to `to`.
   void LerpColor(DWORD from, DWORD to, int num, int den);  // 0x407900
 

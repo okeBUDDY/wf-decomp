@@ -92,6 +92,8 @@ class ScoredControl : public ActorControl {
   virtual int GetHitPoints(Actor* actor) = 0;
   // Sets the actor up as a part planned in `param` (an EnmSlot).
   int Prepare(Actor* actor, void* param);  // 0x418c40
+  // 1 when the actor is outside the screen.
+  int IsOffScreen(Actor* actor);  // 0x4146a0
 };
 
 class PartControl : public ScoredControl {
@@ -113,11 +115,9 @@ class PartControl : public ScoredControl {
   // `next`.
   void StopTrans(PartWork* work, int next);  // 0x419580
   // Waits `delay` frames (state 1), then calls OnDamage(actor, `next`).
-  void Schedule(Actor* actor, short delay, short next);  // 0x418c90
+  void Schedule(Actor* actor, int delay, int next);  // 0x418c90
   // Runs the states OnDamage() sets; returns 1.
   int MovePart(Actor* actor);  // 0x419a70
-  // 1 when the actor is outside the screen.
-  int IsOffScreen(Actor* actor);  // 0x4146a0
   // Spawns control 23 on the part, pointing away from the boss, unless the
   // part is within a quarter turn of CEnmParam::unknown_158_ from it.
   void SpawnFlare(Actor* actor);  // 0x419850
@@ -235,6 +235,11 @@ class Control43 : public ActorControl {
   virtual int OnMove(Actor* actor);                  // 0x414480
   virtual void OnEvent(Actor* actor, int x, int y);  // 0x414550
 
+  // The glow at the muzzle, and the segments of the beam (Control42
+  // fills them in).
+  static ActorDesc glow_desc_;  // 0x469198
+  static ActorDesc beam_desc_;  // 0x4691cc
+
  private:
   // Actors holding the sound channels 19 and 20.
   static int sound_users_[2];  // 0x469200
@@ -294,44 +299,80 @@ class Control34 : public LinkedPartControl {
   virtual int OnCreate(Actor* actor, void* param);  // 0x412b90
 };
 
-// Core part controls: score, hit points and level are constants.
-#define WF_CORE_CONTROL(name, score, hit_points, level)           \
-  class name : public CorePartControl {                           \
-   public:                                                        \
-    virtual int Initialize();                                     \
-    virtual void Finalize() {}                                    \
-    virtual int OnCreate(Actor* actor, void* param);              \
-    virtual int OnMove(Actor* actor);                             \
-    virtual int GetScore(Actor* actor) { return score; }          \
-    virtual int GetHitPoints(Actor* actor) { return hit_points; } \
-    virtual int GetLevel() { return level; }                      \
-    virtual void Setup(Actor* actor, int rank);                   \
-  }
+// Core part controls: score, hit points and level are constants. Setup()
+// derives the weapon's parameters from the rank.
+#define WF_CORE_CONTROL_BODY(score, hit_points, level)          \
+ public:                                                        \
+  virtual void Finalize() {}                                    \
+  virtual int OnCreate(Actor* actor, void* param);              \
+  virtual int OnMove(Actor* actor);                             \
+  virtual int GetScore(Actor* actor) { return score; }          \
+  virtual int GetHitPoints(Actor* actor) { return hit_points; } \
+  virtual int GetLevel() { return level; }                      \
+  virtual void Setup(Actor* actor, int rank);
 
-// Controls 44 and 47 keep Initialize() { return 1; }.
-#define WF_CORE_CONTROL_SIMPLE(name, score, hit_points, level)    \
-  class name : public CorePartControl {                           \
-   public:                                                        \
-    virtual int Initialize() { return 1; }                        \
-    virtual void Finalize() {}                                    \
-    virtual int OnCreate(Actor* actor, void* param);              \
-    virtual int OnMove(Actor* actor);                             \
-    virtual int GetScore(Actor* actor) { return score; }          \
-    virtual int GetHitPoints(Actor* actor) { return hit_points; } \
-    virtual int GetLevel() { return level; }                      \
-    virtual void Setup(Actor* actor, int rank);                   \
-  }
+// Bullets (spawns 13 bullets at a time).
+class Control40 : public CorePartControl {
+  WF_CORE_CONTROL_BODY(1000, 20, 0)
+  virtual int Initialize();  // 0x413a40
+  // OnCreate 0x413aa0, OnMove 0x413b00, Setup 0x4139c0
 
-WF_CORE_CONTROL(Control40, 1000, 20, 0);
-WF_CORE_CONTROL(Control41, 1200, 30, 1);
-WF_CORE_CONTROL(Control42, 1200, 30, 2);
-WF_CORE_CONTROL_SIMPLE(Control44, 2000, 40, 3);
-WF_CORE_CONTROL_SIMPLE(Control47, 2000, 40, 5);
-WF_CORE_CONTROL(Control46, 2500, 40, 4);
-WF_CORE_CONTROL(Control49, 2500, 40, 6);
+ private:
+  static ActorDesc desc_;  // 0x469130
+};
 
-#undef WF_CORE_CONTROL
-#undef WF_CORE_CONTROL_SIMPLE
+// A fan of shells.
+class Control41 : public CorePartControl {
+  WF_CORE_CONTROL_BODY(1200, 30, 1)
+  virtual int Initialize();  // 0x413e30
+  // OnCreate 0x413ea0, OnMove 0x413f00, Setup 0x413dc0
+
+ private:
+  static ActorDesc desc_;  // 0x469164
+};
+
+// A laser (control 43).
+class Control42 : public CorePartControl {
+  WF_CORE_CONTROL_BODY(1200, 30, 2)
+  virtual int Initialize();  // 0x414040
+  // OnCreate 0x4140d0, OnMove 0x414130, Setup 0x413fc0
+};
+
+// Homing missiles (control 45).
+class Control44 : public CorePartControl {
+  WF_CORE_CONTROL_BODY(2000, 40, 3)
+  virtual int Initialize() { return 1; }
+  // OnCreate 0x414700, OnMove 0x414760, Setup 0x414650
+};
+
+// Slow missiles (control 48).
+class Control47 : public CorePartControl {
+  WF_CORE_CONTROL_BODY(2000, 40, 5)
+  virtual int Initialize() { return 1; }
+  // OnCreate 0x413c60, OnMove 0x413cc0, Setup 0x413be0
+};
+
+// A spray of sparks.
+class Control46 : public CorePartControl {
+  WF_CORE_CONTROL_BODY(2500, 40, 4)
+  virtual int Initialize();  // 0x414ba0
+  // OnCreate 0x414c10, OnMove 0x414c70, Setup 0x414b40
+
+ private:
+  static ActorDesc desc_;  // 0x469208
+};
+
+// A sweeping stream of bullets.
+class Control49 : public CorePartControl {
+  WF_CORE_CONTROL_BODY(2500, 40, 6)
+  virtual int Initialize();  // 0x414e20
+  // OnCreate 0x414e80, OnMove 0x414f20, Setup 0x414dc0
+
+ private:
+  static ActorDesc desc_;  // 0x46923c
+};
+
+#undef WF_CORE_CONTROL_BODY
 
 // Registers one instance of every control in g_actor_system; 0 on failure.
 int RegisterActorControls();  // 0x40ff00

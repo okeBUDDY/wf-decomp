@@ -207,37 +207,6 @@ int Control35::Initialize() {
 // 0x412fa0
 void Control01::OnDestroy(Actor* actor) { g_game.OnPlayerDestroyed(); }
 
-// 0x413c30
-int Control48::OnMove(Actor* actor) {
-  if (actor->speed <= 0.0f) {
-    return 0;
-  }
-  return 1;
-}
-
-// Actor::work of control 43.
-struct Control43Work {
-  int unknown_00_[4];  // 0x30
-  short unknown_10_;   // 0x40
-  short sound;         // 0x42, which of the channels 19 and 20 it holds
-};
-
-// 0x414430
-void Control43::OnDestroy(Actor* actor) {
-  switch (reinterpret_cast<Control43Work*>(actor->work)->sound) {
-    case 0:
-      if (--sound_users_[0] == 0) {
-        g_application.sound->channel(19)->Stop();
-      }
-      break;
-    case 1:
-      if (--sound_users_[1] == 0) {
-        g_application.sound->channel(20)->Stop();
-      }
-      break;
-  }
-}
-
 // 0x417c00 (this object, so the enm_param.cpp callers do not inline it)
 void CEnmParam::ClearUnknown32c() { unknown_32c_ = 0; }
 
@@ -259,7 +228,7 @@ int ScoredControl::Prepare(Actor* actor, void* param) {
 }
 
 // 0x418c90
-void PartControl::Schedule(Actor* actor, short delay, short next) {
+void PartControl::Schedule(Actor* actor, int delay, int next) {
   OnDamage(actor, 1);
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
   work->unknown_1e_ = delay;
@@ -924,7 +893,7 @@ unsigned short Actor::AngleTo(float x, float y) {
 }
 
 // 0x4146a0
-int PartControl::IsOffScreen(Actor* actor) {
+int ScoredControl::IsOffScreen(Actor* actor) {
   if (actor->screen.m[2][0] < 0.0f || actor->screen.m[2][0] > 640.0f ||
       actor->screen.m[2][1] < 0.0f || actor->screen.m[2][1] > 480.0f) {
     return 1;
@@ -954,4 +923,23 @@ void Actor::TurnTo(Actor* target, short speed) {
   } else {
     angle += speed;
   }
+}
+
+// 0x410850
+HLSAnm* HLSAnmSys::Play(AnmData* data) {
+  HLSAnm* anim = anims_;
+  for (int i = count_; i > 0; ++anim, --i) {
+    if (anim->cursor_ == NULL) {
+      anim->data_ = data;
+      anim->cursor_ = data->script;
+      anim->object_ = data->set->objects != NULL
+                          ? data->set->objects[anim->cursor_[0]]
+                          : NULL;
+      anim->texture_ = anim->object_->texture_;
+      anim->wait_ = anim->cursor_[1];
+      anim->loop_ = 0;
+      return anim;
+    }
+  }
+  return NULL;
 }

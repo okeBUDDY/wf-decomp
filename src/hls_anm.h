@@ -27,6 +27,7 @@ class HLSObject {
 
  protected:
   friend class ActorSystem;
+  friend class HLSAnmSys;
   HLSurface* texture_;  // 0x04, used by HLSPat
 };
 
@@ -62,6 +63,8 @@ class HLSAnm : public HLSObject {
                    DWORD id);  // 0x4073c0
 
  private:
+  friend class HLSAnmSys;
+
   // Counts down the current entry and moves to the next one.
   void Step();  // 0x407420
 
@@ -80,10 +83,15 @@ class HLSAnmSys : public System {
   virtual void Pause() {}
   virtual void Resume() {}
 
+  // Starts `data` on a free animation; NULL when none is free.
+  HLSAnm* Play(AnmData* data);  // 0x410850
+
  private:
   int count_;         // 0x08
   Application* app_;  // 0x0c
   HLSAnm* anims_;     // 0x10, new[]ed
 };
+
+extern HLSAnmSys g_anm_sys;  // 0x4674b4
 
 #endif  // WF_HLS_ANM_H_
