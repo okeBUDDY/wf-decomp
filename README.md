@@ -160,7 +160,14 @@ matches.
 
 ## Decompiled code
 
-568 of 828 game functions match (59.86% of the 130497 game code bytes; `tools/compare.py`).
+598 of 678 game functions match (71.80% of the 128586 game code bytes; `tools/compare.py`),
+and 114 of the 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
+`__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
+0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
+counted apart from the game functions; `build/progress.json` has both. A `.text$x` funclet is
+placed by its parent's push of `__ehhandler$<parent>`, so it is checked at its exact
+address; a `.text$yc`/`$yd` thunk counts when it equals a stub of its size whose named
+relocation targets agree. Matched stubs still link from the blob.
 All of them are linked into `build/wf.exe` from source. Per file (matched/compiled; the
 rest are `// TODO: nonmatching` drafts):
 

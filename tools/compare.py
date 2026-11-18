@@ -121,8 +121,12 @@ class Comparer:
             self.by_name.setdefault(s["name"], a)
 
     def compare(self, coff, name, sec, addr):
+        return self.compare_range(coff, sec, 0, len(sec["data"]), addr)
+
+    def compare_range(self, coff, sec, lo, hi, addr):
+        """Compares sec["data"][lo:hi] with the original function at `addr`."""
         size = self.syms[addr]["size"]
-        data = sec["data"]
+        data = sec["data"][lo:hi]
         notes = []
         if len(data) != size:
             notes.append(f"size {len(data):#x} != {size:#x}")
@@ -131,6 +135,9 @@ class Comparer:
         unchecked = 0
         bad_relocs = 0
         for off, symidx, typ in sec["rels"]:
+            if not lo <= off < hi:
+                continue
+            off -= lo
             mask[off:off + 4] = b"\1\1\1\1"
             target_name = coff.symlist_by_index[symidx]["name"]
             if off + 4 > len(orig):
@@ -157,6 +164,79 @@ class Comparer:
             notes.append(f"{diff} bytes differ")
         ok = not notes
         return ok, unchecked, notes
+
+    def original_target(self, sec, addr, coff, target):
+        """The original address the DIR32 reloc to `target` in the function
+        at `addr` holds, or None."""
+        orig = self.pe.read(addr, len(sec["data"]))
+        for off, symidx, typ in sec["rels"]:
+            if typ == IMAGE_REL_I386_DIR32 and coff.symlist_by_index[symidx]["name"] == target:
+                if off + 4 <= len(orig):
+                    ov = struct.unpack_from("<I", orig, off)[0]
+                    return (ov - struct.unpack_from("<I", sec["data"], off)[0]) & 0xFFFFFFFF
+        return None
+
+
+def section_pieces(sec):
+    """(name, lo, hi) of each funclet/thunk the symbols of `sec` start."""
+    starts = sorted({(y["value"], y["name"]) for y in sec["syms"] if y["cls"] in (2, 3)
+                     and not y["name"].startswith(".")})
+    out = []
+    for i, (v, n) in enumerate(starts):
+        hi = starts[i + 1][0] if i + 1 < len(starts) else len(sec["data"])
+        if hi > v:
+            out.append((n, v, hi))
+    return out
+
+
+def match_stubs(cmp, coff, stubs, matched_stubs):
+    """Marks the EH stubs (.text$x funclets, .text$yc/$yd init and atexit
+    thunks) that `coff` reproduces byte for byte (relocations masked, named
+    targets checked).
+
+    A .text$x section is placed by its parent function's push of
+    __ehhandler$<parent>, whose original value gives the handler's address.
+    The $yc/$yd thunks have no such anchor; one counts when it equals a
+    stub of its size whose checked relocations all agree (at least one)."""
+    texts = {}
+    for sec in coff.sections:
+        if sec["name"] == ".text":
+            for y in sec["syms"]:
+                if y["type"] & 0x20 and y["value"] == 0 and y["cls"] in (2, 3):
+                    texts[y["name"]] = sec
+                    break
+    for sec in coff.sections:
+        name = sec["name"]
+        if name == ".text$x":
+            pieces = section_pieces(sec)
+            handler = [p for p in pieces if p[0].startswith("__ehhandler$")]
+            if not handler:
+                continue
+            hname, hlo, _ = handler[0]
+            parent = hname[len("__ehhandler$"):]
+            paddr = cmp.by_name.get(parent)
+            if parent not in texts or paddr is None:
+                continue
+            haddr = cmp.original_target(texts[parent], paddr, coff, hname)
+            if haddr is None:
+                continue
+            base = haddr - hlo
+            for _, lo, hi in pieces:
+                a = base + lo
+                if a in stubs:
+                    ok, _, _ = cmp.compare_range(coff, sec, lo, hi, a)
+                    if ok:
+                        matched_stubs.add(a)
+        elif name in (".text$yc", ".text$yd"):
+            for _, lo, hi in section_pieces(sec):
+                for a in sorted(stubs):
+                    if a in matched_stubs or cmp.syms[a]["size"] != hi - lo:
+                        continue
+                    ok, unchecked, _ = cmp.compare_range(coff, sec, lo, hi, a)
+                    nrel = sum(1 for r in sec["rels"] if lo <= r[0] < hi)
+                    if ok and nrel - unchecked >= 1:
+                        matched_stubs.add(a)
+                        break
 
 
 def write_target(path, coff, matched, pe, res):
@@ -201,6 +281,11 @@ def main():
     os.makedirs(TARGETDIR, exist_ok=True)
     units = []
     seen, matched = set(), set()
+    splits = load_splits()
+    in_text = lambda a: any(sec == ".text" and lo <= a < hi
+                            for u in splits.units for sec, lo, hi in u.ranges)
+    stubs = {a for a, y in cmp.syms.items() if y["type"] == "func" and not in_text(a)}
+    matched_stubs = set()
     report = []
     mirror_sources()
     for src in srcs:
@@ -224,6 +309,7 @@ def main():
                 status += f" ({unchecked} relocs unchecked)"
             report.append((os.path.basename(src), name, addr, status, notes))
             found.append((name, addr, cmp.syms[addr]["size"]))
+        match_stubs(cmp, coff, stubs, matched_stubs)
         unit = os.path.splitext(os.path.relpath(src, os.path.join(ROOT, "src")))[0].replace(os.sep, "/")
         target = os.path.join(TARGETDIR, unit.replace("/", "_") + ".obj")
         write_target(target, coff, found, cmp.pe, res)
@@ -235,13 +321,14 @@ def main():
         if notes and (verbose or len(notes) <= 3):
             for n in notes:
                 print(f"            {n}")
-    game_funcs = [(a, s) for a, s in cmp.syms.items() if s["type"] == "func"]
-    game_bytes = sum(s["size"] for _, s in game_funcs)
-    total_match, total_funcs = len(matched), len(seen)
-    matched_bytes = sum(cmp.syms[a]["size"] for a in matched)
+    game_funcs = [(a, y) for a, y in cmp.syms.items() if y["type"] == "func" and a not in stubs]
+    game_bytes = sum(y["size"] for _, y in game_funcs)
+    total_match, total_funcs = len(matched - stubs), len(seen - stubs)
+    matched_bytes = sum(cmp.syms[a]["size"] for a in matched - stubs)
     print(f"\n{total_match}/{total_funcs} compiled functions match; "
           f"{total_match}/{len(game_funcs)} game functions "
-          f"({100.0 * matched_bytes / game_bytes:.2f}% of {game_bytes} code bytes) matched")
+          f"({100.0 * matched_bytes / game_bytes:.2f}% of {game_bytes} code bytes) matched; "
+          f"EH stubs {len(matched_stubs)}/{len(stubs)}")
     cfg = {
         "min_version": "2.0.0",
         "build_target": False,
@@ -253,7 +340,10 @@ def main():
     json.dump(sorted(matched), open(os.path.join(BUILD, "matched.json"), "w"))
     open(os.path.join(BUILD, "progress.json"), "w").write(json.dumps(dict(
         functions_matched=total_match, functions_total=len(game_funcs),
-        bytes_matched=matched_bytes, bytes_total=game_bytes)))
+        bytes_matched=matched_bytes, bytes_total=game_bytes,
+        eh_stubs_matched=len(matched_stubs), eh_stubs_total=len(stubs),
+        eh_stubs_bytes_matched=sum(cmp.syms[a]["size"] for a in matched_stubs),
+        eh_stubs_bytes_total=sum(cmp.syms[a]["size"] for a in stubs))))
 
 
 if __name__ == "__main__":
