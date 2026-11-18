@@ -103,6 +103,11 @@
       "base_path": "build/obj/src/fn_option.obj"
     },
     {
+      "name": "fn_title",
+      "target_path": "build/target/fn_title.obj",
+      "base_path": "build/obj/src/fn_title.obj"
+    },
+    {
       "name": "game",
       "target_path": "build/target/game.obj",
       "base_path": "build/obj/src/game.obj"
@@ -166,6 +171,11 @@
       "name": "hls_txt",
       "target_path": "build/target/hls_txt.obj",
       "base_path": "build/obj/src/hls_txt.obj"
+    },
+    {
+      "name": "hls_txt_print",
+      "target_path": "build/target/hls_txt_print.obj",
+      "base_path": "build/obj/src/hls_txt_print.obj"
     },
     {
       "name": "line_sprites",

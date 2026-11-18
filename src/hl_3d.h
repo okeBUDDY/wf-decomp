@@ -129,6 +129,7 @@ class HL3D : public System {
  private:
   friend class ActorSystem;
   friend class HLMesh;
+  friend void SetTexture(HL3D* d3d, HLSurface* texture, int stage);
   friend class HLSTxtSys;
 
   // Creates the device `guid` (and its z-buffer) on the back buffer.
