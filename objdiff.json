@@ -33,14 +33,44 @@
       "base_path": "build/obj/src/pack_file.obj"
     },
     {
+      "name": "path_util",
+      "target_path": "build/target/path_util.obj",
+      "base_path": "build/obj/src/path_util.obj"
+    },
+    {
+      "name": "score_table",
+      "target_path": "build/target/score_table.obj",
+      "base_path": "build/obj/src/score_table.obj"
+    },
+    {
+      "name": "snd_buf",
+      "target_path": "build/target/snd_buf.obj",
+      "base_path": "build/obj/src/snd_buf.obj"
+    },
+    {
+      "name": "snd_channel",
+      "target_path": "build/target/snd_channel.obj",
+      "base_path": "build/obj/src/snd_channel.obj"
+    },
+    {
       "name": "snd_file_ogg",
       "target_path": "build/target/snd_file_ogg.obj",
       "base_path": "build/obj/src/snd_file_ogg.obj"
     },
     {
+      "name": "snd_file_seq",
+      "target_path": "build/target/snd_file_seq.obj",
+      "base_path": "build/obj/src/snd_file_seq.obj"
+    },
+    {
       "name": "snd_file_wav",
       "target_path": "build/target/snd_file_wav.obj",
       "base_path": "build/obj/src/snd_file_wav.obj"
+    },
+    {
+      "name": "snd_sys",
+      "target_path": "build/target/snd_sys.obj",
+      "base_path": "build/obj/src/snd_sys.obj"
     },
     {
       "name": "sprite",
@@ -56,6 +86,11 @@
       "name": "task_list_delete",
       "target_path": "build/target/task_list_delete.obj",
       "base_path": "build/obj/src/task_list_delete.obj"
+    },
+    {
+      "name": "thread",
+      "target_path": "build/target/thread.obj",
+      "base_path": "build/obj/src/thread.obj"
     }
   ]
 }

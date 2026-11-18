@@ -386,13 +386,13 @@ unit obj69_41eef0   # guess cut=0
     .data     0x45dc48 0x45dea0
 
 unit obj70_420f60   # guess cut=2
-    .text     0x420f60 0x421200
+    .text     0x420f60 0x421330
     .text$x   0x4504b0 0x4504d0
     .rdata    0x453608 0x453664
     .xdata$x  0x45b950 0x45b974
 
-unit obj71_421200   # eh cut=5
-    .text     0x421200 0x4217b0
+unit obj71_421330   # eh cut=5 (moved past Save 0x4211e0)
+    .text     0x421330 0x4217b0
     .text$x   0x4504d0 0x4504f0
     .rdata    0x453664 0x45367c
     .xdata$x  0x45b974 0x45b998

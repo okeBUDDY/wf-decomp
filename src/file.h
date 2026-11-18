@@ -17,15 +17,31 @@ class File {
     }
     file_ = NULL;
   }
-  virtual int Open(const char* path, int mode);     // 0x401d90
-  virtual void Close();                             // 0x401ac0
-  virtual int IsOpen();                             // 0x401cc0
-  virtual int Read(void* buffer, int size);         // 0x401cd0
+  // 0x401d90
+  virtual int Open(const char* path, int mode) {
+    file_ = fopen(path, modes_[mode]);
+    return file_ != NULL;
+  }
+  virtual void Close();  // 0x401ac0
+  virtual int IsOpen();  // 0x401cc0
+  // 0x401cd0
+  virtual int Read(void* buffer, int size) {
+    if (file_ != NULL) {
+      return fread(buffer, 1, size, file_);
+    }
+    return 0;
+  }
   virtual int Write(const void* buffer, int size);  // 0x401d00
   virtual void Flush();                             // 0x401d30
-  virtual int Seek(long offset, int origin);        // 0x401d40
-  virtual long Tell();                              // 0x401d70
-  virtual long Size();                              // 0x401dc0
+  // 0x401d40
+  virtual int Seek(long offset, int origin) {
+    if (file_ != NULL) {
+      return fseek(file_, offset, origin);
+    }
+    return 0;
+  }
+  virtual long Tell();  // 0x401d70
+  virtual long Size();  // 0x401dc0
 
   FILE* handle() const { return file_; }
   // Reads exactly `size` bytes; returns 0 on a short read. 0x40ea30
@@ -35,9 +51,19 @@ class File {
     }
     return 0;
   }
+  // Writes exactly `size` bytes; returns 0 on a short write. 0x412fb0
+  int WriteExact(const void* buffer, int size) {
+    if (file_ != NULL) {
+      return Write(buffer, size) == size;
+    }
+    return 0;
+  }
 
  protected:
   FILE* file_;  // 0x04
+
+ private:
+  static const char* modes_[];  // 0x45d16c, fopen modes indexed by Mode
 };
 
 class PackFile : public File {

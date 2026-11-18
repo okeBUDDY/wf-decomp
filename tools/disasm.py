@@ -71,6 +71,9 @@ class Disasm:
         e = self.funcs.get(a)
         if e is None:
             raise SystemExit(f"no function at {a:#x}")
+        s = self.syms.get(a)
+        if s and s["size"] > e - a:
+            e = a + s["size"]  # symbols.txt merges analysis mis-splits
         head = self.name(a) or f"{a:08x}"
         print(f"; ---- {head}  [{a:08x}, {e:08x})  size {e - a:#x}")
         for ins in self.md.disasm(self.pe.read(a, e - a), a):
