@@ -38,6 +38,8 @@ class Game {
   unsigned int flags() const { return flags_; }
 
  private:
+  friend class Replay;
+
   unsigned int flags_;  // 0x04
   int timer_;           // 0x08, frames left (elapsed with kCountUp)
   int bonus_;           // 0x0c, frames still to add to the clock

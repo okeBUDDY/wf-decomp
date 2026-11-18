@@ -1,10 +1,14 @@
 // Replay: recording and playing back the player's input.
 #include "replay.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "actor_control.h"
 #include "application.h"
+#include "cglobal.h"
+#include "enm_param.h"
+#include "game.h"
 #include "hl_input.h"
 
 // 0x415540
@@ -103,6 +107,110 @@ int Replay::Open(int mode, const char* path) {
   mode_ = mode;
   flags_ = 0;
   return 1;
+}
+
+// 0x415790
+// TODO: nonmatching (the original keeps lives and extend_count in stack
+// locals; register choice)
+int Replay::LoadHeader() {
+  if (mode_ != kPlay) {
+    return 1;
+  }
+  if (!file_.Open(path_, File::kRead)) {
+    return 0;
+  }
+  int version;
+  if (!file_.ReadExact(&version, sizeof(version))) {
+    file_.Close();
+    return 0;
+  }
+  GameRules rules;
+  g_game.GetDefaultRules(&rules);
+  Header header;
+  int lives;
+  int extend_count;
+  switch (version) {
+    case kOldVersion:
+      if (!file_.ReadExact(&header, 0x10)) {
+        file_.Close();
+        return 0;
+      }
+      seed_ = header.seed;
+      lives = -1;
+      extend_count = -1;
+      break;
+    case kVersion:
+      if (!file_.ReadExact(&header, sizeof(header))) {
+        file_.Close();
+        return 0;
+      }
+      seed_ = header.seed;
+      lives = header.lives;
+      extend_count = header.extend_count;
+      rules = header.rules;
+      break;
+    default:
+      file_.Close();
+      return 0;
+  }
+  g_game.Start(&rules);
+  g_game.timer_ = header.timer;
+  g_game.bonus_ = 0;
+  g_game.SetLives(lives + 1, extend_count);
+  g_global.score = header.score;
+  g_global.stage = header.stage - 1;
+  if (!g_enm_param.Load(&file_)) {
+    file_.Close();
+    return 0;
+  }
+  return 1;
+}
+
+// 0x415910
+// TODO: nonmatching (store order of the header fields; the original merges
+// the failure paths differently)
+void Replay::Start(Actor* player) {
+  switch (mode_) {
+    case kRecord: {
+      Close();
+      seed_ = rand();
+      if (!file_.Open(path_, File::kWrite)) {
+        return;
+      }
+      int version = kVersion;
+      if (!file_.WriteExact(&version, sizeof(version))) {
+        file_.Close();
+        return;
+      }
+      Header header;
+      header.seed = seed_;
+      header.stage = g_global.stage;
+      header.score = g_global.score;
+      header.timer = g_game.timer_ + g_game.bonus_;
+      header.lives = g_game.lives_;
+      header.extend_count = g_game.extend_count_;
+      header.rules = g_game.rules_;
+      if (!file_.WriteExact(&header, sizeof(header))) {
+        file_.Close();
+        return;
+      }
+      if (!g_enm_param.Save(&file_)) {
+        file_.Close();
+        return;
+      }
+      if (!Control01::Save(player, &file_)) {
+        file_.Close();
+        return;
+      }
+    }
+    // Fall through.
+    case kPlay:
+      srand(seed_);
+      flags_ |= kOpen;
+      frame_ = 0;
+      run_.frames = 0;
+      break;
+  }
 }
 
 // 0x415a90

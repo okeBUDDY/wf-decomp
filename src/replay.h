@@ -5,6 +5,7 @@
 #define WF_REPLAY_H_
 
 #include "file.h"
+#include "game_rules.h"
 #include "object.h"
 
 class Actor;
@@ -26,10 +27,30 @@ class Replay : public Object {
   // The buttons held and pressed this frame: the pad's, which are recorded,
   // or the file's.
   void GetInput(unsigned short* keys, unsigned short* pressed);  // 0x4155c0
+  // While playing back, opens the file and restores the game from its
+  // header; 0 when it cannot be read.
+  int LoadHeader();  // 0x415790
+  // Starts recording (writing the header and `player`'s state) or playing
+  // back.
+  void Start(Actor* player);  // 0x415910
   // Closes the file and switches to `mode` on `path` (opened later).
   int Open(int mode, const char* path);  // 0x415720
 
  private:
+  enum { kVersion = 103, kOldVersion = 101 };
+
+  // The header after the version.
+  struct Header {
+    int seed;
+    int stage;
+    int score;
+    int timer;
+    // Version 103 only.
+    unsigned short lives;
+    unsigned short extend_count;
+    GameRules rules;
+  };
+
   // One run of the file.
   struct Run {
     unsigned short keys;
