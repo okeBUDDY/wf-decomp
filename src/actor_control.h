@@ -20,6 +20,7 @@
 class Actor;
 struct ActorDesc;
 struct FloatRect;
+class HLSObject;
 class HLSPatFile;
 struct EnmSlot;
 class EnmList;
@@ -61,6 +62,23 @@ struct PartPiece {
   char debris;       // 0x09, an index into g_debris_controls
   short pat;         // 0x0a
   HLSPatFile* file;  // 0x0c
+};
+
+// How control 8 (an effect sprite) moves and fades (0x34 bytes).
+struct EffectDesc {
+  HLSObject* sprite;     // 0x00
+  unsigned short flags;  // 0x04, added to Actor::flags
+  unsigned short life;   // 0x06, frames, 0: until it fades or shrinks away
+  float scale_min;       // 0x08
+  float scale_max;       // 0x0c
+  float grow;            // 0x10, added to the scale every frame
+  float speed_min;       // 0x14
+  float speed_max;       // 0x18
+  float acceleration;    // 0x1c
+  short angle_min;       // 0x20
+  short angle_max;       // 0x22
+  short color[4];        // 0x24, red, green, blue, alpha
+  short fade[4];         // 0x2c, added to the color every frame
 };
 
 // The controls of the cores by weapon (0x45d91c).
@@ -173,9 +191,13 @@ class Control08 : public ActorControl {
  public:
   virtual int Initialize();  // 0x412c80
   virtual void Finalize() {}
+  // `param` is an EffectDesc, NULL for default_.
   virtual int OnCreate(Actor* actor, void* param);  // 0x412cb0
   virtual void OnDestroy(Actor* actor) {}
   virtual int OnMove(Actor* actor);  // 0x412e70
+
+ private:
+  static EffectDesc default_;  // 0x45d458
 };
 
 class Control16 : public ActorControl {

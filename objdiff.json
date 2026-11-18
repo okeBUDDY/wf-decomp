@@ -33,6 +33,11 @@
       "base_path": "build/obj/src/core_controls.obj"
     },
     {
+      "name": "effect_controls",
+      "target_path": "build/target/effect_controls.obj",
+      "base_path": "build/obj/src/effect_controls.obj"
+    },
+    {
       "name": "enm_param",
       "target_path": "build/target/enm_param.obj",
       "base_path": "build/obj/src/enm_param.obj"

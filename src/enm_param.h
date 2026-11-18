@@ -279,8 +279,8 @@ class CEnmParam : public System {
   int glow_time;               // 0x150, of the glow (control 22) of a part
   int trans_count_;            // 0x154, parts that played trans1
   int unknown_158_;            // 0x158
-  int unknown_15c_;            // 0x15c
-  float unknown_160_;          // 0x160
+  int flare_time_;             // 0x15c, of control 23
+  float flare_size_;           // 0x160, of control 23
   int unknown_164_;            // 0x164
   int score_base_;             // 0x168
   int score_rapid_;            // 0x16c
