@@ -1,6 +1,7 @@
 #include "snd_file_seq.h"
 
 #include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "path_util.h"
@@ -91,11 +92,110 @@ CSndFile* CSndFileSEQ::OpenPiece(const char* name, WAVEFORMATEX* format) {
   return NULL;
 }
 
+// 0x40ec40
+const char* CSndFileSEQ::Next() {
+  if (piece_loops_ != 0) {
+    const Command* command = &commands_[pc_];
+    if (piece_loops_ <= 0 || --piece_loops_ != 0) {
+      return names_ + command->target;
+    }
+    ++pc_;
+  }
+  int budget = 1024;
+  while (pc_ < command_count_ && budget > 0) {
+    const Command* command = &commands_[pc_];
+    --budget;
+    switch (command->op) {
+      case kOpPlay:
+        return Play(command);
+      case kOpPlayIfEqual:
+        if (*Variable(command->var) == command->operand) {
+          return Play(command);
+        }
+        break;
+      case kOpPlayIfNotEqual:
+        if (*Variable(command->var) != command->operand) {
+          return Play(command);
+        }
+        break;
+      case kOpPlayIfAtLeast:
+        if (*Variable(command->var) >= command->operand) {
+          return Play(command);
+        }
+        break;
+      case kOpPlayIfAtMost:
+        if (*Variable(command->var) <= command->operand) {
+          return Play(command);
+        }
+        break;
+      case kOpEnd:
+        return NULL;
+      case kOpRepeat:
+        if (repeat_count_ > 0) {
+          if (--repeat_count_ <= 1) {
+            repeat_count_ = 0;
+            break;
+          }
+        } else if (repeat_count_ == 0) {
+          repeat_count_ = command->count > 0 ? command->count : -1;
+        }
+        pc_ = command->target;
+        continue;
+      case kOpSet:
+        *Variable(command->var) = command->operand;
+        break;
+      case kOpAdd:
+        *Variable(command->var) += command->operand;
+        break;
+      case kOpRandom: {
+        int range = command->range.high - command->range.low;
+        if (range <= 0) {
+          *Variable(command->var) = command->range.low;
+        } else {
+          char* variable = Variable(command->var);
+          *variable =
+              static_cast<char>(rand() % (range + 1) + command->range.low);
+        }
+        break;
+      }
+      case kOpJump:
+        pc_ = command->target;
+        continue;
+      case kOpJumpIfEqual:
+        if (*Variable(command->var) == command->operand) {
+          pc_ = command->target;
+          continue;
+        }
+        break;
+      case kOpJumpIfNotEqual:
+        if (*Variable(command->var) != command->operand) {
+          pc_ = command->target;
+          continue;
+        }
+        break;
+      case kOpJumpIfAtLeast:
+        if (*Variable(command->var) >= command->operand) {
+          pc_ = command->target;
+          continue;
+        }
+        break;
+      case kOpJumpIfAtMost:
+        if (*Variable(command->var) <= command->operand) {
+          pc_ = command->target;
+          continue;
+        }
+        break;
+    }
+    ++pc_;
+  }
+  return NULL;
+}
+
 // 0x40f010
 void CSndFileSEQ::Seek(int position) {
   pc_ = 0;
-  loop_count_ = 0;
-  loop_start_ = 0;
+  piece_loops_ = 0;
+  repeat_count_ = 0;
   ClosePiece();
   for (piece_ = OpenPiece(Next(), NULL); piece_ != NULL;
        piece_ = OpenPiece(Next(), NULL)) {
@@ -157,10 +257,10 @@ int CSndFileSEQ::Open(const char* path, WAVEFORMATEX* format, int from_disk) {
       delete file_;
       file_ = NULL;
       from_disk_ = from_disk != 0;
-      reserved_1c_ = 0;
+      memset(vars_, 0, sizeof(vars_));
       pc_ = 0;
-      loop_count_ = 0;
-      loop_start_ = 0;
+      piece_loops_ = 0;
+      repeat_count_ = 0;
       rate_ = 0;
       piece_ = OpenPiece(Next(), format);
       if (piece_ != NULL) {

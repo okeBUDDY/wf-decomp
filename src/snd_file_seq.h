@@ -28,10 +28,39 @@ class CSndFileSEQ : public CSndFile {
   const char* path() const { return path_; }
 
  private:
+  // The commands of a .seq file.
+  enum Op {
+    kOpPlay = 0x00,         // play `target` `count` times (0: for ever)
+    kOpPlayIfEqual = 0x01,  // the same if variable `var` == `operand`
+    kOpPlayIfNotEqual = 0x02,
+    kOpPlayIfAtLeast = 0x03,
+    kOpPlayIfAtMost = 0x04,
+    kOpEnd = 0x10,     // stop
+    kOpRepeat = 0x11,  // jump to `target` `count` - 1 more times (0: for ever)
+    kOpSet = 0x20,     // `var` = `operand`
+    kOpAdd = 0x21,     // `var` += `operand`
+    kOpRandom = 0x22,  // `var` = random in [`low`, `high`]
+    kOpJump = 0x30,    // go to command `target`
+    kOpJumpIfEqual = 0x31,  // the same if variable `var` == `operand`
+    kOpJumpIfNotEqual = 0x32,
+    kOpJumpIfAtLeast = 0x33,
+    kOpJumpIfAtMost = 0x34,
+  };
+  // Variables 0x00-0x0f are the file's own (vars_), 0x10-0x1f g_seq_flags.
+  enum { kGlobalVars = 0x10 };
+
   struct Command {
-    unsigned char op;
-    unsigned char arg;
-    unsigned short value[2];
+    unsigned char op;     // Op
+    unsigned char count;  // of kOpPlay and kOpRepeat
+    unsigned char var;
+    char operand;
+    union {
+      unsigned short target;  // name offset or command index
+      struct {
+        char low;
+        char high;
+      } range;  // of kOpRandom
+    };
   };
 
   void ClosePiece() {
@@ -45,21 +74,33 @@ class CSndFileSEQ : public CSndFile {
   CSndFile* OpenPiece(const char* name, WAVEFORMATEX* format);  // 0x40eb10
   // Runs the commands up to the next piece; returns its name.
   const char* Next();  // 0x40ec40
+  // The variable `id`.
+  char* Variable(int id) {
+    if ((id & 0xf0) == kGlobalVars) {
+      return reinterpret_cast<char*>(&g_seq_flags[id & 0xf]);
+    }
+    return &vars_[id & 0xf];
+  }
+  // Starts playing the piece of `command`; returns its name.
+  __forceinline const char* Play(const Command* command) {
+    piece_loops_ = command->count > 0 ? command->count : -1;
+    return names_ + command->target;
+  }
 
   unsigned short command_count_;  // 0x0c
   unsigned short pc_;             // 0x0e
-  unsigned short loop_start_;     // 0x10
-  unsigned short loop_count_;     // 0x12
-  short from_disk_;               // 0x14
-  unsigned short dir_length_;     // 0x16, length of the directory in path_
-  unsigned short rate_;           // 0x18, sample rate of the first piece
-  unsigned char bits_;            // 0x1a
-  unsigned char channels_;        // 0x1b
-  int reserved_1c_;               // 0x1c
-  Command* commands_;             // 0x20
-  char* names_;                   // 0x24
-  char* path_;                    // 0x28
-  CSndFile* piece_;               // 0x2c
+  short repeat_count_;         // 0x10, of the kOpRepeat running, -1: for ever
+  short piece_loops_;          // 0x12, plays left of the piece, -1: for ever
+  short from_disk_;            // 0x14
+  unsigned short dir_length_;  // 0x16, length of the directory in path_
+  unsigned short rate_;        // 0x18, sample rate of the first piece
+  unsigned char bits_;         // 0x1a
+  unsigned char channels_;     // 0x1b
+  char vars_[4];               // 0x1c
+  Command* commands_;          // 0x20
+  char* names_;                // 0x24
+  char* path_;                 // 0x28
+  CSndFile* piece_;            // 0x2c
 };
 
 #endif  // WF_SND_FILE_SEQ_H_
