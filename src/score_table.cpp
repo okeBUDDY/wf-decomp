@@ -5,6 +5,7 @@
 
 #include "application.h"
 #include "file.h"
+#include "game.h"
 #include "profile.h"
 
 extern Application g_application;  // 0x467328
@@ -226,7 +227,7 @@ void ScoreTable::Import() {
 
 // 0x421990
 void ScoreTable::Init(const char* path) {
-  g_game_settings.GetDefaultRules(&rules_);
+  g_game.GetDefaultRules(&rules_);
   strcpy(path_, path);
   Import();
   Reset();

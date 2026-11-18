@@ -18,6 +18,11 @@
       "base_path": "build/obj/src/file.obj"
     },
     {
+      "name": "game",
+      "target_path": "build/target/game.obj",
+      "base_path": "build/obj/src/game.obj"
+    },
+    {
       "name": "object",
       "target_path": "build/target/object.obj",
       "base_path": "build/obj/src/object.obj"
