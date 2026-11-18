@@ -3,6 +3,8 @@
 
 #include <string.h>
 
+#include "application.h"
+#include "background.h"
 #include "hls_txt.h"
 
 // 0x41c6e0
@@ -26,3 +28,19 @@ void FnOption::SetPreset(int preset) {
 
 // 0x41ca50
 void HLSTxt::SetText(const char* text) { strcpy(text_, text); }
+
+// 0x41ded0
+void FnOption::Finalize() {
+  Apply();
+  SaveSettings();
+  for (int i = 0; i < kItems; ++i) {
+    if (items_[i] != NULL) {
+      items_[i]->Release();
+      items_[i] = NULL;
+    }
+  }
+  if (background_ != NULL) {
+    g_application.tasks.Delete(background_);
+    background_ = NULL;
+  }
+}

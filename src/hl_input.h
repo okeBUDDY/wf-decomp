@@ -122,6 +122,8 @@ class HLInput : public System {
   int EnumDevices(Application* app, HLDevSet* set);  // 0x405ea0
 
   HLInpDev* pad(int index) const { return pads_[index]; }
+  // The buttons that stop and restart the time (0: none).
+  void set_time_stop_mask(unsigned short mask) { time_stop_mask_ = mask; }
 
  private:
   friend class HLJoystick;

@@ -20,8 +20,11 @@ class FnOption : public UserFunc {
   virtual void Move();       // 0x41d4d0
   virtual void Draw();       // 0x41d880
 
-  // Reads the options from the profile.
+  // Reads the options from the profile / writes them back.
   void LoadSettings();  // 0x41caf0
+  void SaveSettings();  // 0x41cfc0
+  // Applies the options to the game (volumes, rules, ...).
+  void Apply();  // 0x41c730
   // Picks the rules of `preset`; only kCustomPreset lets their menu items
   // be changed.
   void SetPreset(int preset);  // 0x41c8a0

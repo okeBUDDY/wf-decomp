@@ -22,6 +22,15 @@ HLSTxtSys::HLSTxtSys() {
   palette_ = default_palette_;
 }
 
+// 0x40a9d0
+void HLSTxt::Release() {
+  if (flags_ & kOwnsText) {
+    free(text_);
+  }
+  text_ = NULL;
+  flags_ = 0;
+}
+
 // 0x40a9f0
 int HLSTxtSys::Map(const char* character, int index) {
   if (mapping_count_ == kMaxMappings ||

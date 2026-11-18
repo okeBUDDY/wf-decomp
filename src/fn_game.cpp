@@ -4,6 +4,7 @@
 #include "actor_system.h"
 #include "application.h"
 #include "cglobal.h"
+#include "hl_input.h"
 #include "replay.h"
 #include "snd_file_seq.h"
 #include "snd_sys.h"
@@ -78,4 +79,16 @@ void cGlobal::SetMusicVolume(float volume) {
 void cGlobal::SetEffectVolume(float volume) {
   effect_volume = volume;
   g_application.sound->SetGroupVolume(volume, 1);
+}
+
+// 0x41c0e0
+void FnGame::Finalize() {
+  g_replay.Close();
+  g_application.input->set_time_stop_mask(0);
+  g_actor_system.DestroyAll();
+  g_global.ResetSound();
+  g_application.tasks.Delete(unknown_14_);
+  unknown_14_ = NULL;
+  g_application.overlays.Delete(unknown_18_);
+  unknown_18_ = NULL;
 }

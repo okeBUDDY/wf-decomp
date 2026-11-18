@@ -35,14 +35,8 @@ class HLSTxt : public HLSObject {
 
   // Copies `text` into the text buffer.
   void SetText(const char* text);  // 0x41ca50
-  // 0x40a9d0
-  void Release() {
-    if (flags_ & kOwnsText) {
-      free(text_);
-    }
-    text_ = NULL;
-    flags_ = 0;
-  }
+  // Frees the text object.
+  void Release();  // 0x40a9d0
 
  private:
   friend class HLSTxtSys;
