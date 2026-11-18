@@ -27,6 +27,15 @@ class File {
   virtual long Tell();                              // 0x401d70
   virtual long Size();                              // 0x401dc0
 
+  FILE* handle() const { return file_; }
+  // Reads exactly `size` bytes; returns 0 on a short read. 0x40ea30
+  int ReadExact(void* buffer, int size) {
+    if (file_ != NULL) {
+      return Read(buffer, size) == size;
+    }
+    return 0;
+  }
+
  protected:
   FILE* file_;  // 0x04
 };

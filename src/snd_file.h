@@ -25,6 +25,17 @@ class CSndFile {
   // Moves to byte `position` of the PCM data.
   virtual void Seek(int position) = 0;
 
+  int size() const { return size_; }
+  // Seeks to `position` modulo the PCM size.
+  void SeekLooped(int position) {
+    if (size_ != 0) {
+      while (position >= size_) {
+        position -= size_;
+      }
+      Seek(position);
+    }
+  }
+
  protected:
   File* file_;  // 0x04
   int size_;    // 0x08, PCM bytes
