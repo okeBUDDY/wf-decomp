@@ -111,6 +111,7 @@ class SoundThread : public Thread {
 
 class SoundSystem : public System {
  public:
+  Channel* channel(int index) { return &channels_[index]; }
   SoundSystem();  // 0x408f90
   // 0x409010, scalar deleting dtor 0x408ff0
   virtual ~SoundSystem() {}

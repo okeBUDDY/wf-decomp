@@ -185,6 +185,9 @@ class CEnmParam : public System {
                      int all);                        // 0x41a730
   void ChooseWeapon(EnmSlot* slot, EnmSlot* parent);  // 0x41a3a0
 
+ public:
+  // The controls read and change much of this directly.
+
   EnmState state_;             // 0x08
   int unknown_84_[4];          // 0x84
   int unknown_94_;             // 0x94
@@ -192,7 +195,16 @@ class CEnmParam : public System {
   EnmList list_9c_;            // 0x9c
   EnmList list_b0_;            // 0xb0
   EnmList lists_c4_[2];        // 0xc4
-  int unknown_ec_[31];         // 0xec
+  int unknown_ec_[22];         // 0xec
+  int unknown_144_;            // 0x144
+  int unknown_148_;            // 0x148
+  int unknown_14c_;            // 0x14c
+  int glow_time;               // 0x150, of the glow (control 22) of a part
+  int unknown_154_;            // 0x154
+  int unknown_158_;            // 0x158
+  int unknown_15c_;            // 0x15c
+  float unknown_160_;          // 0x160
+  int unknown_164_;            // 0x164
   int score_base_;             // 0x168
   int score_rapid_;            // 0x16c
   int score_chain_;            // 0x170

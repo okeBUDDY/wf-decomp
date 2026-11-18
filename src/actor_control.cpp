@@ -5,8 +5,12 @@
 
 #include "actor.h"
 #include "actor_system.h"
+#include "application.h"
+#include "enm_param.h"
 #include "game.h"
 #include "game_data.h"
+#include "snd_sys.h"
+#include "sounds.h"
 
 // Actor::work of control 22: fades in, glows for a while and fades out.
 struct GlowWork {
@@ -182,7 +186,7 @@ int Control17::OnMove(Actor* actor) { return actor->age <= 18; }
 void Control20::OnDestroy(Actor* actor) { g_boss = NULL; }
 
 // 0x4127c0
-void Control35::OnDestroy(Actor* actor) { --count_; }
+void Control35::OnDestroy(Actor* actor) { --g_enm_param.unknown_94_; }
 
 // 0x412820
 int Control35::Initialize() {
@@ -207,4 +211,66 @@ int Control48::OnMove(Actor* actor) {
     return 0;
   }
   return 1;
+}
+
+// 0x414430
+void Control43::OnDestroy(Actor* actor) {
+  switch (reinterpret_cast<PartWork*>(actor->work)->unknown_12_) {
+    case 0:
+      if (--sound_users_[0] == 0) {
+        g_application.sound->channel(19)->Stop();
+      }
+      break;
+    case 1:
+      if (--sound_users_[1] == 0) {
+        g_application.sound->channel(20)->Stop();
+      }
+      break;
+  }
+}
+
+// 0x418c40
+int ScoredControl::Prepare(Actor* actor, void* param) {
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  work->slot = static_cast<EnmSlot*>(param);
+  work->unknown_04_ = 0;
+  actor->hit_points = GetHitPoints(actor);
+  actor->hit_points +=
+      actor->hit_points * g_enm_param.state_.unknown_26_ / 1024;
+  return 1;
+}
+
+// 0x418d70
+void PartControl::ScaleHitPoints(Actor* actor) {
+  if (actor->team != 0xa1) {
+    actor->hit_points = (reinterpret_cast<PartWork*>(actor->work)->level + 3) *
+                        actor->hit_points / 4;
+  }
+}
+
+// 0x418ec0
+int LinkedPartControl::SpawnGlow(Actor* actor) {
+  return g_actor_system.Create(
+             22, actor, 0.0f, 0.0f, 5, 0,
+             reinterpret_cast<void*>(g_enm_param.glow_time)) != NULL;
+}
+
+// 0x418ef0
+// TODO: nonmatching (the original keeps `low` in eax from the start).
+unsigned short Actor::ClampAngle(unsigned short value, short low, short high) {
+  unsigned short result = low;
+  short range = high - low;
+  if (range > 0) {
+    if (range >= 0x400) {
+      return value;
+    }
+    short offset = (value - low) & 0x3ff;
+    if (offset <= range) {
+      return value;
+    }
+    if (offset < (range >> 1) + 0x200) {
+      result = high;
+    }
+  }
+  return result;
 }

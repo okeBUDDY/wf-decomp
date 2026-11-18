@@ -129,6 +129,7 @@ struct Application : public Object, public AppSettings {
 };
 
 // Nonzero while the time moves (see SetTimeStop()).
-extern int g_time_moves;  // 0x45d234
+extern Application g_application;  // 0x467328
+extern int g_time_moves;           // 0x45d234
 
 #endif  // WF_APPLICATION_H_

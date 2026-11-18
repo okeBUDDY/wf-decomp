@@ -7,8 +7,6 @@
 #include "file.h"
 #include "game.h"
 
-extern Application g_application;  // 0x467328
-
 static const char* kRankNames[] = {"1ST", "2ND", "3RD", "4TH",
                                    "5TH", "6TH", "7TH", "8TH"};  // 0x45de80
 char g_text_buffer[256];                                         // 0x468d90

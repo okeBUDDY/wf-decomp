@@ -19,6 +19,17 @@
 
 class Actor;
 struct ActorDesc;
+struct EnmSlot;
+
+// Actor::work of the parts of the boss.
+struct PartWork {
+  EnmSlot* slot;      // 0x30
+  int unknown_04_;    // 0x34
+  void* param;        // 0x38
+  int unknown_0c_;    // 0x3c
+  short level;        // 0x40
+  short unknown_12_;  // 0x42
+};
 
 class ActorControl {
  public:
@@ -44,11 +55,15 @@ class ScoredControl : public ActorControl {
  public:
   virtual int GetScore(Actor* actor) = 0;
   virtual int GetHitPoints(Actor* actor) = 0;
+  // Sets the actor up as a part planned in `param` (an EnmSlot).
+  int Prepare(Actor* actor, void* param);  // 0x418c40
 };
 
 class PartControl : public ScoredControl {
  public:
-  virtual void OnDamage(Actor* actor);  // 0x4198e0
+  virtual void OnDamage(Actor* actor, int how);  // 0x4198e0
+  // Scales the hit points by the level of the part.
+  void ScaleHitPoints(Actor* actor);  // 0x418d70
 };
 
 class LinkedPartControl : public PartControl {
@@ -61,6 +76,8 @@ class LinkedPartControl : public PartControl {
   virtual int GetScore(Actor* actor);
   // 0x40fe40
   virtual int GetHitPoints(Actor* actor);
+  // Spawns the glow (control 22) on `actor`; 0 when it cannot.
+  int SpawnGlow(Actor* actor);  // 0x418ec0
 };
 
 class CorePartControl : public PartControl {
@@ -140,7 +157,6 @@ class Control35 : public ActorControl {
 
  private:
   static ActorDesc desc_;  // 0x469080
-  static int count_;       // 0x467844, actors alive
 };
 
 class Control43 : public ActorControl {
@@ -151,6 +167,10 @@ class Control43 : public ActorControl {
   virtual void OnDestroy(Actor* actor);              // 0x414430
   virtual int OnMove(Actor* actor);                  // 0x414480
   virtual void OnEvent(Actor* actor, int x, int y);  // 0x414550
+
+ private:
+  // Actors holding the sound channels 19 and 20.
+  static int sound_users_[2];  // 0x469200
 };
 
 // Scored controls ---------------------------------------------------------

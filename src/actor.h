@@ -102,6 +102,10 @@ class Actor {
   // Draws the sprite (and marks the hit image); returns the next actor of
   // the draw list.
   Actor* Draw();  // 0x407f90
+  // `value` when it is between the angles `low` and `high`, else the
+  // nearer of them.
+  unsigned short ClampAngle(unsigned short value, short low,
+                            short high);  // 0x418ef0
   // Moves the actor to the draw list of `new_layer`.
   void SetLayer(unsigned short new_layer);  // 0x4108c0
   // Replaces the sprite (the null sprite for NULL).
