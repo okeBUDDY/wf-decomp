@@ -98,6 +98,14 @@ class EnmList {
   // 0x401a90, scalar deleting dtor 0x401aa0
   virtual ~EnmList() {}
 
+  // Starts operation `new_op` with `new_arg`.
+  void Start(int new_op, int new_arg) {
+    op = new_op;
+    arg = new_arg;
+    step = 0;
+    time = 0;
+  }
+
   int arg;   // 0x04, of the operation
   int time;  // 0x08, frames since the operation started
   int op;    // 0x0c, the operation, 0: none
@@ -210,6 +218,17 @@ class CEnmParam : public System {
   // `*lines` high.
   void FormatResult(char* text, int* columns, int* lines);  // 0x41a090
   void ClearUnknown32c();                                   // 0x417c00
+
+  // The battle tactics run by list_218_; each returns 1 when it is over.
+  // Nonzero when the stronger side (by the percentage of its parts alive)
+  // is the one unknown_14c_ does not name, and the weaker one is down to
+  // `percent`.
+  int IsSideBeaten(int unused, int percent);  // 0x416170
+  int Tactic4161d0(int unused);               // 0x4161d0
+  int Tactic4162f0(int unused);               // 0x4162f0
+  // The opening the next tactic shares: steps 0 to 3, then `next_step`.
+  void RunOpening(int unused, int next_step);  // 0x4163f0
+  int Tactic416560(int unused);                // 0x416560
   // The slot of the part at `code`, NULL without one.
   EnmSlot* FindSlot(unsigned int code) {
     if (code != 0) {

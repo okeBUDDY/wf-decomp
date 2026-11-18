@@ -53,6 +53,16 @@
       "base_path": "build/obj/src/enm_plan.obj"
     },
     {
+      "name": "enm_tactic_helpers",
+      "target_path": "build/target/enm_tactic_helpers.obj",
+      "base_path": "build/obj/src/enm_tactic_helpers.obj"
+    },
+    {
+      "name": "enm_tactics",
+      "target_path": "build/target/enm_tactics.obj",
+      "base_path": "build/obj/src/enm_tactics.obj"
+    },
+    {
       "name": "explosion_controls",
       "target_path": "build/target/explosion_controls.obj",
       "base_path": "build/obj/src/explosion_controls.obj"
