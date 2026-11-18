@@ -44,7 +44,7 @@ void GameHud::SetMode(int mode) {
       break;
   }
   mode_ = mode;
-  unknown_20_ = 0;
+  step_ = 0;
   mode_time_ = 0;
   mode_flags_ = 0;
 }
@@ -107,7 +107,7 @@ void GameHud::Finalize() {
       break;
   }
   mode_ = kModeNone;
-  unknown_20_ = 0;
+  step_ = 0;
   mode_time_ = 0;
   mode_flags_ = 0;
   if (texts_[0] != NULL) {

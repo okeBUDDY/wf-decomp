@@ -22,6 +22,7 @@ class GameHud : public Task {
     kModeResult = 3,     // the boss result (CEnmParam::FormatResult)
   };
   enum Flags {
+    kFlagNameCursor = 0x1,    // the name entry cursor is shown
     kFlagSkip = 0x100,        // a button was pressed during the screen
     kFlagScore = 0x10000,     // "1P:" and the score
     kFlagTimer = 0x20000,     // the clock
@@ -75,10 +76,12 @@ class GameHud : public Task {
   int MoveGameOver();       // 0x420bd0
   void InitNameEntry();     // 0x41f5a0
   void ReleaseNameEntry();  // 0x41f5b0
-  int MoveNameEntry();      // 0x41fc90
-  void InitResult();        // 0x41fef0
-  void ReleaseResult();     // 0x41ff00
-  int MoveResult();         // 0x41ff20
+  // Moves the name entry cursor by the pad; 1 once the name is ended.
+  int EnterName();       // 0x41f600
+  int MoveNameEntry();   // 0x41fc90
+  void InitResult();     // 0x41fef0
+  void ReleaseResult();  // 0x41ff00
+  int MoveResult();      // 0x41ff20
 
   union {
     unsigned int flags_;        // 0x14
@@ -86,18 +89,34 @@ class GameHud : public Task {
   };
   int mode_;               // 0x18
   int next_mode_;          // 0x1c, started by the next IsProtected()
-  int unknown_20_;         // 0x20
+  int step_;               // 0x20, of the current screen
   int mode_time_;          // 0x24, frames in mode_
   int replay_name_x_;      // 0x28, right-aligned at column 80
   HLSTxt* texts_[8];       // 0x2c
   HLSTxt* mode_texts_[4];  // 0x4c, the texts of the current screen
-  char unknown_5c_[0x74 - 0x5c];
-  // The game over screen's chart of the boss's parameters.
-  int param_count_;         // 0x74
-  short params_[13];        // 0x78, CEnmParam::GetParams(), at least 0x40
-  short shown_params_[13];  // 0x92, the values drawn so far
-  D3DVECTOR chart_center_;  // 0xac
-  D3DVECTOR chart_[7];      // 0xb8, the corners, closed
+  union {
+    // The name entry screen.
+    struct {
+      int cursor_;        // 0x5c, the letter being entered (0..3)
+      int char_index_;    // 0x60, the character selected in kNameChars
+      float back_alpha_;  // 0x64, of the backdrop
+      float text_alpha_;  // 0x68
+      float open_;        // 0x6c, how far the window is open (0..1)
+      char name_[4];      // 0x70
+      short last_dirs_;   // 0x74, the directions held last frame
+      short dirs_time_;   // 0x76, frames they have been held
+    };
+    // The game over screen.
+    struct {
+      char unknown_5c_[0x74 - 0x5c];
+      // The chart of the boss's parameters.
+      int param_count_;         // 0x74
+      short params_[13];        // 0x78, CEnmParam::GetParams(), at least 0x40
+      short shown_params_[13];  // 0x92, the values drawn so far
+      D3DVECTOR chart_center_;  // 0xac
+      D3DVECTOR chart_[7];      // 0xb8, the corners, closed
+    };
+  };
 };
 
 // The corners of the unit hexagon, closed (the last is the first).

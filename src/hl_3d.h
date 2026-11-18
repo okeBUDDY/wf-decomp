@@ -7,6 +7,7 @@
 
 #include <d3d.h>
 
+#include "hl_surface.h"
 #include "system.h"
 
 struct Application;
@@ -90,6 +91,11 @@ class HL3D : public System {
   void DrawPoints(D3DPRIMITIVETYPE type, const Transform* transform,
                   const D3DVECTOR* points, D3DCOLOR color,
                   int count);  // 0x415040
+  // Transforms `count` points by `transform` and draws them with the
+  // texels `texels` of the current texture in `color`.
+  void DrawTexels(D3DPRIMITIVETYPE type, const Transform* transform,
+                  const D3DVECTOR* points, const POINTS* texels, D3DCOLOR color,
+                  int count);  // 0x41c8e0
   // Draws without a texture from now on.
   void ClearTexture() {
     if (texture_ != NULL) {
@@ -131,6 +137,7 @@ class HL3D : public System {
   friend class HLMesh;
   friend void SetTexture(HL3D* d3d, HLSurface* texture, int stage);
   friend class HLSTxtSys;
+  friend class GameHud;
 
   // Creates the device `guid` (and its z-buffer) on the back buffer.
   // Returns 0, with the reason in g_text_buffer, when it cannot.
@@ -157,5 +164,17 @@ class HL3D : public System {
   D3DTLVERTEX* vertices_;         // 0x70, kMaxVertices
   HLMesh** meshes_;               // 0x74
 };
+
+// HL3D::SetTexture() (0x407880) as some callers inline it.
+inline void SetTexture(HL3D* d3d, HLSurface* texture, int stage) {
+  if (d3d->texture_ != texture) {
+    if (texture == NULL) {
+      d3d->device_->SetTexture(stage, NULL);
+    } else {
+      d3d->device_->SetTexture(stage, texture->surface());
+    }
+    d3d->texture_ = texture;
+  }
+}
 
 #endif  // WF_HL_3D_H_
