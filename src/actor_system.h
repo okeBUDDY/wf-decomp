@@ -72,6 +72,14 @@ class ActorSystem : public System {
 
   // The number of live actors.
   short count() const { return count_; }
+  // The slots (before Initialize()); `reserved` of them only negative ids
+  // take.
+  void set_limits(unsigned short controls, unsigned short actors,
+                  unsigned short reserved) {
+    max_controls_ = controls;
+    max_actors_ = actors;
+    reserved_ = reserved;
+  }
 
   static ActorSystem* instance_;  // 0x468eb4
   static int flags_;              // 0x468eb8, 1: actors hit each other

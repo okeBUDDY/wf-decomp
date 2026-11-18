@@ -34,6 +34,8 @@ class HLWindow : public System {
   virtual void Resume() {}
 
   void set_title(const char* title) { title_ = title; }
+  // The resource id of the window icon (0: the default icon).
+  void set_icon(int icon) { icon_ = icon; }
   HFONT fixed_font() const { return fixed_font_; }
   // Routes mouse events to `func` (NULL: nobody), ending a drag first.
   void SetMouseHandler(MouseFunc func, void* user);  // 0x40ca90

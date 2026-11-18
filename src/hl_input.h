@@ -136,6 +136,8 @@ class HLInput : public System {
   void set_pad_guid(int index, const GUID* guid) { guids_[index] = guid; }
   // The buttons that stop and restart the time (0: none).
   void set_time_stop_mask(unsigned short mask) { time_stop_mask_ = mask; }
+  void set_pad_count(unsigned short count) { pad_count_ = count; }
+  void set_max_buttons(unsigned short count) { max_buttons_ = count; }
 
  private:
   friend class HLJoystick;

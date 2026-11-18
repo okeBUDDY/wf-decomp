@@ -316,6 +316,11 @@
       "name": "thread",
       "target_path": "build/target/thread.obj",
       "base_path": "build/obj/src/thread.obj"
+    },
+    {
+      "name": "win_main",
+      "target_path": "build/target/win_main.obj",
+      "base_path": "build/obj/src/win_main.obj"
     }
   ]
 }

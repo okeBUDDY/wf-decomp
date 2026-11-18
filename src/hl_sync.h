@@ -32,6 +32,9 @@ class HLSync : public System {
   }
   // Picks the present function for `mode` and the screen mode.
   void SetMode(unsigned char mode);  // 0x40c8e0
+  // The startup mode and frame rate (before Initialize()).
+  void set_mode(unsigned char mode) { mode_ = mode; }
+  void set_fps(short fps) { fps_ = fps; }
 
  private:
   typedef void (*PresentFunc)(HLSync* sync);

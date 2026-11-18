@@ -107,6 +107,8 @@ class HL3D : public System {
   // Chooses linear or point filtering for `stage`.
   void SetFilter(BOOL linear, DWORD stage);  // 0x402b50
   void SetLighting(BOOL enable);             // 0x4030a0
+  // The z-buffer bits (before Initialize(); 0: no z-buffer).
+  void set_depth(short depth) { depth_ = depth; }
   // The texture coordinate of the texel `point` of `texture`.
   void GetTexCoord(HLSurface* texture, TexCoord* out,
                    const POINTS* point);  // 0x409bb0

@@ -75,6 +75,8 @@ class HLSPatSys : public System {
   // Sets up a free pattern (see HLSPat::Setup()); NULL when none is left.
   HLSPat* Create(int width, int height, HLSurface* texture, short u, short v,
                  int x, int y, int hit_width, int hit_height);  // 0x409f80
+  // The number of patterns (before Initialize()).
+  void set_count(int count) { count_ = count; }
 
  private:
   int count_;         // 0x08
@@ -108,5 +110,7 @@ class HLSPatFile : public Object {
   HLSPat** pats_;      // 0x30, malloc()ed
   int count_;          // 0x34
 };
+
+extern HLSPatSys g_pat_sys;  // 0x4674a0
 
 #endif  // WF_HLS_PAT_H_

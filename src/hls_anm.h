@@ -85,6 +85,8 @@ class HLSAnmSys : public System {
 
   // Starts `data` on a free animation; NULL when none is free.
   HLSAnm* Play(AnmData* data);  // 0x410850
+  // The number of animations (before Initialize()).
+  void set_count(int count) { count_ = count; }
 
  private:
   int count_;         // 0x08
