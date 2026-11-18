@@ -319,7 +319,7 @@ class Control48 : public ScoredControl {
   virtual int GetHitPoints(Actor* actor) { return 5; }
 };
 
-class Control32 : public PartControl {
+class Control32 : public LinkedPartControl {
  public:
   virtual int Initialize();  // 0x411500
   virtual void Finalize() {}
@@ -335,7 +335,11 @@ class Control32 : public PartControl {
   static Actor* boss_;  // 0x469270
 
  private:
-  // Run the movement programs of CEnmParam (not decompiled yet).
+  // Starts a dash toward (`x`, `y`) (kept within bounds_) that stops
+  // there; `boost` flares the parts. Returns 0 when it is there already.
+  int Dash(Actor* actor, EnmList* program, float x, float y, float power,
+           int boost);  // 0x411e20
+  // Run the movement programs of CEnmParam.
   void RunProgram9c(Actor* actor, EnmList* program);              // 0x4120d0
   void RunProgramB0(Actor* actor, EnmList* program);              // 0x412530
   void RunSideProgram(Actor* actor, EnmList* program, int side);  // 0x4119d0

@@ -85,21 +85,23 @@ class EnmPlan {
 };
 
 // A list (vtable 0x4514b0, 0x14 bytes).
+// A movement program of the boss (CEnmParam::list_9c_...): the operation it
+// runs and how far it got.
 class EnmList {
  public:
   EnmList() {  // 0x419e40
-    unknown_08_ = 0;
-    unknown_10_ = 0;
-    unknown_04_ = 0;
-    unknown_0c_ = 0;
+    time = 0;
+    step = 0;
+    arg = 0;
+    op = 0;
   }
   // 0x401a90, scalar deleting dtor 0x401aa0
   virtual ~EnmList() {}
 
-  int unknown_04_;
-  int unknown_08_;
-  int unknown_0c_;
-  int unknown_10_;
+  int arg;   // 0x04, of the operation
+  int time;  // 0x08, frames since the operation started
+  int op;    // 0x0c, the operation, 0: none
+  int step;  // 0x10, within the operation
 };
 
 // A part of the boss being planned (0x20 bytes).
