@@ -94,7 +94,6 @@ int GameHud::MoveResult() {
 // TODO: nonmatching: as in DrawNameEntry, the original loads d3d->texture_
 // (`mov eax, [ecx+0x20]`) before the last transform stores.
 void GameHud::DrawResult() {
-  float bar = result_bar_;
   Transform transform;
   transform.m[2][2] = 1;
   transform.m[1][1] = 1;
@@ -105,12 +104,12 @@ void GameHud::DrawResult() {
   transform.m[0][1] = 0;
   transform.m[2][0] = 0;
   transform.m[2][1] = 0;
-  transform.m[0][1] *= bar;
-  transform.m[1][1] *= bar;
-  transform.m[2][1] *= bar;
-  transform.m[2][0] = -static_cast<float>(
-      static_cast<unsigned int>(g_application.frame_count & 0x3f) * 2);
-  transform.m[2][1] += 460;
+  ScaleTransform(&transform, 1.0f, result_bar_);
+  TranslateTransform(
+      &transform,
+      -static_cast<float>(
+          static_cast<unsigned int>(g_application.frame_count & 0x3f) * 2),
+      460);
   SetTexture(g_application.d3d, &g_font2_texture, 0);
   g_application.d3d->SetFilter(result_bar_ != 1.0f, 0);
   g_application.d3d->DrawTexels(D3DPT_TRIANGLESTRIP, &transform, kResultBar,

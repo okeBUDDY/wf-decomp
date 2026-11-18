@@ -40,6 +40,12 @@ inline void ScaleTransform(Transform* transform, float sx, float sy) {
   transform->m[2][1] *= sy;
 }
 
+// Moves `transform` by (`x`, `y`).
+inline void TranslateTransform(Transform* transform, float x, float y) {
+  transform->m[2][0] += x;
+  transform->m[2][1] += y;
+}
+
 // `out` = `a` x `b`.
 void MultiplyTransform(Transform* out, const Transform* a,
                        const Transform* b);  // 0x4023d0

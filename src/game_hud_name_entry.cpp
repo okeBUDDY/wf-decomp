@@ -263,7 +263,6 @@ void GameHud::DrawNameEntry() {
                                 static_cast<int>(back_alpha_ * 160) << 24, 4);
 
   // The bars, scrolling apart as the window opens.
-  float open = open_;
   transform.m[2][2] = 1;
   transform.m[1][1] = 1;
   transform.m[0][0] = 1;
@@ -273,9 +272,7 @@ void GameHud::DrawNameEntry() {
   transform.m[0][1] = 0;
   transform.m[2][0] = 0;
   transform.m[2][1] = 0;
-  transform.m[0][1] *= open;
-  transform.m[1][1] *= open;
-  transform.m[2][1] *= open;
+  ScaleTransform(&transform, 1.0f, open_);
   transform.m[2][0] = -static_cast<float>(
       static_cast<unsigned int>(g_application.frame_count & 0x3f) * 2);
   transform.m[2][1] -= 52;
