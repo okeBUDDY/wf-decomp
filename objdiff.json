@@ -1,0 +1,21 @@
+{
+  "min_version": "2.0.0",
+  "build_target": false,
+  "build_base": false,
+  "watch_patterns": [
+    "src/**/*.cpp",
+    "src/**/*.h"
+  ],
+  "units": [
+    {
+      "name": "sprite",
+      "target_path": "build/target/sprite.obj",
+      "base_path": "build/obj/src/sprite.obj"
+    },
+    {
+      "name": "task",
+      "target_path": "build/target/task.obj",
+      "base_path": "build/obj/src/task.obj"
+    }
+  ]
+}
