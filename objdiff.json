@@ -38,6 +38,11 @@
       "base_path": "build/obj/src/boss_helpers.obj"
     },
     {
+      "name": "cglobal",
+      "target_path": "build/target/cglobal.obj",
+      "base_path": "build/obj/src/cglobal.obj"
+    },
+    {
       "name": "core_controls",
       "target_path": "build/target/core_controls.obj",
       "base_path": "build/obj/src/core_controls.obj"
