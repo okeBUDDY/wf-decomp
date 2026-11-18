@@ -5,6 +5,14 @@
 #include "application.h"
 #include "hls_hit_image.h"
 
+// 0x40a0e0
+HLSPatSys::HLSPatSys() {
+  app_ = NULL;
+  pats_ = NULL;
+  name_ = "HLSPatSys";
+  count_ = 0x100;
+}
+
 // 0x409bb0
 void HL3D::GetTexCoord(HLSurface* texture, TexCoord* out, const POINTS* point) {
   out->u = (point->x + 0.45f) / (texture->scale_x_ * texture->width_);

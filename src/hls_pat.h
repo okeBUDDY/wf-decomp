@@ -66,12 +66,7 @@ class HLSPat : public HLSObject {
 // vtable 0x451ed8.
 class HLSPatSys : public System {
  public:
-  HLSPatSys() {
-    app_ = NULL;
-    pats_ = NULL;
-    name_ = "HLSPatSys";
-    count_ = 0x100;
-  }  // 0x40a0e0
+  HLSPatSys();                               // 0x40a0e0
   virtual int Initialize(Application* app);  // 0x40a890
   virtual void Finalize();                   // 0x40a110
   virtual void Pause() {}

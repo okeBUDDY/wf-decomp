@@ -54,14 +54,7 @@ class HLSTxtSys : public Object {
  public:
   enum { kMaxMappings = 16 };
 
-  HLSTxtSys() {
-    app_ = NULL;
-    txts_ = NULL;
-    texture_ = NULL;
-    widths_ = NULL;
-    name_ = "HLSTxtSys";
-    palette_ = default_palette_;
-  }  // 0x40acf0
+  HLSTxtSys();  // 0x40acf0
 
   // Sets up the font: `char_count` characters from `first` (a one or two
   // byte character), `width` x `height` each, in rows of `columns` from

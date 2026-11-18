@@ -12,6 +12,16 @@ D3DCOLOR HLSTxtSys::default_palette_[10] = {
     0xff00ffff, 0xffff00ff, 0xffffffff, 0xff555555, 0xffaaaaaa,
 };
 
+// 0x40acf0
+HLSTxtSys::HLSTxtSys() {
+  app_ = NULL;
+  txts_ = NULL;
+  texture_ = NULL;
+  widths_ = NULL;
+  name_ = "HLSTxtSys";
+  palette_ = default_palette_;
+}
+
 // 0x40a9f0
 int HLSTxtSys::Map(const char* character, int index) {
   if (mapping_count_ == kMaxMappings ||
