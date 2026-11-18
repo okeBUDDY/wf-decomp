@@ -143,6 +143,16 @@
       "base_path": "build/obj/src/hl_3d.obj"
     },
     {
+      "name": "hl_camera",
+      "target_path": "build/target/hl_camera.obj",
+      "base_path": "build/obj/src/hl_camera.obj"
+    },
+    {
+      "name": "hl_camera_init",
+      "target_path": "build/target/hl_camera_init.obj",
+      "base_path": "build/obj/src/hl_camera_init.obj"
+    },
+    {
       "name": "hl_device",
       "target_path": "build/target/hl_device.obj",
       "base_path": "build/obj/src/hl_device.obj"

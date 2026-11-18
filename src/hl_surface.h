@@ -40,6 +40,11 @@ class HLSurface : public Object {
   void Attach(unsigned short mode);  // 0x40b970
   // Fills the surface (the window area of the primary surface) with black.
   void Clear();  // 0x40b710
+  // Draws `text` at (`x`, `y`) with GDI in `color`, in the font `face`
+  // `height` pixels high (the window's fixed font when NULL); stores the
+  // rectangle drawn in `rect` when not NULL.
+  void Print(int x, int y, const char* text, COLORREF color, const char* face,
+             int height, int bold, int italic, RECT* rect);  // 0x40b780
   // Locks the whole surface. Returns its pixels, or NULL.
   void* Lock();  // 0x407820
   // Unlocks the surface if it is locked.

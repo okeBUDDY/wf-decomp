@@ -147,7 +147,7 @@ void GameHud::DrawGameOver() {
       -static_cast<float>(
           static_cast<unsigned int>(g_application.frame_count & 0x3f) * 4),
       -200);
-  RotateTransformRad(&transform, 0.52359879f);
+  RotateTransformZ(&transform, 0.52359879f);
   SetTexture(g_application.d3d, g_pats.etc[0].texture(), 0);
   Transform band;
   band.m[0][0] = transform.m[0][0];

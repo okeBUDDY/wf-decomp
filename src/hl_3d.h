@@ -30,6 +30,13 @@ struct TexCoord {
 void TransformPoint(D3DTLVERTEX* out, const Transform* transform,
                     const D3DVECTOR* point);  // 0x402370
 
+// Makes the 3x3 part of `transform` the identity.
+inline void SetIdentity(Transform* transform) {
+  transform->m[0][0] = transform->m[1][1] = transform->m[2][2] = 1;
+  transform->m[0][1] = transform->m[0][2] = transform->m[1][0] =
+      transform->m[1][2] = transform->m[2][0] = transform->m[2][1] = 0;
+}
+
 // Scales `transform` by `sx` and `sy`.
 inline void ScaleTransform(Transform* transform, float sx, float sy) {
   transform->m[0][0] *= sx;
@@ -46,8 +53,10 @@ inline void TranslateTransform(Transform* transform, float x, float y) {
   transform->m[2][1] += y;
 }
 
-// Rotates `transform` by `radians`.
-void RotateTransformRad(Transform* transform, float radians);  // 0x402670
+// Rotates `transform` by `radians` about the x, y and z axes.
+void RotateTransformX(Transform* transform, float radians);  // 0x402550
+void RotateTransformY(Transform* transform, float radians);  // 0x4025e0
+void RotateTransformZ(Transform* transform, float radians);  // 0x402670
 
 // `out` = `a` x `b`.
 void MultiplyTransform(Transform* out, const Transform* a,
@@ -157,6 +166,7 @@ class HL3D : public System {
   friend class ActorSystem;
   friend class HLMesh;
   friend void SetTexture(HL3D* d3d, HLSurface* texture, int stage);
+  friend class HLCamera;
   friend class HLSTxtSys;
   friend class GameHud;
 

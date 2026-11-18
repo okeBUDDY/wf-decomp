@@ -10,7 +10,7 @@ class HLImage {
   enum Format { kAuto = 0, kBmp = 1, kTga = 2, kPng = 3 };
 
   HLImage();  // 0x40d580
-  // scalar deleting dtor 0x40b8f0
+  // 0x40b8e0, scalar deleting dtor 0x40b8f0
   virtual ~HLImage() { Release(); }
 
   // Frees the pixels.

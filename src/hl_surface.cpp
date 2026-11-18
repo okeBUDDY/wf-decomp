@@ -6,6 +6,7 @@
 #include "application.h"
 #include "graphics.h"
 #include "hl_image.h"
+#include "hl_window.h"
 
 Graphics* HLSurface::graphics_;         // 0x468f70
 DDPIXELFORMAT HLSurface::formats_[3];   // 0x468f10
@@ -87,6 +88,37 @@ void HLSurface::Clear() {
   } else {
     surface_->Blt(NULL, NULL, NULL, DDBLT_COLORFILL | DDBLT_WAIT, &fx);
   }
+}
+
+// 0x40b780
+void HLSurface::Print(int x, int y, const char* text, COLORREF color,
+                      const char* face, int height, int bold, int italic,
+                      RECT* rect) {
+  HDC dc;
+  if (surface_ == NULL || surface_->GetDC(&dc) != DD_OK) {
+    return;
+  }
+  SetBkMode(dc, TRANSPARENT);
+  HFONT font;
+  if (face != NULL) {
+    font = CreateFontA(height, 0, 0, 0, bold ? FW_BOLD : FW_NORMAL, italic, 0,
+                       0, SHIFTJIS_CHARSET, 0, 0, 0, 0, face);
+  } else {
+    font = graphics_->app_->window_system->fixed_font();
+  }
+  HGDIOBJ old_font = SelectObject(dc, font);
+  SetTextColor(dc, color);
+  TextOutA(dc, x, y, text, strlen(text));
+  if (rect != NULL) {
+    SIZE size;
+    GetTextExtentPoint32A(dc, text, strlen(text), &size);
+    SetRect(rect, x, y, x + size.cx, y + size.cy);
+  }
+  SelectObject(dc, old_font);
+  if (face != NULL) {
+    DeleteObject(font);
+  }
+  surface_->ReleaseDC(dc);
 }
 
 // 0x40b920
