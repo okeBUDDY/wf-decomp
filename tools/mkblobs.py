@@ -203,6 +203,10 @@ def compiled_relocs(cf, lo, pe, res, syms_by_name, lib_names):
         addend = struct.unpack_from("<I", data, off)[0]
         external = y["cls"] == 2
         if (external and name in syms_by_name) or (external and y["section"] == 0 and name in lib_names):
+            if name in syms_by_name and name in lib_names:
+                # keep LINK's library search order (see the first blob)
+                key = syms_by_name[name]
+                res.external[name] = min(res.external.get(name, key), key)
             out.append((off, name, typ, addend))
             continue
         ov = struct.unpack_from("<I", orig, off)[0]

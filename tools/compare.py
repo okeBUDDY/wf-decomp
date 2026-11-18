@@ -139,8 +139,7 @@ def main():
     res = RelocIndex(load_splits(), cmp.syms, an)
     os.makedirs(TARGETDIR, exist_ok=True)
     units = []
-    total_match = total_funcs = 0
-    matched_bytes = 0
+    seen, matched = set(), set()
     report = []
     for src in srcs:
         obj = compile_source(src)
@@ -155,10 +154,9 @@ def main():
                 report.append((os.path.basename(src), name, None, "no address in symbols.txt", []))
                 continue
             ok, unchecked, notes = cmp.compare(coff, name, sec, addr)
-            total_funcs += 1
+            seen.add(addr)
             if ok:
-                total_match += 1
-                matched_bytes += cmp.syms[addr]["size"]
+                matched.add(addr)
             status = "OK" if ok else "DIFF"
             if ok and unchecked:
                 status += f" ({unchecked} relocs unchecked)"
@@ -177,6 +175,8 @@ def main():
                 print(f"            {n}")
     game_funcs = [(a, s) for a, s in cmp.syms.items() if s["type"] == "func"]
     game_bytes = sum(s["size"] for _, s in game_funcs)
+    total_match, total_funcs = len(matched), len(seen)
+    matched_bytes = sum(cmp.syms[a]["size"] for a in matched)
     print(f"\n{total_match}/{total_funcs} compiled functions match; "
           f"{total_match}/{len(game_funcs)} game functions "
           f"({100.0 * matched_bytes / game_bytes:.2f}% of {game_bytes} code bytes) matched")

@@ -8,6 +8,11 @@
   ],
   "units": [
     {
+      "name": "object",
+      "target_path": "build/target/object.obj",
+      "base_path": "build/obj/src/object.obj"
+    },
+    {
       "name": "sprite",
       "target_path": "build/target/sprite.obj",
       "base_path": "build/obj/src/sprite.obj"
@@ -16,6 +21,11 @@
       "name": "task",
       "target_path": "build/target/task.obj",
       "base_path": "build/obj/src/task.obj"
+    },
+    {
+      "name": "task_list_delete",
+      "target_path": "build/target/task_list_delete.obj",
+      "base_path": "build/obj/src/task_list_delete.obj"
     }
   ]
 }
