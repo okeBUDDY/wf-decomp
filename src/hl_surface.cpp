@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <d3d.h>
+
 #include "application.h"
 #include "graphics.h"
 #include "hl_image.h"
@@ -12,6 +14,8 @@ Graphics* HLSurface::graphics_;         // 0x468f70
 DDPIXELFORMAT HLSurface::formats_[3];   // 0x468f10
 short HLSurface::format_codes_[3];      // 0x468f80
 unsigned int HLSurface::texture_caps_;  // 0x468f74
+short HLSurface::max_texture_width_;    // 0x468f78
+short HLSurface::max_texture_height_;   // 0x468f7c
 short HLSurface::format_order_[kFormatKinds][kFormatsPerKind] = {
     {k565, k5551, k555, k4444, k888, k8880, k8888, 0},
     {k565, k555, k5551, k4444, k888, k8880, k8888, 0},
@@ -189,6 +193,153 @@ void HLSurface::Release() {
   unknown_18_ = 0;
   id_ = -1;
   mode_ = 0;
+}
+
+// 0x40bb10
+// TODO: nonmatching: the saved width_ and height_ swap stack slots, and the
+// Log() arguments and the vtable loads use other registers.
+int HLSurface::InitTextureFormats(IDirect3DDevice7* device) {
+  // The format search keeps its state in width_ (the kind of
+  // format_order_) and height_ (the best index so far).
+  short width = width_;
+  short height = height_;
+  int result = 0;
+  D3DDEVICEDESC7 device_desc;
+  ZeroMemory(&device_desc, sizeof(device_desc));
+  if (device->GetCaps(&device_desc) == D3D_OK) {
+    DDCAPS caps;
+    ZeroMemory(&caps, sizeof(caps));
+    caps.dwSize = sizeof(caps);
+    if (graphics_->ddraw_->GetCaps(&caps, NULL) == DD_OK) {
+      texture_caps_ = 0;
+      max_texture_width_ = static_cast<short>(device_desc.dwMaxTextureWidth);
+      max_texture_height_ = static_cast<short>(device_desc.dwMaxTextureHeight);
+      if (max_texture_width_ == 0) {
+        max_texture_width_ = 0x100;
+      }
+      if (max_texture_height_ == 0) {
+        max_texture_height_ = 0x100;
+      }
+      if (!(caps.dwCaps2 & DDCAPS2_WIDESURFACES) &&
+          max_texture_width_ > graphics_->primary_.width_) {
+        max_texture_width_ = graphics_->primary_.width_;
+      }
+      DWORD texture_caps = device_desc.dpcTriCaps.dwTextureCaps;
+      if (texture_caps & D3DPTEXTURECAPS_POW2) {
+        for (width_ = 1; width_ * 2 <= max_texture_width_; width_ <<= 1) {
+        }
+        max_texture_width_ = width_;
+        for (height_ = 1; height_ * 2 <= max_texture_height_; height_ <<= 1) {
+        }
+        max_texture_height_ = height_;
+        texture_caps_ |= kPow2;
+      }
+      if (texture_caps & D3DPTEXTURECAPS_SQUAREONLY) {
+        if (max_texture_width_ > max_texture_height_) {
+          max_texture_width_ = max_texture_height_;
+        } else {
+          max_texture_height_ = max_texture_width_;
+        }
+        texture_caps_ |= kSquareOnly;
+      }
+      if (!(device_desc.dpcTriCaps.dwSrcBlendCaps & D3DPBLENDCAPS_ONE)) {
+        texture_caps_ |= kNoBlendOne;
+      }
+      // Opaque textures: kind 0 or 1 by the 16-bit screen format, else 2.
+      width_ = graphics_->app_->depth == 16 ? format_codes_[0] != k555 : 2;
+      height_ = kFormatsPerKind - 1;
+      if (device->EnumTextureFormats(EnumTextureFormatProc, this) == D3D_OK) {
+        // Alpha textures: kind 3, 4 or 5.
+        width_ += 3;
+        height_ = kFormatsPerKind - 1;
+        if (device->EnumTextureFormats(EnumTextureFormatProc, this) == D3D_OK &&
+            format_codes_[1] != 0 && format_codes_[2] != 0) {
+          // "texture caps Max%dx%d CapsFlag=%08X no alpha:%d alpha:%d"
+          Log("ﾃｸｽﾁｬ能力 Max%dx%d CapsFlag=%08X ｱﾙﾌｧ無:%d ｱﾙﾌｧ有:%d",
+              max_texture_width_, max_texture_height_, texture_caps_,
+              format_codes_[1], format_codes_[2]);
+          result = 1;
+        }
+      }
+    }
+  }
+  height_ = height;
+  width_ = width;
+  return result;
+}
+
+// 0x40bda0
+int HLSurface::Create(int width, int height, unsigned short mode) {
+  if (graphics_ == NULL || surface_ != NULL) {
+    // "cannot make the surface"
+    Error("ｻｰﾌｪｽが生成できません");
+    return 0;
+  }
+  mode_ = mode & kKindMask;
+  if (mode_ != kTexture) {
+    mode_ = kOffscreen;
+  }
+  DDSURFACEDESC2 desc;
+  ZeroMemory(&desc, sizeof(desc));
+  desc.dwWidth = width;
+  desc.dwSize = sizeof(desc);
+  desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
+  scale_y_ = 1;
+  scale_x_ = 1;
+  desc.dwHeight = height;
+  if (mode_ == kTexture) {
+    desc.ddsCaps.dwCaps = DDSCAPS_TEXTURE;
+    desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
+    format_ = (mode & kAlpha) != 0 ? 2 : 1;
+    desc.ddpfPixelFormat = formats_[format_];
+    if (graphics_->app_->flags & AppSettings::kNoHardware3D) {
+      mode |= kSystemMemory;
+    }
+    if (texture_caps_ & kPow2) {
+      for (width = 1; width < static_cast<int>(desc.dwWidth); width <<= 1) {
+      }
+      for (height = 1; height < static_cast<int>(desc.dwHeight); height <<= 1) {
+      }
+    }
+    while (width > max_texture_width_) {
+      scale_x_ <<= 1;
+      width >>= 1;
+    }
+    while (height > max_texture_height_) {
+      scale_y_ <<= 1;
+      height >>= 1;
+    }
+  } else {
+    desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+    format_ = 0;
+    if (mode & kRenderTarget) {
+      desc.ddsCaps.dwCaps = DDSCAPS_3DDEVICE;
+      mode_ |= kRenderTarget;
+    }
+  }
+  if (mode & kSystemMemory) {
+    desc.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+    mode_ |= kSystemMemory;
+  }
+  desc.dwHeight = height;
+  desc.dwWidth = width;
+  if (graphics_->ddraw_->CreateSurface(&desc, &surface_, NULL) != DD_OK) {
+    // "making the surface failed"
+    Error("ｻｰﾌｪｽの生成に失敗しました");
+    return 0;
+  }
+  for (id_ = 0; graphics_->surfaces_[id_] != NULL;) {
+    if (++id_ == kMaxSurfaces) {
+      id_ = -1;
+      Release();
+      // "too many surfaces"
+      Error("ｻｰﾌｪｽ数が多すぎます");
+      return 0;
+    }
+  }
+  graphics_->surfaces_[id_] = this;
+  Attach(0);
+  return 1;
 }
 
 // 0x40bff0

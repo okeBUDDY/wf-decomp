@@ -17,10 +17,13 @@ class HLSurface : public Object {
   enum Mode {
     kPrimary = 0x1,
     kBackBuffer = 0x2,  // owned by the primary surface
+    kOffscreen = 0x3,
     kTexture = 0x4,
     kKindMask = 0xf,
-    kAttached = 0x20,  // made by someone else, see Attach()
-    kAlpha = 0x40,     // with an alpha channel (32-bit images)
+    kSystemMemory = 0x10,  // in system memory (no hardware 3D)
+    kAttached = 0x20,      // made by someone else, see Attach()
+    kRenderTarget = 0x20,  // Create(): an offscreen 3D render target
+    kAlpha = 0x40,         // with an alpha channel (32-bit images)
   };
   // Pixel format codes: the bits of each channel, A last.
   enum FormatCode {
@@ -90,8 +93,19 @@ class HLSurface : public Object {
   static HRESULT CALLBACK EnumTextureFormatProc(DDPIXELFORMAT* format,
                                                 void* context);  // 0x40b680
 
+  // texture_caps_.
+  enum TextureCaps {
+    kSquareOnly = 0x1,  // textures must be square
+    kPow2 = 0x2,        // texture sizes must be powers of 2
+    kNoBlendOne = 0x4,  // the device cannot blend with D3DBLEND_ONE
+  };
+  enum { kMaxSurfaces = 0x80 };
+
   // What the texture formats found allow (set by InitTextureFormats()).
-  static unsigned int texture_caps_;  // 0x468f74
+  static unsigned int texture_caps_;  // 0x468f74, TextureCaps
+  // The largest texture size; bigger images are scaled down.
+  static short max_texture_width_;   // 0x468f78
+  static short max_texture_height_;  // 0x468f7c
   // The primary, opaque texture and alpha texture formats.
   static DDPIXELFORMAT formats_[3];  // 0x468f10
   static short format_codes_[3];     // 0x468f80
