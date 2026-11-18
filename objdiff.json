@@ -8,9 +8,24 @@
   ],
   "units": [
     {
+      "name": "file",
+      "target_path": "build/target/file.obj",
+      "base_path": "build/obj/src/file.obj"
+    },
+    {
       "name": "object",
       "target_path": "build/target/object.obj",
       "base_path": "build/obj/src/object.obj"
+    },
+    {
+      "name": "pack",
+      "target_path": "build/target/pack.obj",
+      "base_path": "build/obj/src/pack.obj"
+    },
+    {
+      "name": "pack_file",
+      "target_path": "build/target/pack_file.obj",
+      "base_path": "build/obj/src/pack_file.obj"
     },
     {
       "name": "sprite",
