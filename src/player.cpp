@@ -45,9 +45,6 @@ extern int g_weapon_sounds[2];          // 0x45d4e0, indices of the sounds
 extern FloatRect g_player_bounds;       // 0x45d4e8
 extern short g_direction_angles[0x10];  // 0x45d4f8, by direction keys
 
-// The sound `index` of the ones in sounds.h (from g_snd_bomb1).
-static inline CSndBuf* Sound(int index) { return &g_snd_bomb1 + index; }
-
 __forceinline void Control01::SelectWeapon(Actor* actor, int weapon, float x,
                                            float y) {
   PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
@@ -186,7 +183,7 @@ void Control01::Fire(Actor* actor) {
   g_actor_system.Create(8, NULL, actor->transform->m[2][0],
                         actor->transform->m[2][1], 3, 0, &g_muzzle_effect);
   if (work->shots % 3 == 0) {
-    g_application.sound->channel(16)->Assign(&g_snd_fire_me, 0, 1.0f);
+    g_application.sound->channel(16)->Assign(&g_sounds[kSndFireMe], 0, 1.0f);
   }
 }
 
@@ -305,7 +302,7 @@ int Control01::OnMove(Actor* actor) {
   }
   if (pressed & FnGame::kKeySwitch) {
     SelectWeapon(actor, -1, x, y);
-    g_application.sound->channel(12)->Assign(&g_snd_switch, 0, 1.0f);
+    g_application.sound->channel(12)->Assign(&g_sounds[kSndSwitch], 0, 1.0f);
     work->switch_time = 30;
   }
   int fire = keys & FnGame::kKeyFire;
@@ -336,7 +333,7 @@ int Control01::OnMove(Actor* actor) {
   }
   if (work->switch_time > 0 && --work->switch_time == 0) {
     int sound = g_weapon_sounds[work->weapon];
-    g_application.sound->channel(sound)->Assign(Sound(sound), 0, 1.0f);
+    g_application.sound->channel(sound)->Assign(&g_sounds[sound], 0, 1.0f);
   }
   return 1;
 }

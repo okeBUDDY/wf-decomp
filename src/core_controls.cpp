@@ -119,7 +119,7 @@ int Control40::OnMove(Actor* actor) {
         desc_.speed = work->speed;
         desc_.work = reinterpret_cast<int>(work->slot);
         g_actor_system.Spawn(&desc_);
-        g_application.sound->channel(17)->Assign(&g_snd_fire_bl, 0, 1.0f);
+        g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0, 1.0f);
       }
       if (--work->unknown_1e_ <= 0) {
         Schedule(actor, work->delay, 6);
@@ -159,7 +159,7 @@ int Control47::OnMove(Actor* actor) {
   }
   g_actor_system.Create(48, NULL, actor->screen.m[2][0], actor->screen.m[2][1],
                         11, actor->ScreenAngle(), work);
-  g_application.sound->channel(22)->Assign(&g_snd_fire_ms, 0, 1.0f);
+  g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0, 1.0f);
   Schedule(actor, work->delay, 6);
   return 1;
 }
@@ -246,7 +246,7 @@ int Control41::OnMove(Actor* actor) {
     g_actor_system.Spawn(&desc_);
     angle += work->spread;
   }
-  g_application.sound->channel(18)->Assign(&g_snd_fire_cn, 0, 1.0f);
+  g_application.sound->channel(18)->Assign(&g_sounds[kSndFireCn], 0, 1.0f);
   Schedule(actor, work->interval, 6);
   return 1;
 }
@@ -380,7 +380,7 @@ int Control44::OnMove(Actor* actor) {
         g_actor_system.Create(45, NULL, actor->screen.m[2][0],
                               actor->screen.m[2][1], 11, actor->ScreenAngle(),
                               work);
-        g_application.sound->channel(22)->Assign(&g_snd_fire_ms, 0, 1.0f);
+        g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0, 1.0f);
       }
       if (--work->unknown_1e_ <= 0) {
         Schedule(actor, work->delay, 0);
@@ -542,7 +542,7 @@ int Control46::OnMove(Actor* actor) {
       desc_.speed = (rand() % work->range + work->base) * 0.1f;
       g_actor_system.Spawn(&desc_);
     }
-    g_application.sound->channel(22)->Assign(&g_snd_fire_ms, 0, 1.0f);
+    g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0, 1.0f);
   }
   Schedule(actor, work->delay, 6);
   return 1;
@@ -619,7 +619,7 @@ int Control49::OnMove(Actor* actor) {
         desc_.start_angle = actor->ScreenAngle();
         desc_.work = reinterpret_cast<int>(work->slot);
         g_actor_system.Spawn(&desc_);
-        g_application.sound->channel(17)->Assign(&g_snd_fire_bl, 0, 1.0f);
+        g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0, 1.0f);
       }
       if (--work->unknown_1e_ <= 0) {
         OnDamage(actor, 3);
@@ -691,7 +691,7 @@ int Control43::OnCreate(Actor* actor, void* param) {
   work->scale = g_beam_scales[work->owner->mode];
   work->glow->SetScale(work->scale);
   work->timer = 0;
-  g_application.sound->channel(19)->Assign(&g_snd_fire_ls1, 0, 1.0f);
+  g_application.sound->channel(19)->Assign(&g_sounds[kSndFireLs1], 0, 1.0f);
   ++sound_users_[0];
   work->sound = 0;
   return 1;
@@ -710,7 +710,7 @@ int Control43::OnMove(Actor* actor) {
     if (--sound_users_[0] == 0) {
       g_application.sound->channel(19)->Stop();
     }
-    g_application.sound->channel(20)->Assign(&g_snd_fire_ls2, 0, 1.0f);
+    g_application.sound->channel(20)->Assign(&g_sounds[kSndFireLs2], 0, 1.0f);
     ++sound_users_[1];
     work->sound = 1;
   }
@@ -749,7 +749,7 @@ void Control43::OnEvent(Actor* actor, int x, int y) {
       }
       break;
   }
-  g_application.sound->channel(21)->Assign(&g_snd_fire_ls3, 0, 1.0f);
+  g_application.sound->channel(21)->Assign(&g_sounds[kSndFireLs3], 0, 1.0f);
   work->timer = 10;
   work->sound = 2;
 }

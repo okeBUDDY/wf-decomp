@@ -1,6 +1,6 @@
 // ActorControl: the behaviour of one kind of actor. One stateless instance
 // of each subclass is registered in g_actor_system under its id by
-// RegisterActorControls(); an actor calls the control of its id.
+// cGlobal::RegisterActorControls(); an actor calls the control of its id.
 //
 // The subclasses are named after their registration ids. Hierarchy (from the
 // vtables):
@@ -469,8 +469,5 @@ class Control49 : public CorePartControl {
 };
 
 #undef WF_CORE_CONTROL_BODY
-
-// Registers one instance of every control in g_actor_system; 0 on failure.
-int RegisterActorControls();  // 0x40ff00
 
 #endif  // WF_ACTOR_CONTROL_H_

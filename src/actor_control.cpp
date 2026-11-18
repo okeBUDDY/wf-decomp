@@ -27,7 +27,7 @@ struct GlowWork {
 ActorControl::~ActorControl() {}
 
 // 0x40ff00
-int RegisterActorControls() {
+int cGlobal::RegisterActorControls() {
   if (!g_actor_system.Register(1, new Control01)) {
     return 0;
   }
@@ -359,7 +359,7 @@ void PartControl::PlayTrans(PartWork* work) {
   if (!(work->flags & PartWork::kTrans)) {
     work->flags |= PartWork::kTrans;
     ++g_enm_param.trans_count_;
-    g_application.sound->channel(27)->Assign(&g_snd_trans1, 0, 1.0f);
+    g_application.sound->channel(27)->Assign(&g_sounds[kSndTrans1], 0, 1.0f);
   }
 }
 
@@ -500,7 +500,7 @@ void PartControl::StopTrans(PartWork* work, int next) {
       g_application.sound->channel(27)->Stop();
     }
     if (next) {
-      g_application.sound->channel(28)->Assign(&g_snd_trans2, 0, 1.0f);
+      g_application.sound->channel(28)->Assign(&g_sounds[kSndTrans2], 0, 1.0f);
     }
   }
 }
@@ -779,7 +779,7 @@ int LinkedPartControl::OnMove(Actor* actor) {
                                 reinterpret_cast<void*>(g_enm_param.glow_time));
         }
       }
-      g_application.sound->channel(24)->Assign(&g_snd_barrier, 0, 1.0f);
+      g_application.sound->channel(24)->Assign(&g_sounds[kSndBarrier], 0, 1.0f);
       ++work->state_time;
       work->unknown_1e_ = 0;
       // Fall through.

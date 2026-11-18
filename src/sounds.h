@@ -1,33 +1,42 @@
-// The sound effects the game loads at startup (0x401550).
+// The sound effects the game loads at startup (cGlobal::LoadSounds()
+// 0x401550). Sound i plays on sound channel i.
 #ifndef WF_SOUNDS_H_
 #define WF_SOUNDS_H_
 
 #include "snd_buf.h"
+#include "snd_strm.h"
 
-extern CSndBuf g_snd_bomb1;      // 0x4681f0, "bomb_1.ogg"
-extern CSndBuf g_snd_bomb2;      // 0x468218, "bomb_2.ogg"
-extern CSndBuf g_snd_bomb3;      // 0x468240, "bomb_3.ogg"
-extern CSndBuf g_snd_bomb4;      // 0x468268, "bomb_4.ogg"
-extern CSndBuf g_snd_bomb_pre;   // 0x468290, "bomb_pre.ogg"
-extern CSndBuf g_snd_bomb_all;   // 0x4682b8, "bomb_all.ogg"
-extern CSndBuf g_snd_bomb_me;    // 0x4682e0, "bomb_me.ogg"
-extern CSndBuf g_snd_damage;     // 0x468308, "damage.ogg"
-extern CSndBuf g_snd_no_damage;  // 0x468330, "nodamage.ogg"
-extern CSndBuf g_snd_warning;    // 0x468380, "warning.ogg"
-extern CSndBuf g_snd_switch;     // 0x4683d0, "switch.ogg"
-extern CSndBuf g_snd_weapon0;    // 0x4683f8, "wep0.ogg"
-extern CSndBuf g_snd_weapon1;    // 0x468420, "wep1.ogg"
-extern CSndBuf g_snd_fire_me;    // 0x468470, "fire_me.ogg"
-extern CSndBuf g_snd_fire_bl;    // 0x468498, "fire_bl.ogg"
-extern CSndBuf g_snd_fire_cn;    // 0x4684c0, "fire_cn.ogg"
-extern CSndBuf g_snd_fire_ls1;   // 0x4684e8, "fire_ls1.ogg"
-extern CSndBuf g_snd_fire_ls2;   // 0x468510, "fire_ls2.ogg"
-extern CSndBuf g_snd_fire_ls3;   // 0x468538, "fire_ls3.ogg"
-extern CSndBuf g_snd_fire_ms;    // 0x468560, "fire_ms.ogg"
-extern CSndBuf g_snd_barrier;    // 0x4685b0, "barrier.ogg"
-extern CSndBuf g_snd_boost1;     // 0x4685d8, "boost1.ogg"
-extern CSndBuf g_snd_boost2;     // 0x468600, "boost2.ogg"
-extern CSndBuf g_snd_trans1;     // 0x468628, "trans1.ogg"
-extern CSndBuf g_snd_trans2;     // 0x468650, "trans2.ogg"
+enum SoundId {
+  kSndBomb1 = 0,     // "bomb_1.ogg"
+  kSndBomb2 = 1,     // "bomb_2.ogg"
+  kSndBomb3 = 2,     // "bomb_3.ogg"
+  kSndBomb4 = 3,     // "bomb_4.ogg"
+  kSndBombPre = 4,   // "bomb_pre.ogg"
+  kSndBombAll = 5,   // "bomb_all.ogg"
+  kSndBombMe = 6,    // "bomb_me.ogg"
+  kSndDamage = 7,    // "damage.ogg"
+  kSndNoDamage = 8,  // "nodamage.ogg"
+  kSndWarning = 10,  // "warning.ogg"
+  kSndSwitch = 12,   // "switch.ogg"
+  kSndWeapon0 = 13,  // "wep0.ogg"
+  kSndWeapon1 = 14,  // "wep1.ogg"
+  kSndFireMe = 16,   // "fire_me.ogg"
+  kSndFireBl = 17,   // "fire_bl.ogg"
+  kSndFireCn = 18,   // "fire_cn.ogg"
+  kSndFireLs1 = 19,  // "fire_ls1.ogg"
+  kSndFireLs2 = 20,  // "fire_ls2.ogg"
+  kSndFireLs3 = 21,  // "fire_ls3.ogg"
+  kSndFireMs = 22,   // "fire_ms.ogg"
+  kSndBarrier = 24,  // "barrier.ogg"
+  kSndBoost1 = 25,   // "boost1.ogg"
+  kSndBoost2 = 26,   // "boost2.ogg"
+  kSndTrans1 = 27,   // "trans1.ogg"
+  kSndTrans2 = 28,   // "trans2.ogg"
+  kSounds = 32,
+};
+
+extern CSndBuf g_sounds[kSounds];  // 0x4681f0
+// The music: "bgm.seq", else "bgm.ogg", else "bgm.wav".
+extern CSndStrm g_bgm;  // 0x4686f0
 
 #endif  // WF_SOUNDS_H_

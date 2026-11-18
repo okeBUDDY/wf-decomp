@@ -50,6 +50,7 @@ class ScoreTable {
   void Init(const char* path);  // 0x421990
   // The rank of the last inserted score, -1 for none.
   int rank() const { return rank_; }
+  void ClearRank() { rank_ = -1; }
 
  private:
   // The score file: kFileVersion, a FileHeader, then `count` records

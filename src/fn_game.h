@@ -30,6 +30,8 @@ class FnGame : public UserFunc {
   // Enters `state`.
   void SetState(short state);  // 0x41be80
 
+  // 0 while recording, else playing back.
+  int mode() const { return mode_; }
   unsigned short keys() const { return keys_; }
   unsigned short pressed() const { return pressed_; }
 

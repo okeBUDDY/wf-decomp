@@ -95,6 +95,9 @@ class HLSPatFile : public Object {
   }
   // Releases the patterns and the texture.
   void Release();  // 0x40a060
+  // Loads "<name>.png" (or .bmp) and the patterns of "<name>.pat", with
+  // room for at least `min_count` patterns. Returns 0 on failure.
+  int Load(const char* name, int min_count);  // 0x40a320
   // The pattern `index`, or NULL before the file is loaded.
   HLSPat* Get(int index) const { return pats_ != NULL ? pats_[index] : NULL; }
 

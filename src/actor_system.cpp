@@ -44,6 +44,20 @@ int ActorSystem::Register(int id, ActorControl* control) {
   return 0;
 }
 
+// 0x407a10
+void ActorSystem::SetDamageSound(int damage, CSndBuf* sound, Channel* channel) {
+  switch (damage) {
+    case Actor::kDamageArmor:
+      Actor::hit_sound_ = sound;
+      Actor::hit_channel_ = channel;
+      break;
+    case Actor::kDamageGuard:
+      Actor::guard_sound_ = sound;
+      Actor::guard_channel_ = channel;
+      break;
+  }
+}
+
 // 0x407aa0
 Actor* Actor::HitTest() {
   int shift = g_hit_image.shift_;

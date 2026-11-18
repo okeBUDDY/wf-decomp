@@ -73,7 +73,7 @@ int Control16::OnCreate(Actor* actor, void* param) {
     g_actor_system.Spawn(&g_spark_desc);
   }
   if (g_explosion_depth == 0) {
-    g_application.sound->channel(6)->Assign(&g_snd_bomb_me, 0, 1.0f);
+    g_application.sound->channel(6)->Assign(&g_sounds[kSndBombMe], 0, 1.0f);
   }
   return 1;
 }
@@ -92,7 +92,7 @@ int Control17::OnCreate(Actor* actor, void* param) {
                           actor->transform->m[2][1], 9, 0, &g_smoke_effect);
   }
   if (g_explosion_depth == 0) {
-    g_application.sound->channel(0)->Assign(&g_snd_bomb1, 0, 1.0f);
+    g_application.sound->channel(0)->Assign(&g_sounds[kSndBomb1], 0, 1.0f);
   }
   return 1;
 }
@@ -108,7 +108,7 @@ int Control18::OnCreate(Actor* actor, void* param) {
   g_actor_system.Create(17, NULL, transform->m[2][0], transform->m[2][1], 9, 0,
                         NULL);
   if (--g_explosion_depth == 0) {
-    g_application.sound->channel(1)->Assign(&g_snd_bomb2, 0, 1.0f);
+    g_application.sound->channel(1)->Assign(&g_sounds[kSndBomb2], 0, 1.0f);
   }
   return 1;
 }
@@ -218,7 +218,7 @@ int Control19::OnCreate(Actor* actor, void* param) {
   g_actor_system.Create(18, NULL, actor->transform->m[2][0],
                         actor->transform->m[2][1], 8, 0, NULL);
   if (--g_explosion_depth == 0) {
-    g_application.sound->channel(2)->Assign(&g_snd_bomb3, 0, 1.0f);
+    g_application.sound->channel(2)->Assign(&g_sounds[kSndBomb3], 0, 1.0f);
   }
   return 1;
 }
@@ -256,7 +256,7 @@ int Control20::OnCreate(Actor* actor, void* param) {
   desc.layer = 4;
   work->core = g_actor_system.Spawn(&desc);
   if (g_explosion_depth == 0) {
-    g_application.sound->channel(2)->Assign(&g_snd_bomb3, 0, 1.0f);
+    g_application.sound->channel(2)->Assign(&g_sounds[kSndBomb3], 0, 1.0f);
   }
   g_boss = actor;
   return 1;
@@ -293,7 +293,7 @@ int Control20::OnMove(Actor* actor) {
       work->alpha = 0;
       break;
     case 100:
-      g_application.sound->channel(4)->Assign(&g_snd_bomb_pre, 0, 1.0f);
+      g_application.sound->channel(4)->Assign(&g_sounds[kSndBombPre], 0, 1.0f);
       break;
     case 113:
       g_global.screen_fade->SetColor(0xff, 0xff, 0xff, 0);
@@ -319,8 +319,8 @@ int Control20::OnMove(Actor* actor) {
       g_global.screen_fade->SetColor(0xff, 0xff, 0xff, 0xff);
       g_global.screen_fade->FadeTo(120, 0xff, 0xff, 0xff, 0);
       g_application.sound->channel(4)->Stop();
-      g_application.sound->channel(3)->Assign(&g_snd_bomb4, 0, 1.0f);
-      g_application.sound->channel(5)->Assign(&g_snd_bomb_all, 0, 1.0f);
+      g_application.sound->channel(3)->Assign(&g_sounds[kSndBomb4], 0, 1.0f);
+      g_application.sound->channel(5)->Assign(&g_sounds[kSndBombAll], 0, 1.0f);
       break;
     case 165:
     case 180: {

@@ -16,6 +16,17 @@ class cGlobal : public System {
   virtual void Pause() {}
   virtual void Resume() {}
 
+ private:
+  // Load the fonts, the pattern files and the sounds; 0 on failure.
+  int LoadFonts();     // 0x401280
+  int LoadPatterns();  // 0x401470
+  int LoadSounds();    // 0x401550
+  // Registers one instance of every control in g_actor_system; 0 on
+  // failure (actor_control.cpp).
+  int RegisterActorControls();  // 0x40ff00
+
+ public:
+
   int unknown_08_;         // 0x08
   int stage;               // 0x0c, the current stage (from 0)
   int unknown_10_[2];      // 0x10
@@ -29,6 +40,13 @@ class cGlobal : public System {
   float effect_volume;     // 0x30
   char replay_path[0x48];  // 0x34, of the replay to play, "" for none
   char last_record[0x48];  // 0x7c, where the last game was saved
+
+  // Destroys every actor and clears the screen fade.
+  void ClearStage();  // 0x4011a0
+  // Stops every sound and restores the volumes.
+  void ResetSound();  // 0x4011f0
+  // Clears the state of the game before a new one.
+  void ResetGame();  // 0x401240
 
   // Creates the record directory; returns 1.
   int InitRecords();   // 0x4186f0

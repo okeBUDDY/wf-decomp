@@ -124,6 +124,9 @@ class SoundSystem : public System {
   // Stops every channel playing `buffer`; without a buffer, every channel
   // of `group` (-1: all channels).
   void Stop(CSndBuf* buffer, int group);  // 0x409420
+  // Mutes (`mute`) or unmutes `group` (-1: every group), stopping or
+  // restarting its channels.
+  void MuteGroup(int mute, int group);  // 0x409a50
   // Sets the volume of `group` (-1: every group).
   void SetGroupVolume(float volume, int group);  // 0x409030
 

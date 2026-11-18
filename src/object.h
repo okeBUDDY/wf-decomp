@@ -22,7 +22,9 @@ class Object {
   // Logs "<name>:ERROR:<message>".
   void Error(const char* format, ...);
   // The last error message, empty without one.
-  static const char* last_error() { return error_message_; }  // 0x403970
+  static const char* last_error() { return error_message_; }
+  // Forgets the last error (after a failure that was recovered from).
+  static void ClearError() { error_message_[0] = '\0'; }
 
  protected:
   char* name_;  // 0x04, class name used in log lines

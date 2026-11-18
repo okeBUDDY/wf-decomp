@@ -58,7 +58,7 @@ class HL3D : public System {
     }
   }
   // Clears the target (and the z-buffer when there is one).
-  void Clear() {
+  void Clear() {  // 0x402a20
     device_->Clear(0, NULL,
                    (zbuffer_ != NULL ? D3DCLEAR_ZBUFFER : 0) | D3DCLEAR_TARGET,
                    0, 1.0f, 0);
@@ -103,6 +103,15 @@ class HL3D : public System {
     device_->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
     device_->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
     device_->SetRenderState(D3DRENDERSTATE_DESTBLEND, dest);
+  }
+
+  void SetCullMode(D3DCULL mode) {
+    device_->SetRenderState(D3DRENDERSTATE_CULLMODE, mode);
+  }
+  // Sets how texture coordinates outside 0..1 of `stage` are resolved.
+  __forceinline void SetTextureAddress(DWORD mode, DWORD stage) {
+    device_->SetTextureStageState(stage, D3DTSS_ADDRESSU, mode);
+    device_->SetTextureStageState(stage, D3DTSS_ADDRESSV, mode);
   }
 
   // Draws `count` transformed vertices.

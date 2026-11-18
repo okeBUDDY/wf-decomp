@@ -2,6 +2,14 @@
 
 const char* File::modes_[] = {"rb", "wb", "ab", "rb+"};  // 0x45d16c
 
+// 0x401ac0
+void File::Close() {
+  if (file_ != NULL) {
+    fclose(file_);
+  }
+  file_ = NULL;
+}
+
 // 0x401cc0
 int File::IsOpen() { return file_ != NULL; }
 

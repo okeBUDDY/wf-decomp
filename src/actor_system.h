@@ -12,6 +12,8 @@
 
 class Actor;
 class ActorControl;
+class Channel;
+class CSndBuf;
 class HLSObject;
 
 // What ActorSystem::Spawn() makes an actor from.
@@ -61,6 +63,12 @@ class ActorSystem : public System {
   void DrawAll();  // 0x4081f0
   // Destroys every actor.
   void DestroyAll();  // 0x408480
+  // Destroys actors more than `x` / `y` pixels off the screen.
+  void SetMargin(int x, int y);  // 0x401500
+  // Plays `sound` on `channel` when an actor with `damage` (a
+  // Actor::kDamage* mode: kDamageArmor or kDamageGuard) is hit.
+  void SetDamageSound(int damage, CSndBuf* sound,
+                      Channel* channel);  // 0x407a10
 
   // The number of live actors.
   short count() const { return count_; }

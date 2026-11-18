@@ -93,7 +93,7 @@ HLSurface::HLSurface() {
   surface_ = NULL;
   locked_bits_ = NULL;
   width_ = height_ = pitch_ = format_ = mode_ = 0;
-  buffer_ = NULL;
+  file_name_ = NULL;
   unknown_18_ = 0;
   name_ = "  HLSurface";
   scale_x_ = scale_y_ = 1;
@@ -141,10 +141,10 @@ void HLSurface::Release() {
     surface_->Unlock(NULL);
     locked_bits_ = NULL;
   }
-  if (buffer_ != NULL) {
-    free(buffer_);
+  if (file_name_ != NULL) {
+    free(file_name_);
   }
-  buffer_ = NULL;
+  file_name_ = NULL;
   if ((mode_ & kKindMask) != kBackBuffer) {
     surface_->Release();
   }

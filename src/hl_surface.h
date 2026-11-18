@@ -47,14 +47,15 @@ class HLSurface : public Object {
   int Create(int width, int height, unsigned short mode);  // 0x40bda0
   // Picks the texture formats `device` supports; 0 when one is missing.
   int InitTextureFormats(IDirect3DDevice7* device);  // 0x40bb10
-  // Copies `pixels` into the surface.
-  void Load(void* pixels, unsigned short mode);  // 0x40bff0
+  // Loads the image `file` (from data.bin) into the surface, making it
+  // when needed (`mode`: Modes). Returns 0 on error.
+  int Load(const char* file, unsigned short mode);  // 0x40bff0
   // Restores the surface after a mode change, reloading its pixels.
   void Restore() {
     if (surface_ != NULL && surface_->IsLost() == DDERR_SURFACELOST) {
       surface_->Restore();
-      if (buffer_ != NULL) {
-        Load(buffer_, mode_);
+      if (file_name_ != NULL) {
+        Load(file_name_, mode_);
       }
     }
   }
@@ -93,7 +94,7 @@ class HLSurface : public Object {
   short id_;                      // 0x1e, -1: none
   unsigned char scale_x_;         // 0x20, texels per pixel
   unsigned char scale_y_;         // 0x21
-  void* buffer_;                  // 0x24, malloc()ed
+  char* file_name_;               // 0x24, of the image loaded, malloc()ed
 };
 
 #endif  // WF_HL_SURFACE_H_

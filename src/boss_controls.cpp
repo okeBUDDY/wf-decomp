@@ -191,10 +191,10 @@ int Control32::Dash(Actor* actor, EnmList* program, float x, float y,
       SendEvent(work->arms[i], 9, 0x110a);
     }
     if (power > 1.0f && work->brake_time > 90) {
-      g_application.sound->channel(26)->Assign(&g_snd_boost2, 0, 1.0f);
+      g_application.sound->channel(26)->Assign(&g_sounds[kSndBoost2], 0, 1.0f);
       return 1;
     }
-    g_application.sound->channel(25)->Assign(&g_snd_boost1, 0, 1.0f);
+    g_application.sound->channel(25)->Assign(&g_sounds[kSndBoost1], 0, 1.0f);
   }
   return 1;
 }
@@ -583,7 +583,7 @@ void Control35::FireRing(Actor* actor) {
     for (int i = 16; i > 0; --i) {
       desc_.start_angle = angle;
       g_actor_system.Spawn(&desc_);
-      g_application.sound->channel(22)->Assign(&g_snd_fire_ms, 0, 1.0f);
+      g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0, 1.0f);
       angle += 0x40;
     }
   }
@@ -615,7 +615,7 @@ int Control35::OnMove(Actor* actor) {
       desc_.speed = 6.0f;
       desc_.work = reinterpret_cast<int>(work->slot);
       g_actor_system.Spawn(&desc_);
-      g_application.sound->channel(17)->Assign(&g_snd_fire_bl, 0, 1.0f);
+      g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0, 1.0f);
       work->angle += 20;
     }
     --work->burst;

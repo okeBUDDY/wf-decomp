@@ -50,6 +50,9 @@ class Profile {
   int Open(const char* name);  // 0x406910
   // Reads `key` as a number (any base strtol takes), or returns `def`.
   int GetInt(const char* key, int def);  // 0x40cd00
+  // Reads `key` as a flag (anything but "0" is set), or returns `def`
+  // as 0 or 1.
+  int GetBool(const char* key, int def);  // 0x404660
   // Writes `value` printed with `format` to `key`.
   void WriteInt(const char* key, int value, const char* format);  // 0x40cd50
 
