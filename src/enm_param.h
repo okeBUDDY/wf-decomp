@@ -235,11 +235,15 @@ class CEnmParam : public System {
   int Tactic4168e0(Actor* boss);                // 0x4168e0
   int Tactic4169c0(Actor* boss);                // 0x4169c0
   int Tactic416ac0(Actor* boss);                // 0x416ac0
-  int Tactic416cb0(Actor* boss);                // 0x416cb0
-  int Tactic417010(Actor* boss);                // 0x417010
+  int Tactic416cb0(Actor* boss);
+  int Tactic416e10(Actor* boss);  // 0x416e10                // 0x416cb0
+  int Tactic417010(Actor* boss);  // 0x417010
   int Tactic4170c0(Actor* boss);
   int Tactic417430(Actor* boss);  // 0x417430
-  int Tactic417520(Actor* boss);  // 0x417520                // 0x4170c0
+  int Tactic417520(Actor* boss);  // 0x417520
+  int Tactic4175d0(Actor* boss);  // 0x4175d0
+  int Tactic4176f0(Actor* boss);  // 0x4176f0
+  int Tactic4177e0(Actor* boss);  // 0x4177e0                // 0x4170c0
   // Makes the armored parts glow for `time` frames (sending event 8 to
   // `actor`); 0 without armored parts.
   int GlowArmor(Actor* actor, int time);  // 0x4173a0

@@ -281,6 +281,56 @@ int CEnmParam::Tactic416cb0(Actor* boss) {
   return 0;
 }
 
+// 0x416e10
+// TODO: nonmatching (VC folds the step of case 2 into a store of 3, as in
+// RunOpening)
+int CEnmParam::Tactic416e10(Actor* boss) {
+  switch (list_218_.step) {
+    case 0:
+      list_218_.arg = rand() % 3 + 3;
+      lists_c4_[0].Start(0x30001, 100);
+      lists_c4_[1].Start(0x30001, 100);
+      list_b0_.Start(0x20004, 0);
+      ++list_218_.step;
+      // Fall through.
+    case 1:
+      if (list_b0_.op == 0 || (state_.flags & 2)) {
+        lists_c4_[0].op = 0;
+        lists_c4_[1].op = 0;
+        list_9c_.Start(0x10003, 0);
+        ++list_218_.step;
+      }
+      break;
+    case 2:
+      if (list_9c_.op == 0 && list_b0_.op == 0) {
+        list_218_.time = 60;
+        ++list_218_.step;
+      }
+      break;
+    case 3:
+      if (list_218_.time <= 0) {
+        --list_218_.arg;
+        lists_c4_[0].Start(0x30001, 100);
+        lists_c4_[1].Start(0x30001, 100);
+        if (list_218_.arg <= 0) {
+          list_9c_.Start(0x10002, 0);
+          list_b0_.Start(0x20002, 0);
+          ++list_218_.step;
+        } else {
+          list_b0_.Start(0x20004, 0);
+          list_218_.step = 1;
+        }
+      }
+      break;
+    case 4:
+      if (list_9c_.op == 0 && list_b0_.op == 0) {
+        return 1;
+      }
+      break;
+  }
+  return 0;
+}
+
 // 0x417010
 int CEnmParam::Tactic417010(Actor* boss) {
   switch (list_218_.step) {
@@ -370,6 +420,90 @@ int CEnmParam::Tactic417520(Actor* boss) {
       lists_c4_[0].Start(0x30001, 70);
       lists_c4_[1].Start(0x30001, 70);
       ++list_218_.step;
+      break;
+  }
+  return 0;
+}
+
+// 0x4175d0
+// TODO: nonmatching (case 0 stores the time after the step, like case 12
+// of Tactic416ac0)
+int CEnmParam::Tactic4175d0(Actor* boss) {
+  switch (list_218_.step) {
+    case 0: {
+      lists_c4_[0].Start(0x30001, 100);
+      lists_c4_[1].op = 0;
+      int time = (rand() % 20 + 20) * 60;
+      GlowArmor(boss, time);
+      list_b0_.Start(0x20003, time);
+      list_218_.time = 60;
+      ++list_218_.step;
+      break;
+    }
+    case 1:
+      if (list_b0_.op == 0) {
+        return 1;
+      }
+      if (list_218_.time <= 0) {
+        if (core_power_[1][4] > 0) {
+          lists_c4_[1].Start(0x30004, 4);
+          list_218_.time = 60;
+        } else {
+          lists_c4_[1].Start(0x30001, 100);
+          list_218_.time = 60;
+        }
+      }
+      break;
+  }
+  return 0;
+}
+
+// 0x4176f0
+int CEnmParam::Tactic4176f0(Actor* boss) {
+  switch (list_218_.step) {
+    case 0: {
+      lists_c4_[0].Start(0x30001, 200);
+      lists_c4_[1].Start(0x30001, 200);
+      int time = (rand() % 10 + 5) * 60;
+      GlowArmor(boss, time);
+      list_218_.time = time;
+      list_9c_.Start(0x10002, 0);
+      ++list_218_.step;
+    }
+      // Fall through.
+    case 1:
+      if (list_218_.time <= 0) {
+        if (list_9c_.op == 0) {
+          return 1;
+        }
+      } else if (list_9c_.op == 0) {
+        list_9c_.Start(0x10002, 0);
+      }
+      break;
+  }
+  return 0;
+}
+
+// 0x4177e0
+int CEnmParam::Tactic4177e0(Actor* boss) {
+  switch (list_218_.step) {
+    case 0: {
+      lists_c4_[0].Start(0x30001, 100);
+      lists_c4_[1].Start(0x30001, 100);
+      int time = (rand() % 20 + 20) * 60;
+      GlowArmor(boss, time);
+      list_b0_.Start(0x20003, time);
+      list_9c_.Start(0x10005, 0);
+      ++list_218_.step;
+      break;
+    }
+    case 1:
+      if (list_9c_.op == 0 && list_b0_.op == 0) {
+        return 1;
+      }
+      if (list_9c_.op == 0) {
+        list_9c_.Start(0x10005, 0);
+      }
       break;
   }
   return 0;
