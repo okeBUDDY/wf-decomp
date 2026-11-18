@@ -1,6 +1,9 @@
 #include "application.h"
 
+#include <stdlib.h>
+
 #include "system.h"
+#include "user_func.h"
 
 // 0x406890
 int Application::AddSystem(System* system, bool owns) {
@@ -57,5 +60,18 @@ void Application::Pause(int pause) {
     }
   } else if (flags & kPaused) {
     flags = (flags & ~kPaused) | kResumed;
+  }
+}
+
+// 0x4071b0
+void Application::Quit() {
+  Log("AllEnd");
+  if (flags & kRunning) {
+    user_func->Finish(NULL);
+    Pause(0);
+    flags &= ~kSkipFrame;
+  } else {
+    Shutdown();
+    exit(0);
   }
 }

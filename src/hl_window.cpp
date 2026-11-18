@@ -85,9 +85,9 @@ int HLWindow::OnMouse(UINT msg, WPARAM wparam, LPARAM lparam) {
 }
 
 // 0x40cda0
-void Application::RequestCapture() {
-  if (capture != NULL) {
-    flags |= kCapture;
+void Application::RequestReset() {
+  if (reset_func != NULL) {
+    flags |= kReset;
   }
 }
 
@@ -172,7 +172,7 @@ LRESULT CALLBACK HLWindow::WndProc(HWND hwnd, UINT msg, WPARAM wparam,
     case WM_PAINT:
       // The test of kSkipFrame always passes (a precedence slip).
       if ((app->graphics_flags & Application::kDirectDraw) &&
-          (app->flags & Application::kDrawing) &&
+          (app->flags & Application::kRunning) &&
           !(app->flags & Application::kFullScreen) &&
           (app->flags & Application::kPaused | Application::kSkipFrame)) {
         app->graphics->Blt();
@@ -214,7 +214,7 @@ LRESULT CALLBACK HLWindow::WndProc(HWND hwnd, UINT msg, WPARAM wparam,
           return 0;
         case VK_F12:
           if (app->options & Application::kSystemKeys) {
-            app->RequestCapture();
+            app->RequestReset();
           }
           return 0;
         case VK_F1:
