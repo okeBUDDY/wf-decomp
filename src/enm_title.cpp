@@ -1,8 +1,10 @@
 // The title of the planned boss.
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "enm_param.h"
+#include "hls_txt.h"
 
 // 0x417c10
 void CEnmParam::ChooseTitle() {
@@ -206,4 +208,126 @@ void CEnmParam::ChooseTitle() {
     title.variant = seen->variant;
   }
   state_.title = title;
+}
+
+// A word of a title (8 bytes).
+struct EnmTitleWord {
+  const char* text;
+  int alone;  // the word makes the title on its own, before the weapon
+};
+
+// The words of the titles, in Japanese (katakana).
+extern EnmTitleWord g_title_words_ja[];   // 0x45d5e0
+extern const char* g_weapon_words_ja[];   // 0x45d6b0
+extern const char* g_level_words_ja[];    // 0x45d6d0, by weapon level
+extern const char* g_variant_words_ja[];  // 0x45d728
+
+// "The" in front of `word`: "ジ" before a vowel (ァ to ェ), else "ザ".
+static inline const char* TheJa(const char* word) {
+  if (static_cast<unsigned char>(word[0]) == 0x83 &&
+      static_cast<unsigned char>(word[1]) >= 0x40 &&
+      static_cast<unsigned char>(word[1]) <= 0x49) {
+    return "ジ";
+  }
+  return "ザ";
+}
+
+// 0x418030
+void CEnmParam::FormatTitleJa(char* out) {
+  char name[64] = "", weapon[64] = "";
+  if (state_.title.words[0] >= 0) {
+    strcat(name, g_title_words_ja[state_.title.words[0]].text);
+  }
+  if (state_.title.words[1] >= 0) {
+    strcat(name, g_title_words_ja[state_.title.words[1]].text);
+  }
+  short level = state_.title.level;
+  if (level >= 0) {
+    strcat(weapon, g_level_words_ja[level]);
+  }
+  short kind = state_.title.weapon;
+  if (kind >= 0) {
+    strcat(weapon, g_weapon_words_ja[kind]);
+  }
+  int length;
+  if (level < 0) {
+    sprintf(out, "%s　%s", TheJa(name), name);
+    length = strlen(name) + 4;
+  } else if (g_title_words_ja[state_.title.words[0]].alone) {
+    length = strlen(name) + strlen(weapon) + 6;
+    if (length > 30) {
+      sprintf(out, "%s　%s\n%s", name, TheJa(weapon), weapon);
+      length = strlen(weapon);
+    } else {
+      sprintf(out, "%s　%s　%s", name, TheJa(weapon), weapon);
+    }
+  } else {
+    const char* of = kind == 7 ? "ド" : "";
+    length = strlen(weapon) + strlen(of) + strlen(name);
+    if (length > 30) {
+      sprintf(out, "%s%s\n%s", weapon, of, name);
+      length = strlen(name);
+    } else {
+      sprintf(out, "%s%s%s", weapon, of, name);
+    }
+  }
+  if (state_.title.variant >= 0) {
+    const char* variant = g_variant_words_ja[state_.title.variant];
+    if (strlen(variant) + length + 2 > 30) {
+      strcat(out, "\n");
+    } else {
+      strcat(out, "　");
+    }
+    strcat(out, variant);
+  }
+}
+
+// The words of the titles, in English.
+extern EnmTitleWord g_title_words_en[];   // 0x45d780
+extern const char* g_weapon_words_en[];   // 0x45d850
+extern const char* g_level_words_en[];    // 0x45d870
+extern const char* g_variant_words_en[];  // 0x45d8c8
+
+// 0x418400
+void CEnmParam::FormatTitleEn(char* out) {
+  char name[64] = "", weapon[64] = "";
+  char first = state_.title.words[0];
+  if (first >= 0) {
+    strcat(name, g_title_words_en[first].text);
+  }
+  if (state_.title.words[1] >= 0) {
+    strcat(name, g_title_words_en[state_.title.words[1]].text);
+  }
+  short level = state_.title.level;
+  if (level >= 0) {
+    strcat(weapon, g_level_words_en[level]);
+  }
+  if (state_.title.weapon >= 0) {
+    strcat(weapon, g_weapon_words_en[state_.title.weapon]);
+  }
+  SIZE size;
+  if (level < 0) {
+    sprintf(out, "THE %s", name);
+  } else if (g_title_words_en[first].alone) {
+    sprintf(out, "%s WITH %sS", name, weapon);
+    g_title_font.Measure(&size, out);
+    if (size.cx >= 240) {
+      out[strlen(name)] = '\n';
+    }
+  } else {
+    sprintf(out, "%s%s %s", weapon,
+            weapon[strlen(weapon) - 1] == 'E' ? "D" : "ED", name);
+    g_title_font.Measure(&size, out);
+    if (size.cx >= 240) {
+      out[strlen(out) - strlen(name) - 1] = '\n';
+    }
+  }
+  if (state_.title.variant >= 0) {
+    const char* variant = g_variant_words_en[state_.title.variant];
+    strcat(out, variant);
+    g_title_font.Measure(&size, out);
+    if (size.cx >= 240) {
+      out[strlen(out) - strlen(variant)] = '\n';
+    }
+  }
 }

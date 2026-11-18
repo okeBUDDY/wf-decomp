@@ -233,6 +233,12 @@ class CEnmParam : public System {
   // Chooses the title of the planned boss from the modes of its sides and
   // its weapons.
   void ChooseTitle();  // 0x417c10
+  // Writes the title of the boss to `out`, in Japanese, broken into two
+  // lines when long.
+  void FormatTitleJa(char* out);  // 0x418030
+  // The same in English, broken where it is wider than 240 pixels in
+  // g_title_font.
+  void FormatTitleEn(char* out);  // 0x418400
   // Writes the parameters shown on the results to `out`; returns their
   // count.
   int GetParams(short* out);  // 0x419fa0
