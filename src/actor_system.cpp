@@ -195,12 +195,7 @@ int Actor::Init(ActorControl* control, Actor* parent, float x, float y,
 
 // 0x407ef0
 int Actor::Restore(const ActorDesc* desc) {
-  HLSObject* new_sprite = desc->sprite;
-  sprite->Reset();
-  if (new_sprite == NULL) {
-    new_sprite = &g_null_sprite;
-  }
-  sprite = new_sprite;
+  SetSprite(desc->sprite);
   flags = desc->flags;
   hit_points = desc->hit_points;
   angle = desc->angle;
@@ -210,8 +205,8 @@ int Actor::Restore(const ActorDesc* desc) {
   }
   color = desc->color;
   team = desc->team;
-  speed = desc->unknown_10_;
-  acceleration = desc->unknown_14_;
+  speed = desc->speed;
+  acceleration = desc->acceleration;
   debris = desc->debris;
   age = desc->age;
   work[0] = desc->work;

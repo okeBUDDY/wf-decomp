@@ -20,8 +20,8 @@ struct ActorDesc {
   HLSObject* sprite;           // 0x04, the null sprite when NULL
   Actor* parent;               // 0x08
   D3DCOLOR color;              // 0x0c
-  float unknown_10_;           // 0x10
-  float unknown_14_;           // 0x14
+  float speed;                 // 0x10
+  float acceleration;          // 0x14
   int work;                    // 0x18
   float x;                     // 0x1c
   float y;                     // 0x20

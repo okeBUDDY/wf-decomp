@@ -102,6 +102,16 @@ class Actor {
   // Draws the sprite (and marks the hit image); returns the next actor of
   // the draw list.
   Actor* Draw();  // 0x407f90
+  // Moves the actor to the draw list of `new_layer`.
+  void SetLayer(unsigned short new_layer);  // 0x4108c0
+  // Replaces the sprite (the null sprite for NULL).
+  void SetSprite(HLSObject* new_sprite) {
+    sprite->Reset();
+    if (new_sprite == NULL) {
+      new_sprite = &g_null_sprite;
+    }
+    sprite = new_sprite;
+  }
   // Sets the color to `num` / `den` of the way from `from` to `to`.
   void LerpColor(DWORD from, DWORD to, int num, int den);  // 0x407900
 

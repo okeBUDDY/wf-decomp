@@ -99,6 +99,8 @@ class HLSPatFile : public Object {
   }
   // Releases the patterns and the texture.
   void Release();  // 0x40a060
+  // The pattern `index`, or NULL before the file is loaded.
+  HLSPat* Get(int index) const { return pats_ != NULL ? pats_[index] : NULL; }
 
  private:
   HLSurface texture_;  // 0x08

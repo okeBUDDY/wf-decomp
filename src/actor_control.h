@@ -18,6 +18,7 @@
 #define WF_ACTOR_CONTROL_H_
 
 class Actor;
+struct ActorDesc;
 
 class ActorControl {
  public:
@@ -136,6 +137,10 @@ class Control35 : public ActorControl {
   virtual int OnCreate(Actor* actor, void* param);  // 0x412950
   virtual void OnDestroy(Actor* actor);             // 0x4127c0
   virtual int OnMove(Actor* actor);                 // 0x4129c0
+
+ private:
+  static ActorDesc desc_;  // 0x469080
+  static int count_;       // 0x467844, actors alive
 };
 
 class Control43 : public ActorControl {
