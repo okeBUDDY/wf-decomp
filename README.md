@@ -100,3 +100,38 @@ python3 tools/verify.py [-v]       # SHA-1, header and per-section diffs
 | `.rdata` 0x451000-0x451261 values, 0x45b9bc-0x45c6ff | ~3k | The IAT order matches, but the hint/name table (`.idata$6`) is laid out in a different order and is 14 bytes longer, so every IAT/ILT value differs. Probably the same unstable sort over a different list. The Rich header suggests the original pulled 12 more imports and 3 more import descriptors (Implib 9 vs 6), possibly from a different DirectX SDK. |
 | `.rsrc` | 483 | `extract_res.py` rebuilds the `.res`. The resource order or memory flags differ. |
 | headers | 130 | Rich header (object counts: see above), TimeDateStamp, checksum. |
+
+## Translation units
+
+`config/splits.txt` still has one unit, `game`, that covers every game range. Decompiled code is
+therefore checked per function (`tools/compare.py`) and is not linked into `build/wf.exe` yet.
+
+The evidence for the split into the original objects is collected by `tools/tuevidence.py`
+in `config/tu-evidence.txt`:
+
+* **Rich header.** 84 Utc1310_CPP objects, 11 of them from libcmt, which leaves about
+  73 game C++ objects.
+* **EH funclets.** Each object's `.text$x` section is 16-aligned and padded with `int3`.
+  That gives 35 chunks, in link order. Each chunk is tied to its parent functions through the
+  `__ehhandler$` stubs those functions push. Example: `~TaskBase` (0x402880) is the only EH
+  function of its object, so `src/task.cpp`'s object starts after 0x4021e0.
+* **Dynamic initializers.** The 21 `.CRT$XCU` entries each construct one global object, at
+  ascending `.bss` addresses. That gives 21 TUs, in order, with their `.bss` anchors.
+
+Still to do: turn the anchors into exact unit ranges for every section. String/vtable
+grouping in `.rdata` and the `.data`/`.bss` alignment gaps will help. Then decompiled units
+can replace their blobs in the relink (`src=` in `splits.txt`).
+
+## Decompiled code
+
+| File | Contents | Status |
+|---|---|---|
+| `src/object.h` | `Object` (root class, vtable 0x451270) | `~Object` 0x401090 and scalar deleting dtor 0x401070 match |
+| `src/task.h`, `src/task.cpp` | `TaskBase : Object` (task tree, vtable 0x451544) | `~TaskBase` 0x402880 and scalar deleting dtor 0x402860 match |
+| `src/sprite.h`, `src/sprite.cpp` | `Sprite` with `TLVertex[4]` | `SetColor` 0x401000 matches |
+
+Code style: explicit braces everywhere and the repo `.clang-format` (Google, left pointer
+alignment). Use structs and named fields instead of raw offsets, and recover classes with
+their vtables and inheritance. Fields not recovered yet are padding arrays named after their
+offset. Name decompiled functions by their MSVC-mangled names in `config/symbols.txt`;
+`gensyms.py` keeps manual names.
