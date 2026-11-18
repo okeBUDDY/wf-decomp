@@ -36,6 +36,16 @@ class Profile {
       strcpy(out, def);
     }
   }
+  // Reads `key` of the current section into `out`, or copies `def` without
+  // a file. Returns `out`.
+  char* ReadString(const char* key, char* out, int size,
+                   const char* def);  // 0x4046b0
+  // Writes `value` to `key` of the current section.
+  void WriteString(const char* key, const char* value) {
+    if (path_ != NULL && section_[0] != '\0') {
+      WritePrivateProfileString(section_, key, value, path_);
+    }
+  }
   // Uses "<name>.ini" next to the executable. Returns 0 without memory.
   int Open(const char* name);  // 0x406910
   // Reads `key` as a number (any base strtol takes), or returns `def`.

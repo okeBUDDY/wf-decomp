@@ -38,6 +38,11 @@
       "base_path": "build/obj/src/hl_3d.obj"
     },
     {
+      "name": "hl_input",
+      "target_path": "build/target/hl_input.obj",
+      "base_path": "build/obj/src/hl_input.obj"
+    },
+    {
       "name": "hl_surface",
       "target_path": "build/target/hl_surface.obj",
       "base_path": "build/obj/src/hl_surface.obj"

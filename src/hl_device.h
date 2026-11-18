@@ -3,9 +3,24 @@
 #ifndef WF_HL_DEVICE_H_
 #define WF_HL_DEVICE_H_
 
+#include <windows.h>
+
 #include "system.h"
 
 struct Application;
+
+// The input devices to choose from (vtable 0x451834).
+class HLDevSet : public Object {
+ public:
+  // Adds a device entry: `guid` NULL is the default device; `named` uses
+  // `name` as is.
+  void Add(const GUID* guid, const char* name, int named);  // 0x404730
+
+  unsigned short count() const { return count_; }
+
+ private:
+  unsigned short count_;  // 0x08
+};
 
 class HLDevice : public System {
  public:
