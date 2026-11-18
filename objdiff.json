@@ -13,6 +13,11 @@
       "base_path": "build/obj/src/actor_control.obj"
     },
     {
+      "name": "actor_system",
+      "target_path": "build/target/actor_system.obj",
+      "base_path": "build/obj/src/actor_system.obj"
+    },
+    {
       "name": "application",
       "target_path": "build/target/application.obj",
       "base_path": "build/obj/src/application.obj"
@@ -56,6 +61,16 @@
       "name": "hl_window",
       "target_path": "build/target/hl_window.obj",
       "base_path": "build/obj/src/hl_window.obj"
+    },
+    {
+      "name": "hls_anm",
+      "target_path": "build/target/hls_anm.obj",
+      "base_path": "build/obj/src/hls_anm.obj"
+    },
+    {
+      "name": "hls_hit_image",
+      "target_path": "build/target/hls_hit_image.obj",
+      "base_path": "build/obj/src/hls_hit_image.obj"
     },
     {
       "name": "object",

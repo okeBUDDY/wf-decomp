@@ -1,0 +1,88 @@
+// Sprite objects and their animations: HLSObject is the interface of
+// everything the sprite code draws; HLSAnm plays a script of objects
+// (HLSAnmSys owns the pool, vtable 0x451cc4).
+#ifndef WF_HLS_ANM_H_
+#define WF_HLS_ANM_H_
+
+#include <windows.h>
+
+#include <d3d.h>
+
+#include "system.h"
+
+struct Application;
+class HLSHitImage;
+struct Transform;
+
+// vtable 0x451ca4.
+class HLSObject {
+ public:
+  HLSObject() { unknown_04_ = 0; }
+  virtual ~HLSObject() {}  // 0x407a60
+  virtual void Reset() {}
+  virtual void Draw(const Transform* transform, D3DCOLOR color, int blend) = 0;
+  // Marks the object in `image` with `id`.
+  virtual void Hit(HLSHitImage* image, int x, int y, unsigned short id) {
+  }  // 0x407360
+
+ protected:
+  int unknown_04_;  // 0x04
+};
+
+// The objects and scripts of an animation set.
+struct AnmSet {
+  char unknown_00_[0x30];
+  HLSObject** objects;  // 0x30
+};
+
+// One animation: a script of (object, frames) pairs. -2 entries jump
+// (target, count), -1 ends.
+struct AnmData {
+  AnmSet* set;    // 0x00
+  short* script;  // 0x04
+};
+
+// vtable 0x451cb4.
+class HLSAnm : public HLSObject {
+ public:
+  enum { kJump = -2, kEnd = -1 };
+
+  HLSAnm() {
+    data_ = NULL;
+    cursor_ = NULL;
+    object_ = NULL;
+    wait_ = loop_ = 0;
+  }  // 0x407390
+  virtual void Reset();  // 0x4073b0
+  // Draws the current object, then steps the script while the time moves.
+  virtual void Draw(const Transform* transform, D3DCOLOR color,
+                    int blend);  // 0x4073e0
+  virtual void Hit(HLSHitImage* image, int x, int y,
+                   unsigned short id);  // 0x4073c0
+
+ private:
+  // Counts down the current entry and moves to the next one.
+  void Step();  // 0x407420
+
+  AnmData* data_;      // 0x08
+  short* cursor_;      // 0x0c, the current script entry
+  HLSObject* object_;  // 0x10
+  short wait_;         // 0x14, frames left on the entry
+  short loop_;         // 0x16, jumps left, -1: forever
+};
+
+class HLSAnmSys : public System {
+ public:
+  HLSAnmSys();                               // 0x4074f0
+  virtual int Initialize(Application* app);  // 0x407520
+  virtual void Finalize();                   // 0x4072f0
+  virtual void Pause() {}
+  virtual void Resume() {}
+
+ private:
+  int count_;         // 0x08
+  Application* app_;  // 0x0c
+  HLSAnm* anims_;     // 0x10, new[]ed
+};
+
+#endif  // WF_HLS_ANM_H_

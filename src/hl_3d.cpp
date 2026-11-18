@@ -7,7 +7,7 @@ HL3D::HL3D() {
   device_ = NULL;
   unknown_10_ = 0;
   zbuffer_ = NULL;
-  unknown_20_ = 0;
+  texture_ = NULL;
   flags_ = 0;
   unknown_70_ = 0;
   unknown_6c_ = 0;

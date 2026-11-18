@@ -10,6 +10,16 @@
 #include "system.h"
 
 struct Application;
+class HLMesh;
+class HLSurface;
+
+// A D3DCOLOR split into its bytes.
+struct Color {
+  unsigned char b;
+  unsigned char g;
+  unsigned char r;
+  unsigned char a;
+};
 
 class HL3D : public System {
  public:
@@ -33,6 +43,11 @@ class HL3D : public System {
                    (zbuffer_ != NULL ? D3DCLEAR_ZBUFFER : 0) | D3DCLEAR_TARGET,
                    0, 1.0f, 0);
   }
+  // Sets the texture of `stage` unless it is the current one.
+  void SetTexture(HLSurface* texture, int stage);  // 0x407880
+  // Sets color_ to `num` / `den` of the way from `from` to `to`.
+  void LerpColor(D3DCOLOR from, D3DCOLOR to, int num, int den);  // 0x407900
+
   void EndScene() {
     if (flags_ & kInScene) {
       device_->EndScene();
@@ -41,18 +56,22 @@ class HL3D : public System {
   }
 
  private:
+  friend class HLMesh;
+
   IDirect3D7* d3d_;               // 0x08
   IDirect3DDevice7* device_;      // 0x0c
   int unknown_10_;                // 0x10
   IDirectDrawSurface7* zbuffer_;  // 0x14
   short depth_;                   // 0x18, z-buffer bits
   Application* app_;              // 0x1c
-  int unknown_20_;                // 0x20
+  HLSurface* texture_;            // 0x20, set by SetTexture()
   unsigned int flags_;            // 0x24, Flags
-  char unknown_28_[0x44];
-  int unknown_6c_;  // 0x6c
-  int unknown_70_;  // 0x70
-  int unknown_74_;  // 0x74
+  int unknown_28_;                // 0x28
+  Color color_;                   // 0x2c
+  char unknown_30_[0x3c];
+  int unknown_6c_;   // 0x6c
+  int unknown_70_;   // 0x70
+  HLMesh** meshes_;  // 0x74
 };
 
 #endif  // WF_HL_3D_H_

@@ -17,6 +17,8 @@ class HLSurface : public Object {
 
   // Reads the size and format of surface_ (`mode`: Modes).
   void Attach(unsigned short mode);  // 0x40b970
+  // Locks the whole surface. Returns its pixels, or NULL.
+  void* Lock();  // 0x407820
   // Releases the surface and the buffer.
   void Release();  // 0x40ba80
   // Creates a `width` x `height` surface. Returns 0 on error.
@@ -40,6 +42,7 @@ class HLSurface : public Object {
 
  private:
   friend class Graphics;
+  friend class HL3D;
 
   IDirectDrawSurface7* surface_;  // 0x08
   void* locked_bits_;             // 0x0c, while locked
