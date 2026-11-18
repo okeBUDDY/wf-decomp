@@ -35,12 +35,62 @@ OBJDIR = os.path.join(BUILD, "obj", "src")
 TARGETDIR = os.path.join(BUILD, "target")
 
 
+# The sources are UTF-8. cl gets a Shift-JIS (cp932) copy of src/ in
+# SJIS_DIR, run with Wine's ANSI code page 932 so that it lexes the
+# double-byte characters (a trail byte of 0x5c is not a backslash).
+SRC_DIR = os.path.join(ROOT, "src")
+SJIS_DIR = os.path.join(BUILD, "src-sjis")
+CL_LOCALE = {"LANG": "ja_JP.UTF-8", "LC_ALL": "ja_JP.UTF-8"}
+
+
+def to_cp932(path):
+    """The cp932 bytes of the UTF-8 file `path`; fails on anything else."""
+    data = open(path, "rb").read()
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise SystemExit(f"{path}: not UTF-8 (byte {e.start})")
+    out = []
+    for no, line in enumerate(text.splitlines(keepends=True), 1):
+        try:
+            out.append(line.encode("cp932"))
+        except UnicodeEncodeError as e:
+            raise SystemExit(f"{path}:{no}: {line[e.start:e.end]!r} (U+{ord(line[e.start]):04X}) "
+                             "has no cp932 encoding")
+    return b"".join(out)
+
+
+def mirror_sources():
+    """Writes the cp932 copy of src/ to SJIS_DIR (only files that changed)."""
+    keep = set()
+    for root, _, files in os.walk(SRC_DIR):
+        for f in files:
+            src = os.path.join(root, f)
+            rel = os.path.relpath(src, SRC_DIR)
+            dst = os.path.join(SJIS_DIR, rel)
+            keep.add(dst)
+            data = to_cp932(src)
+            if os.path.exists(dst) and open(dst, "rb").read() == data:
+                continue
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            open(dst, "wb").write(data)
+    for root, _, files in os.walk(SJIS_DIR):
+        for f in files:
+            if os.path.join(root, f) not in keep:
+                os.remove(os.path.join(root, f))
+
+
 def compile_source(src):
     os.makedirs(OBJDIR, exist_ok=True)
     obj = os.path.join(OBJDIR, os.path.splitext(os.path.basename(src))[0] + ".obj")
-    incs = [os.path.join(ROOT, "src")] + [os.path.join(BUILD, "lib", "src", d) for d in LIB_INCLUDES]
-    args = CFLAGS + ["/I" + winpath(i) for i in incs] + ["/Fo" + winpath(obj), winpath(src)]
-    rc, out = run_wine(f"{VC71}/bin/cl.exe", args, vc71_env(), check=False)
+    sjis = os.path.join(SJIS_DIR, os.path.relpath(os.path.abspath(src), SRC_DIR))
+    if not os.path.exists(sjis):
+        raise SystemExit(f"{src}: not under src/")
+    incs = [SJIS_DIR] + [os.path.join(BUILD, "lib", "src", d) for d in LIB_INCLUDES]
+    args = CFLAGS + ["/I" + winpath(i) for i in incs] + ["/Fo" + winpath(obj), winpath(sjis)]
+    env = dict(vc71_env(), **CL_LOCALE)
+    rc, out = run_wine(f"{VC71}/bin/cl.exe", args, env, check=False)
+    out = out.replace(winpath(SJIS_DIR), winpath(SRC_DIR))
     lines = [ln for ln in out.splitlines() if ln.strip() and ln.strip() != os.path.basename(src)]
     if lines:
         print("\n".join(lines))
@@ -144,6 +194,7 @@ def main():
     units = []
     seen, matched = set(), set()
     report = []
+    mirror_sources()
     for src in srcs:
         obj = compile_source(src)
         coff = Coff(open(obj, "rb").read(), obj)

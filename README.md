@@ -49,6 +49,17 @@ python3 tools/link.py              # link build/wf.exe and run verify
 python3 tools/verify.py [-v]       # SHA-1, header and per-section diffs
 ```
 
+### Source encoding
+
+The sources in `src/` are UTF-8, and Japanese strings are written as text (not `\x`
+escapes; see `.editorconfig`). The exe holds them in Shift-JIS, so `compare.py` first writes
+a cp932 copy of `src/` to `build/src-sjis/` (same relative paths, so includes resolve there)
+and compiles that. A character with no cp932 encoding stops the build with its file and
+line. `cl` runs with `LANG`/`LC_ALL=ja_JP.UTF-8`, which gives Wine the ANSI code page 932:
+only then does `cl` lex the double-byte characters, so a trail byte of 0x5c (as in 「表示」
+or 「ソフト」) is not read as a backslash. Under the default code page the same literal is
+mangled with warning C4129.
+
 ## Layout
 
 | Path | Contents |

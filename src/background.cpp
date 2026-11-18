@@ -20,7 +20,7 @@ int BackgroundGrid::Initialize() {
   }
   points_ = static_cast<D3DVECTOR*>(malloc(kPoints * sizeof(D3DVECTOR)));
   if (points_ == NULL) {
-    Error("\xd2\xd3\xd8\x82\xaa\x91\xab\x82\xe8\x82\xdc\x82\xb9\x82\xf1.");
+    Error("ﾒﾓﾘが足りません.");
     return 0;
   }
   D3DVECTOR* p = points_;
