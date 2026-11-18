@@ -203,3 +203,54 @@ HLDevice::HLDevice() {
 
 // 0x404910
 HLDevice::~HLDevice() {}
+
+// 0x404e40
+// TODO: nonmatching: the original loads the selection into eax, not ecx,
+// for the last SendMessageA; everything else matches.
+INT_PTR CALLBACK HLDevice::DialogProc(HWND dialog, UINT message, WPARAM wparam,
+                                      LPARAM lparam) {
+  if (message == WM_INITDIALOG) {
+    HLDevice* device = reinterpret_cast<HLDevice*>(lparam);
+    SetWindowLongA(dialog, GWL_USERDATA, lparam);
+    device->InitDialog(dialog);
+    return FALSE;
+  }
+  HLDevice* device =
+      reinterpret_cast<HLDevice*>(GetWindowLongA(dialog, GWL_USERDATA));
+  switch (message) {
+    case WM_CLOSE:
+      EndDialog(dialog, 0);
+      return TRUE;
+    case WM_COMMAND:
+      switch (LOWORD(wparam)) {
+        case IDOK:
+          device->ReadDialog(dialog);
+          if (device->CheckDisplay(dialog)) {
+            EndDialog(dialog, 1);
+          }
+          return TRUE;
+        case IDCANCEL:
+          EndDialog(dialog, 0);
+          return TRUE;
+        case 0x3ec:
+          if (HIWORD(wparam) == CBN_SELCHANGE) {
+            device->pads_[device->pad_].Select(
+                static_cast<unsigned char>(SendMessageA(
+                    reinterpret_cast<HWND>(lparam), CB_GETCURSEL, 0, 0)));
+            return TRUE;
+          }
+          // Falls through (to no effect).
+        case 0x3ee:
+          if (HIWORD(wparam) == CBN_SELCHANGE) {
+            device->pad_ = static_cast<unsigned short>(SendMessageA(
+                reinterpret_cast<HWND>(lparam), CB_GETCURSEL, 0, 0));
+            SendMessageA(GetDlgItem(dialog, 0x3ec), CB_SETCURSEL,
+                         device->pads_[device->pad_].selected_, 0);
+            return TRUE;
+          }
+          break;
+      }
+      break;
+  }
+  return FALSE;
+}

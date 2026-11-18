@@ -57,6 +57,8 @@ class HLDevSet : public Object {
   unsigned short count() const { return count_; }
 
  private:
+  friend class HLDevice;
+
   // Copies `name` to `out` without its leading and trailing spaces, at most
   // 63 characters.
   void CopyName(char* out, const char* name);  // 0x4042f0
@@ -85,6 +87,9 @@ class HLDevice : public System {
   // Returns 0 (with a warning on `window`) when the desktop has 256 colors
   // and the game runs in a window; else takes its depth.
   int CheckDisplay(HWND window);  // 0x4043f0
+  // The start-up dialog; WM_INITDIALOG brings the HLDevice.
+  static INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam,
+                                     LPARAM lparam);  // 0x404e40
   // Fills the controls of the dialog from the choices.
   void InitDialog(HWND dialog);  // 0x404480
   // Reads the choices back from the dialog.
