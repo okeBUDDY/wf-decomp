@@ -8,9 +8,9 @@
   ],
   "units": [
     {
-      "name": "hl_surface",
-      "target_path": "build/target/hl_surface.obj",
-      "base_path": "build/obj/src/hl_surface.obj"
+      "name": "hls_pat",
+      "target_path": "build/target/hls_pat.obj",
+      "base_path": "build/obj/src/hls_pat.obj"
     }
   ]
 }

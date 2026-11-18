@@ -1,8 +1,10 @@
 #include "hls_pat.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "application.h"
+#include "file.h"
 #include "hls_hit_image.h"
 
 // 0x40a0e0
@@ -177,5 +179,78 @@ int HLSPatSys::Initialize(Application* app) {
   HLSPat::system_ = this;
   // "%d patterns available."
   Log("%dﾊﾟﾀｰﾝ利用可能.", count_);
+  return 1;
+}
+
+// 0x40a320
+// TODO: nonmatching: the code matches, but the original's frame has one
+// more 4-byte local (the scalars sit 4 bytes higher, `this` above `id`).
+int HLSPatFile::Load(const char* name, int min_count) {
+  if (pats_ == NULL) {
+    Release();
+  }
+  char path[80];
+  strcpy(path, name);
+  strcat(path, ".png");
+  if (!texture_.Load(path, HLSurface::kTexture | HLSurface::kAlpha)) {
+    strcpy(path, name);
+    strcat(path, ".bmp");
+    if (!texture_.Load(path, HLSurface::kTexture | HLSurface::kAlpha)) {
+      return 0;
+    }
+    ClearError();
+  }
+  PackFile file;
+  strcpy(path, name);
+  strcat(path, ".pat");
+  if (!file.Open(path, File::kRead)) {
+    Error("%sがみつかりません.", path);
+    return 0;
+  }
+  int pat_count;
+  int id;
+  file.Read(&pat_count, sizeof(pat_count));
+  file.Read(&id, sizeof(id));
+  ++id;
+  count_ = min_count > id ? min_count : id;
+  pats_ = static_cast<HLSPat**>(malloc(count_ * sizeof(HLSPat*)));
+  if (pats_ == NULL) {
+    file.Close();
+    Error("ﾒﾓﾘが足りません.");
+    return 0;
+  }
+  for (int i = 0; i < count_; ++i) {
+    pats_[i] = NULL;
+  }
+  for (int i = 0; i < pat_count; ++i) {
+    short u;
+    short v;
+    short width;
+    short height;
+    int x;
+    int y;
+    short hit_width;
+    short hit_height;
+    file.Read(&id, sizeof(id));
+    file.Read(&u, sizeof(u));
+    file.Read(&v, sizeof(v));
+    file.Read(&width, sizeof(width));
+    file.Read(&height, sizeof(height));
+    file.Read(&x, sizeof(x));
+    file.Read(&y, sizeof(y));
+    file.Read(&hit_width, sizeof(hit_width));
+    file.Read(&hit_height, sizeof(hit_height));
+    if (id < count_) {
+      pats_[id] = HLSPat::system_->Create(width, height, &texture_, u, v, x, y,
+                                          hit_width, hit_height);
+      if (pats_[id] == NULL) {
+        file.Close();
+        Error("%sの全ﾊﾟﾀｰﾝを登録できませんでした.", path);
+        return 0;
+      }
+    }
+  }
+  file.Close();
+  Log("%dﾊﾟﾀｰﾝ確保, %sから%dﾊﾟﾀｰﾝ読み込み", count_, path, pat_count);
   return 1;
 }
