@@ -18,6 +18,13 @@
 #include "sounds.h"
 #include "sprite.h"
 
+// Implicit ctor 0x401bf0, dtor 0x401e00.
+PatFiles g_pats;  // 0x467d70
+// Implicit ctor 0x401e90, dtor 0x401f80.
+// TODO: nonmatching (the implicit dtor 0x401f80: the original interleaves
+// the vector dtor's argument pushes with the vptr stores).
+Fonts g_fonts;  // 0x467ec0
+
 // 0x4010a0
 cGlobal::cGlobal() {
   music_volume = effect_volume = 1.0f;
@@ -28,21 +35,21 @@ cGlobal::cGlobal() {
 // 0x4010d0
 void cGlobal::Finalize() {
   g_actor_system.DestroyAll();
-  g_sys_pats.Release();
-  g_enemy_pats.Release();
-  g_add_pats.Release();
+  g_pats.sys[0].Release();
+  g_pats.enemy[0].Release();
+  g_pats.add[0].Release();
   for (int i = 0; i < 3; ++i) {
-    g_etc_pats[i].Release();
+    g_pats.etc[i].Release();
   }
-  g_text_font.Release();
-  g_small_font.Release();
-  g_kana_font.Release();
-  g_title_font.Release();
-  g_large_digit_font.Release();
-  g_digit_font.Release();
-  g_font0_texture.Release();
-  g_font1_texture.Release();
-  g_font2_texture.Release();
+  g_fonts.text.Release();
+  g_fonts.small_text.Release();
+  g_fonts.kana.Release();
+  g_fonts.title.Release();
+  g_fonts.large_digit.Release();
+  g_fonts.digit.Release();
+  g_fonts.textures[0].Release();
+  g_fonts.textures[1].Release();
+  g_fonts.textures[2].Release();
   for (int i = 0; i < kSounds; ++i) {
     g_sounds[i].Release();
   }
@@ -78,66 +85,66 @@ void cGlobal::ResetGame() {
 
 // 0x401280
 int cGlobal::LoadFonts() {
-  if (!g_font0_texture.Load("font0.png", 0x44)) {
+  if (!g_fonts.textures[0].Load("font0.png", 0x44)) {
     return 0;
   }
-  if (!g_font1_texture.Load("font1.png", 0x44)) {
+  if (!g_fonts.textures[1].Load("font1.png", 0x44)) {
     return 0;
   }
-  if (!g_font2_texture.Load("font2.png", 0x44)) {
+  if (!g_fonts.textures[2].Load("font2.png", 0x44)) {
     return 0;
   }
-  if (!g_text_font.Initialize(&g_application, &g_font1_texture, 32, " ", 64, 0,
-                              192, 16, 16, 16, 0, NULL)) {
+  if (!g_fonts.text.Initialize(&g_application, &g_fonts.textures[1], 32, " ",
+                               64, 0, 192, 16, 16, 16, 0, NULL)) {
     return 0;
   }
-  if (!g_small_font.Initialize(&g_application, &g_font0_texture, 32, " ", 64,
-                               128, 64, 8, 8, 16, 0, NULL)) {
+  if (!g_fonts.small_text.Initialize(&g_application, &g_fonts.textures[0], 32,
+                                     " ", 64, 128, 64, 8, 8, 16, 0, NULL)) {
     return 0;
   }
-  if (!g_kana_font.Initialize(&g_application, &g_font1_texture, 8, "ァ", 96, 0,
-                              0, 16, 32, 16, 0, NULL)) {
+  if (!g_fonts.kana.Initialize(&g_application, &g_fonts.textures[1], 8, "ァ",
+                               96, 0, 0, 16, 32, 16, 0, NULL)) {
     return 0;
   }
-  if (!g_title_font.Initialize(&g_application, &g_font0_texture, 8, "A", 28, 0,
-                               0, 20, 32, 12, 9, g_title_font_widths)) {
+  if (!g_fonts.title.Initialize(&g_application, &g_fonts.textures[0], 8, "A",
+                                28, 0, 0, 20, 32, 12, 9, g_title_font_widths)) {
     return 0;
   }
-  if (!g_large_digit_font.Initialize(&g_application, &g_font0_texture, 1, "0",
-                                     10, 0, 96, 48, 80, 5, 0, NULL)) {
+  if (!g_fonts.large_digit.Initialize(&g_application, &g_fonts.textures[0], 1,
+                                      "0", 10, 0, 96, 48, 80, 5, 0, NULL)) {
     return 0;
   }
-  if (!g_digit_font.Initialize(&g_application, &g_font2_texture, 1, "0", 10, 0,
-                               48, 24, 40, 5, 0, NULL)) {
+  if (!g_fonts.digit.Initialize(&g_application, &g_fonts.textures[2], 1, "0",
+                                10, 0, 48, 24, 40, 5, 0, NULL)) {
     return 0;
   }
-  g_kana_font.Map("　", 87);
-  g_kana_font.Map("ー", 88);
-  g_kana_font.Map("～", 89);
-  g_kana_font.Map("★", 90);
-  g_kana_font.Map("☆", 91);
-  g_title_font.Map("-", 26);
+  g_fonts.kana.Map("　", 87);
+  g_fonts.kana.Map("ー", 88);
+  g_fonts.kana.Map("～", 89);
+  g_fonts.kana.Map("★", 90);
+  g_fonts.kana.Map("☆", 91);
+  g_fonts.title.Map("-", 26);
   return 1;
 }
 
 // 0x401470
 int cGlobal::LoadPatterns() {
-  if (!g_sys_pats.Load("sys0", 0)) {
+  if (!g_pats.sys[0].Load("sys0", 0)) {
     return 0;
   }
-  if (!g_enemy_pats.Load("enm0", 0)) {
+  if (!g_pats.enemy[0].Load("enm0", 0)) {
     return 0;
   }
-  if (!g_add_pats.Load("add0", 0)) {
+  if (!g_pats.add[0].Load("add0", 0)) {
     return 0;
   }
-  if (!g_etc_pats[0].Load("etc0", 0)) {
+  if (!g_pats.etc[0].Load("etc0", 0)) {
     return 0;
   }
-  if (!g_etc_pats[1].Load("etc1", 0)) {
+  if (!g_pats.etc[1].Load("etc1", 0)) {
     return 0;
   }
-  if (!g_etc_pats[2].Load("etc2", 0)) {
+  if (!g_pats.etc[2].Load("etc2", 0)) {
     return 0;
   }
   return 1;

@@ -173,10 +173,11 @@ int GameHud::MoveNameEntry() {
       if (rank < 0) {
         return 1;
       }
-      mode_texts_[0] = g_text_font.Create(0x40, NULL);
-      mode_texts_[1] = g_small_font.Create(0, "PLEASE ENTER YOUR NAME!");
-      mode_texts_[2] = g_text_font.Create(8, NULL);
-      mode_texts_[3] = g_small_font.Create(0, const_cast<char*>(kNameChars));
+      mode_texts_[0] = g_fonts.text.Create(0x40, NULL);
+      mode_texts_[1] = g_fonts.small_text.Create(0, "PLEASE ENTER YOUR NAME!");
+      mode_texts_[2] = g_fonts.text.Create(8, NULL);
+      mode_texts_[3] =
+          g_fonts.small_text.Create(0, const_cast<char*>(kNameChars));
       if (mode_texts_[0] == NULL || mode_texts_[1] == NULL ||
           mode_texts_[2] == NULL || mode_texts_[3] == NULL) {
         return 1;
@@ -286,7 +287,7 @@ void GameHud::DrawNameEntry() {
   turned.m[2][0] = transform.m[2][0];
   turned.m[2][1] = transform.m[2][1];
   turned.m[2][2] = transform.m[2][2];
-  SetTexture(g_application.d3d, &g_font2_texture, 0);
+  SetTexture(g_application.d3d, &g_fonts.textures[2], 0);
   g_application.d3d->SetFilter(open_ != 1.0f, 0);
   transform.m[2][0] += 320;
   transform.m[2][1] += 240;

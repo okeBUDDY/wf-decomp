@@ -160,11 +160,11 @@ int GameHud::Initialize() {
   flags_ = 0xff0000;
   next_mode_ = kModeNone;
   mode_ = kModeNone;
-  texts_[kTextScore] = g_text_font.Create(0x20, NULL);
-  texts_[kTextLives] = g_text_font.Create(8, NULL);
-  texts_[kTextExtend] = g_small_font.Create(8, NULL);
-  texts_[kTextSeconds] = g_large_digit_font.Create(8, NULL);
-  texts_[kTextFrames] = g_digit_font.Create(8, NULL);
+  texts_[kTextScore] = g_fonts.text.Create(0x20, NULL);
+  texts_[kTextLives] = g_fonts.text.Create(8, NULL);
+  texts_[kTextExtend] = g_fonts.small_text.Create(8, NULL);
+  texts_[kTextSeconds] = g_fonts.large_digit.Create(8, NULL);
+  texts_[kTextFrames] = g_fonts.digit.Create(8, NULL);
   if (texts_[kTextScore] == NULL || texts_[kTextSeconds] == NULL ||
       texts_[kTextFrames] == NULL) {
     goto error;
@@ -175,9 +175,9 @@ int GameHud::Initialize() {
   FILETIME time;
   if (g_replay.mode() == Replay::kPlay &&
       GetFileWriteTime(g_replay.path(), &time)) {
-    texts_[kTextReplayName] = g_small_font.Create(0x48, NULL);
-    texts_[kTextReplayDate] = g_small_font.Create(0x20, NULL);
-    texts_[kTextReplayHelp] = g_small_font.Create(0x50, NULL);
+    texts_[kTextReplayName] = g_fonts.small_text.Create(0x48, NULL);
+    texts_[kTextReplayDate] = g_fonts.small_text.Create(0x20, NULL);
+    texts_[kTextReplayHelp] = g_fonts.small_text.Create(0x50, NULL);
     if (texts_[kTextReplayName] == NULL || texts_[kTextReplayDate] == NULL ||
         texts_[kTextReplayHelp] == NULL) {
       goto error;

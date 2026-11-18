@@ -120,8 +120,4 @@ class HLSTxtSys : public Object {
   float* widths_;                   // 0x70
 };
 
-// The font the boss's title is measured in (one of five at 0x467fac,
-// 0x74 bytes apart).
-extern HLSTxtSys g_title_font;  // 0x468094
-
 #endif  // WF_HLS_TXT_H_

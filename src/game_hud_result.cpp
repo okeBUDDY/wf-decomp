@@ -32,7 +32,8 @@ int GameHud::MoveResult() {
   int step = step_;
   switch (step) {
     case 0: {
-      mode_texts_[0] = g_small_font.Create(g_enm_param.GetResultSize(), NULL);
+      mode_texts_[0] =
+          g_fonts.small_text.Create(g_enm_param.GetResultSize(), NULL);
       if (mode_texts_[0] == NULL) {
         return 1;
       }
@@ -110,7 +111,7 @@ void GameHud::DrawResult() {
       -static_cast<float>(
           static_cast<unsigned int>(g_application.frame_count & 0x3f) * 2),
       460);
-  SetTexture(g_application.d3d, &g_font2_texture, 0);
+  SetTexture(g_application.d3d, &g_fonts.textures[2], 0);
   g_application.d3d->SetFilter(result_bar_ != 1.0f, 0);
   g_application.d3d->DrawTexels(D3DPT_TRIANGLESTRIP, &transform, kResultBar,
                                 kResultBarTexels, 0xc800ff80, 4);

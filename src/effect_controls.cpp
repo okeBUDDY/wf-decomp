@@ -32,7 +32,7 @@ struct EffectWork {
 
 // 0x412c80
 int Control08::Initialize() {
-  HLSObject* sprite = g_add_pats.Get(1);
+  HLSObject* sprite = g_pats.add[0].Get(1);
   default_.sprite = sprite;
   return 1;
 }
@@ -158,7 +158,7 @@ int Control23::OnMove(Actor* actor) {
     work->scale = work->max_scale;
   }
   if ((actor->age & 3) == 1) {
-    HLSObject* sprite = g_add_pats.Get(28);
+    HLSObject* sprite = g_pats.add[0].Get(28);
     g_flare_trail.sprite = sprite;
     g_flare_trail.scale_min = g_flare_trail.scale_max = work->scale;
     g_flare_trail.angle_min = g_flare_trail.angle_max = actor->ScreenAngle();

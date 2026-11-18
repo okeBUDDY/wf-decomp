@@ -68,9 +68,9 @@ int FnTitle::Initialize() {
   background->color_ = 0xff004030;
   background->speed_ = 8.0f;
   g_application.tasks.AddBack(background, 2);
-  texts_[0] = g_text_font.Create(0x20, NULL);
-  texts_[1] = g_text_font.Create(0x40, NULL);
-  texts_[2] = g_small_font.Create(0x200, NULL);
+  texts_[0] = g_fonts.text.Create(0x20, NULL);
+  texts_[1] = g_fonts.text.Create(0x40, NULL);
+  texts_[2] = g_fonts.small_text.Create(0x200, NULL);
   scores_length_ = g_score_table.Format(texts_[2]->text());
   title_length_ = strlen(kTitle);
 
@@ -85,11 +85,11 @@ int FnTitle::Initialize() {
   desc.layer = 4;
   desc.color = 0xffffffff;
   desc.x = 800;
-  HLSObject* sprite = g_etc_pats[0].Get(1);
+  HLSObject* sprite = g_pats.etc[0].Get(1);
   desc.sprite = sprite;
   sweeps_[0] = g_actor_system.Spawn(&desc);
   desc.x = -160;
-  sprite = g_etc_pats[0].Get(2);
+  sprite = g_pats.etc[0].Get(2);
   desc.sprite = sprite;
   sweeps_[1] = g_actor_system.Spawn(&desc);
   desc.color = 0xffffd000;
@@ -107,10 +107,10 @@ int FnTitle::Initialize() {
   desc.x = 320;
   desc.y = 220;
   desc.color = 0x00ffffff;
-  sprite = g_etc_pats[2].Get(1);
+  sprite = g_pats.etc[2].Get(1);
   desc.sprite = sprite;
   logo_[0] = g_actor_system.Spawn(&desc);
-  sprite = g_etc_pats[2].Get(2);
+  sprite = g_pats.etc[2].Get(2);
   desc.sprite = sprite;
   logo_[1] = g_actor_system.Spawn(&desc);
 

@@ -149,7 +149,7 @@ int Control22::OnMove(Actor* actor) {
 int Control22::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
-  actor->SetSprite(g_add_pats.Get(27));
+  actor->SetSprite(g_pats.add[0].Get(27));
   actor->flags |= Actor::kAdditive;
   GlowWork* work = reinterpret_cast<GlowWork*>(actor->work);
   work->duration = reinterpret_cast<int>(param) - 120;
@@ -194,7 +194,7 @@ void Control35::OnDestroy(Actor* actor) { --g_enm_param.turret_count_; }
 int Control35::Initialize() {
   memset(&desc_, 0, sizeof(desc_));
   desc_.color = 0xffffffff;
-  HLSObject* sprite = g_sys_pats.Get(64);
+  HLSObject* sprite = g_pats.sys[0].Get(64);
   desc_.sprite = sprite;
   desc_.flags = Actor::kFaceStart;
   desc_.team = 9;

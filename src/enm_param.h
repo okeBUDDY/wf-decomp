@@ -237,7 +237,7 @@ class CEnmParam : public System {
   // lines when long.
   void FormatTitleJa(char* out);  // 0x418030
   // The same in English, broken where it is wider than 240 pixels in
-  // g_title_font.
+  // g_fonts.title.
   void FormatTitleEn(char* out);  // 0x418400
   // Writes the parameters shown on the results to `out`; returns their
   // count.

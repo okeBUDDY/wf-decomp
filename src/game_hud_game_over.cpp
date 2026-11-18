@@ -148,7 +148,7 @@ void GameHud::DrawGameOver() {
           static_cast<unsigned int>(g_application.frame_count & 0x3f) * 4),
       -200);
   RotateTransformRad(&transform, 0.52359879f);
-  SetTexture(g_application.d3d, g_etc_pats[0].texture(), 0);
+  SetTexture(g_application.d3d, g_pats.etc[0].texture(), 0);
   Transform band;
   band.m[0][0] = transform.m[0][0];
   band.m[0][1] = transform.m[0][1];
@@ -177,7 +177,7 @@ void GameHud::DrawGameOver() {
   transform.m[0][1] = 0;
   transform.m[2][0] = 160;
   transform.m[2][1] = 200;
-  g_etc_pats[1].Get(1)->Draw(&transform, chart_color, 0);
+  g_pats.etc[1].Get(1)->Draw(&transform, chart_color, 0);
   g_application.d3d->ClearTexture();
   g_application.d3d->DrawPoints(D3DPT_TRIANGLEFAN, &transform, &chart_center_,
                                 info_color, 8);
@@ -198,7 +198,7 @@ void GameHud::DrawGameOver() {
                                   0xc800ff80, 7);
   }
 
-  SetTexture(g_application.d3d, g_etc_pats[2].texture(), 0);
+  SetTexture(g_application.d3d, g_pats.etc[2].texture(), 0);
   float x = 360;
   float y = 172;
   for (int i = 0; i < g_enm_param.state_.weapon_count; ++i) {
@@ -265,11 +265,11 @@ int GameHud::MoveGameOver() {
   int step = step_;
   switch (step) {
     case 0: {
-      mode_texts_[0] = g_text_font.Create(16, NULL);
-      mode_texts_[1] = g_text_font.Create(16, NULL);
-      mode_texts_[2] =
-          (g_global.flags & cGlobal::kFlagEnglish ? g_title_font : g_kana_font)
-              .Create(0x80, NULL);
+      mode_texts_[0] = g_fonts.text.Create(16, NULL);
+      mode_texts_[1] = g_fonts.text.Create(16, NULL);
+      mode_texts_[2] = (g_global.flags & cGlobal::kFlagEnglish ? g_fonts.title
+                                                               : g_fonts.kana)
+                           .Create(0x80, NULL);
       if (mode_texts_[0] == NULL || mode_texts_[1] == NULL ||
           mode_texts_[2] == NULL) {
         return 1;

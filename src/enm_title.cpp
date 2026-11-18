@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "enm_param.h"
-#include "hls_txt.h"
+#include "fonts.h"
 
 // 0x417c10
 void CEnmParam::ChooseTitle() {
@@ -310,14 +310,14 @@ void CEnmParam::FormatTitleEn(char* out) {
     sprintf(out, "THE %s", name);
   } else if (g_title_words_en[first].alone) {
     sprintf(out, "%s WITH %sS", name, weapon);
-    g_title_font.Measure(&size, out);
+    g_fonts.title.Measure(&size, out);
     if (size.cx >= 240) {
       out[strlen(name)] = '\n';
     }
   } else {
     sprintf(out, "%s%s %s", weapon,
             weapon[strlen(weapon) - 1] == 'E' ? "D" : "ED", name);
-    g_title_font.Measure(&size, out);
+    g_fonts.title.Measure(&size, out);
     if (size.cx >= 240) {
       out[strlen(out) - strlen(name) - 1] = '\n';
     }
@@ -325,7 +325,7 @@ void CEnmParam::FormatTitleEn(char* out) {
   if (state_.title.variant >= 0) {
     const char* variant = g_variant_words_en[state_.title.variant];
     strcat(out, variant);
-    g_title_font.Measure(&size, out);
+    g_fonts.title.Measure(&size, out);
     if (size.cx >= 240) {
       out[strlen(out) - strlen(variant)] = '\n';
     }

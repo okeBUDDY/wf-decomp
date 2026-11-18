@@ -43,7 +43,7 @@ int Control16::Initialize() {
   g_spark_desc.team = 0;
   g_spark_desc.flags = Actor::kFaceStart;
   g_spark_desc.hit_points = 1;
-  g_spark_desc.sprite = g_sys_pats.Get(8);
+  g_spark_desc.sprite = g_pats.sys[0].Get(8);
   memset(&g_shockwave_desc, 0, sizeof(g_shockwave_desc));
   g_spark_desc.layer = 0;
   g_spark_desc.speed = 8.0f;
@@ -53,7 +53,7 @@ int Control16::Initialize() {
   g_shockwave_desc.hit_points = 1;
   g_shockwave_desc.color = 0xff808080;
   g_shockwave_desc.sprite = &g_shockwave;
-  g_smoke_effect.sprite = g_add_pats.Get(1);
+  g_smoke_effect.sprite = g_pats.add[0].Get(1);
   return 1;
 }
 
@@ -236,7 +236,7 @@ int Control20::OnCreate(Actor* actor, void* param) {
   Control20Work* work = reinterpret_cast<Control20Work*>(actor->work);
   actor->hit_points = 1;
   actor->team = 0;
-  actor->SetSprite(g_sys_pats.Get(32));
+  actor->SetSprite(g_pats.sys[0].Get(32));
   actor->angle = (rand() & 0x3f) - 0x20;
   actor->start_angle = (rand() & 0x7f) - 0x40;
   actor->speed = 2.0f;
@@ -248,7 +248,7 @@ int Control20::OnCreate(Actor* actor, void* param) {
   desc.team = 0;
   desc.color = 0xffc06000;
   desc.hit_points = 1;
-  HLSObject* core = g_enemy_pats.Get(1);
+  HLSObject* core = g_pats.enemy[0].Get(1);
   desc.sprite = core;
   desc.parent = actor;
   desc.x = 0.0f;

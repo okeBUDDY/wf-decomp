@@ -79,7 +79,7 @@ void Control40::Setup(Actor* actor, int rank) {
 int Control40::Initialize() {
   memset(&desc_, 0, sizeof(desc_));
   desc_.color = 0xffffffff;
-  HLSObject* sprite = g_sys_pats.Get(64);
+  HLSObject* sprite = g_pats.sys[0].Get(64);
   desc_.sprite = sprite;
   desc_.flags = Actor::kFaceStart;
   desc_.team = 9;
@@ -92,7 +92,7 @@ int Control40::Initialize() {
 // 0x413aa0
 int Control40::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
-  actor->SetSprite(g_sys_pats.Get(48));
+  actor->SetSprite(g_pats.sys[0].Get(48));
   actor->debris = 17;
   OnDamage(actor, 6);
   return 1;
@@ -146,7 +146,7 @@ void Control47::Setup(Actor* actor, int rank) {
 // 0x413c60
 int Control47::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
-  actor->SetSprite(g_sys_pats.Get(53));
+  actor->SetSprite(g_pats.sys[0].Get(53));
   actor->debris = 17;
   OnDamage(actor, 6);
   return 1;
@@ -177,7 +177,7 @@ int Control48::OnCreate(Actor* actor, void* param) {
   work->launcher = static_cast<Control47Work*>(param);
   actor->team = 0x61;
   actor->debris = 19;
-  actor->SetSprite(g_sys_pats.Get(67));
+  actor->SetSprite(g_pats.sys[0].Get(67));
   actor->angle = actor->start_angle;
   actor->acceleration = -0.05f;
   actor->speed = work->launcher->speed;
@@ -209,7 +209,7 @@ void Control41::Setup(Actor* actor, int rank) {
 int Control41::Initialize() {
   memset(&desc_, 0, sizeof(desc_));
   desc_.color = 0xffffffff;
-  HLSObject* sprite = g_sys_pats.Get(65);
+  HLSObject* sprite = g_pats.sys[0].Get(65);
   desc_.sprite = sprite;
   desc_.flags = 0;
   desc_.team = 9;
@@ -223,7 +223,7 @@ int Control41::Initialize() {
 // 0x413ea0
 int Control41::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
-  actor->SetSprite(g_sys_pats.Get(49));
+  actor->SetSprite(g_pats.sys[0].Get(49));
   actor->debris = 17;
   OnDamage(actor, 6);
   return 1;
@@ -286,7 +286,7 @@ int Control42::Initialize() {
   Control43::beam_desc_.hit_points = 1;
   Control43::beam_desc_.layer = 12;
   Control43::glow_desc_.color = 0xffffffff;
-  HLSObject* sprite = g_add_pats.Get(16);
+  HLSObject* sprite = g_pats.add[0].Get(16);
   Control43::glow_desc_.sprite = sprite;
   Control43::glow_desc_.flags = Actor::kAdditive;
   Control43::glow_desc_.team = 0;
@@ -298,7 +298,7 @@ int Control42::Initialize() {
 // 0x4140d0
 int Control42::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
-  actor->SetSprite(g_sys_pats.Get(50));
+  actor->SetSprite(g_pats.sys[0].Get(50));
   actor->debris = 17;
   OnDamage(actor, 6);
   return 1;
@@ -359,7 +359,7 @@ void Control44::Setup(Actor* actor, int rank) {
 int Control44::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   reinterpret_cast<PartWork*>(actor->work)->flags &= ~0x10000;
-  actor->SetSprite(g_sys_pats.Get(51));
+  actor->SetSprite(g_pats.sys[0].Get(51));
   actor->debris = 17;
   OnDamage(actor, 0);
   return 1;
@@ -407,7 +407,7 @@ int Control45::OnCreate(Actor* actor, void* param) {
   work->launcher = static_cast<PartWork*>(param);
   actor->team = 0x61;
   actor->debris = 17;
-  actor->SetSprite(g_sys_pats.Get(72));
+  actor->SetSprite(g_pats.sys[0].Get(72));
   actor->speed = work->launcher->rank * 0.014285714f + 4.0f;
   actor->angle = actor->start_angle;
   work->slot = work->launcher->slot;
@@ -450,7 +450,7 @@ D3DCOLOR g_smoke_colors[21] = {
 int Control21::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
-  actor->SetSprite(g_add_pats.Get(24));
+  actor->SetSprite(g_pats.add[0].Get(24));
   actor->flags |= Actor::kAdditive;
   actor->color = 0xffffffff;
   SmokeWork* work = reinterpret_cast<SmokeWork*>(actor->work);
@@ -469,7 +469,7 @@ int Control21::OnMove(Actor* actor) {
     }
     work->scale += 0.03f;
   } else if (actor->age == 21) {
-    actor->SetSprite(g_sys_pats.Get(73));
+    actor->SetSprite(g_pats.sys[0].Get(73));
     actor->flags &= ~Actor::kAdditive;
     actor->color = (work->alpha << 24) | 0xffffff;
     work->scale += 0.2f;
@@ -506,7 +506,7 @@ void Control46::Setup(Actor* actor, int rank) {
 int Control46::Initialize() {
   memset(&desc_, 0, sizeof(desc_));
   desc_.color = 0xffffffff;
-  HLSObject* sprite = g_add_pats.Get(25);
+  HLSObject* sprite = g_pats.add[0].Get(25);
   desc_.sprite = sprite;
   desc_.flags = Actor::kAdditive;
   desc_.team = 9;
@@ -520,7 +520,7 @@ int Control46::Initialize() {
 // 0x414c10
 int Control46::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
-  actor->SetSprite(g_sys_pats.Get(52));
+  actor->SetSprite(g_pats.sys[0].Get(52));
   actor->debris = 17;
   OnDamage(actor, 6);
   return 1;
@@ -571,7 +571,7 @@ void Control49::Setup(Actor* actor, int rank) {
 int Control49::Initialize() {
   memset(&desc_, 0, sizeof(desc_));
   desc_.color = 0xffffffff;
-  HLSObject* sprite = g_sys_pats.Get(66);
+  HLSObject* sprite = g_pats.sys[0].Get(66);
   desc_.sprite = sprite;
   desc_.flags = Actor::kFaceStart;
   desc_.team = 9;
@@ -585,7 +585,7 @@ int Control49::Initialize() {
 // TODO: nonmatching (as Control44::OnCreate, and the sprite goes through eax).
 int Control49::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
-  actor->SetSprite(g_sys_pats.Get(54));
+  actor->SetSprite(g_pats.sys[0].Get(54));
   actor->debris = 17;
   Control49Work* work = reinterpret_cast<Control49Work*>(actor->work);
   work->flags &= ~0x10000;
@@ -642,9 +642,9 @@ short g_beam_scripts[3][4] = {
     {17, 40, 20, -1},
 };
 AnmData g_beam_anims[3] = {
-    {reinterpret_cast<AnmSet*>(&g_add_pats), g_beam_scripts[0]},
-    {reinterpret_cast<AnmSet*>(&g_add_pats), g_beam_scripts[1]},
-    {reinterpret_cast<AnmSet*>(&g_add_pats), g_beam_scripts[2]},
+    {reinterpret_cast<AnmSet*>(&g_pats.add[0]), g_beam_scripts[0]},
+    {reinterpret_cast<AnmSet*>(&g_pats.add[0]), g_beam_scripts[1]},
+    {reinterpret_cast<AnmSet*>(&g_pats.add[0]), g_beam_scripts[2]},
 };
 // The beam stops after 8 segments outside this rectangle.
 FloatRect g_beam_bounds = {-120.0f, -120.0f, 760.0f, 600.0f};
@@ -734,10 +734,10 @@ void Control43::OnEvent(Actor* actor, int x, int y) {
   }
   // The beam turns into its fading sprite.
   Actor* segment = work->head;
-  segment->SetSprite(g_add_pats.Get(17));
+  segment->SetSprite(g_pats.add[0].Get(17));
   for (segment = segment->first_child; segment != NULL;
        segment = segment->prev_sibling) {
-    segment->SetSprite(g_add_pats.Get(17));
+    segment->SetSprite(g_pats.add[0].Get(17));
   }
   work->scale = 1.0f;
   switch (work->sound) {

@@ -75,7 +75,7 @@ void Control01::ResetWeapon() { weapon_ = kShot; }
 int Control01::Initialize() {
   memset(&shot_, 0, sizeof(shot_));
   shot_.color = 0xffffffff;
-  HLSObject* sprite = g_sys_pats.Get(2);
+  HLSObject* sprite = g_pats.sys[0].Get(2);
   shot_.sprite = sprite;
   shot_.team = 8;
   shot_.debris = 8;
@@ -83,7 +83,7 @@ int Control01::Initialize() {
   shot_.hit_points = 1;
   shot_.speed = 16.0f;
   shot_.layer = 10;
-  HLSObject* muzzle = g_add_pats.Get(1);
+  HLSObject* muzzle = g_pats.add[0].Get(1);
   g_muzzle_effect.sprite = muzzle;
   return 1;
 }
@@ -217,7 +217,7 @@ int Control01::OnCreate(Actor* actor, void* param) {
   actor->team = 0x60;
   actor->debris = 16;
   actor->SetLayer(2);
-  actor->SetSprite(g_sys_pats.Get(1));
+  actor->SetSprite(g_pats.sys[0].Get(1));
   ActorDesc desc;
   memset(&desc, 0, sizeof(desc));
   desc.color = 0xffffffff;

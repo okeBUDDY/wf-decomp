@@ -78,7 +78,7 @@ int Control32::OnCreate(Actor* actor, void* param) {
   actor->hit_points = g_enm_param.state_.unknown_24_;
   actor->team = 0x21;
   actor->debris = 20;
-  actor->SetSprite(g_enemy_pats.Get(1));
+  actor->SetSprite(g_pats.enemy[0].Get(1));
   actor->bounds = &bounds_;
   reinterpret_cast<PartWork*>(actor->work)->max_hit_points = actor->hit_points;
   EnmSlot* slot = g_enm_param.FindSlot(0x40000000);
