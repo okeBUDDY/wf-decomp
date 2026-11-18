@@ -23,7 +23,11 @@ struct EnmPlanPart {
   short unknown_16_[15];     // 0x16
   short lerp_from;           // 0x34
   short lerp_to;             // 0x36
-  int unknown_38_[3];        // 0x38
+  short child_count;         // 0x38
+  short option_count;        // 0x3a, children added in mode 1 or 2
+  short option4_count;       // 0x3c, children added in mode 4
+  short extra_child_count;   // 0x3e
+  int unknown_40_;           // 0x40
   struct EnmPlanItem* item;  // 0x44, an index into EnmPlan::items_ on disk
 };
 
@@ -107,15 +111,14 @@ struct EnmDestroyRecord {
 // Destructions counted for one side of the boss (10 bytes).
 struct EnmSideStats {
   int Score() const {
-    return (unknown_00_ == 0 ? unknown_04_ : unknown_08_ + unknown_04_) +
-           unknown_02_;
+    return (mode == 0 ? unknown_04_ : unknown_08_ + unknown_04_) + unknown_02_;
   }
 
-  short unknown_00_;
-  short unknown_02_;
-  short unknown_04_;
-  short unknown_06_;
-  short unknown_08_;
+  short mode;         // 0x00, bits 1, 2 and 4 pick the optional children
+  short unknown_02_;  // 0x02, parts of kind 0x10000 counted
+  short unknown_04_;  // 0x04, parts of kind 0x20000 counted
+  short progress;     // 0x06, in percent of the mode
+  short unknown_08_;  // 0x08, parts of kind 0x40000 counted
 };
 
 // The state of CEnmParam that is saved with a game (0x7c bytes).
@@ -133,7 +136,7 @@ struct EnmState {
   short weapon_count;        // 0x34
   char weapons[8];           // 0x36
   short weapon_levels[7];    // 0x3e
-  unsigned int unknown_4c_;  // 0x4c
+  unsigned int step_mask;    // 0x4c, the steps added so far
   short step_count;          // 0x50
   short step_total;          // 0x52
   char steps[24][2];         // 0x54
@@ -163,7 +166,9 @@ class CEnmParam : public System {
   // Saves / loads the state; 0 on failure.
   int Save(File* file);  // 0x41a5b0
   int Load(File* file);  // 0x41a660
-  void Plan(int stage);  // 0x41abc0
+  // Plans the next boss; `score` is the score so far.
+  void Plan(int score);  // 0x41abc0
+  void AfterPlan();      // 0x417c10, not decompiled yet
   // Writes the parameters shown on the results to `out`; returns their
   // count.
   int GetParams(short* out);  // 0x419fa0
@@ -184,6 +189,23 @@ class CEnmParam : public System {
   int CountDestroyed(int count, unsigned int* kinds, int unique,
                      int all);                        // 0x41a730
   void ChooseWeapon(EnmSlot* slot, EnmSlot* parent);  // 0x41a3a0
+  // Plans the part at `code` (taking a slot for it when it has none) and
+  // its children.
+  void Grow(EnmSlot* parent, unsigned int code, int kind);  // 0x41a820
+
+  // The slot of the part at `code`, NULL without one.
+  EnmSlot* FindSlot(unsigned int code) {
+    if (code != 0) {
+      for (EnmSlot* slot = &slots_[slot_capacity_ - 1]; slot > slots_; --slot) {
+        if (slot->code == code) {
+          return slot;
+        }
+      }
+    }
+    return NULL;
+  }
+  // Adds step `id` to the steps of the game unless it is there already.
+  void AddStep(int id);
 
  public:
   // The controls read and change much of this directly.
@@ -195,7 +217,11 @@ class CEnmParam : public System {
   EnmList list_9c_;            // 0x9c
   EnmList list_b0_;            // 0xb0
   EnmList lists_c4_[2];        // 0xc4
-  int unknown_ec_[22];         // 0xec
+  int unknown_ec_[8];          // 0xec
+  int weapon_parts_[7];        // 0x10c, parts planned per weapon
+  int power_total_;            // 0x128, of the parts planned
+  int part_total_;             // 0x12c, parts planned
+  int unknown_130_[5];         // 0x130
   int unknown_144_;            // 0x144
   int unknown_148_;            // 0x148
   int unknown_14c_;            // 0x14c
@@ -223,8 +249,12 @@ class CEnmParam : public System {
   int unknown_32c_;            // 0x32c
   int deaths_;                 // 0x330
   int battle_time_;            // 0x334
-  int unknown_338_[8];         // 0x338
-  int unknown_358_;            // 0x358
+  int unknown_338_[3];         // 0x338, picks the order of new weapons
+  int unknown_344_;            // 0x344
+  float unknown_348_;          // 0x348
+  int unknown_34c_[2];         // 0x34c
+  int unknown_354_;            // 0x354
+  int new_weapon_;             // 0x358, added by Plan, or -1
   int unknown_35c_;            // 0x35c
 };
 

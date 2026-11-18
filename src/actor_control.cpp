@@ -229,6 +229,9 @@ void Control43::OnDestroy(Actor* actor) {
   }
 }
 
+// 0x417c00 (this object, so the enm_param.cpp callers do not inline it)
+void CEnmParam::ClearUnknown32c() { unknown_32c_ = 0; }
+
 // 0x418c40
 int ScoredControl::Prepare(Actor* actor, void* param) {
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);

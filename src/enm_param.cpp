@@ -9,8 +9,17 @@
 #include "file.h"
 #include "game.h"
 
-// Steps added on a reset (0x45d990).
-char g_reset_steps[12] = {1, 1, 1, 1, 1, 1, 3, 1, 3, 5, 0, 0};
+// The order in which new weapons are added, by the most common way the
+// player destroyed parts (0x45d964).
+short g_weapon_order[3][7] = {
+    {0, 2, 1, 4, 3, 6, 5},
+    {0, 1, 3, 2, 4, 6, 5},
+    {0, 3, 1, 6, 2, 4, 5},
+};
+
+// The length of each step; steps from 9 on have the length of step 9
+// (0x45d990).
+char g_step_costs[12] = {1, 1, 1, 1, 1, 1, 3, 1, 3, 5, 0, 0};
 
 // The code of the parent of the part at `code`.
 static inline unsigned int ParentCode(unsigned int code) {
@@ -186,7 +195,7 @@ void CEnmParam::ChooseWeapon(EnmSlot* slot, EnmSlot* parent) {
     if (slot->weapon < 0 && (parent->flags & 4)) {
       weapon = parent->weapon;
     } else {
-      weapon = unknown_358_;
+      weapon = new_weapon_;
       if (weapon < 0) {
         weapon = state_.weapons[rand() % state_.weapon_count];
       }
@@ -227,7 +236,7 @@ void CEnmParam::LogDestroy(EnmSlot* slot, int how, int chain) {
     if (chain > 1) {
       EnmSideStats* side =
           &state_.sides[(slot->code & kSideMask) == 0x80000000];
-      if (side->unknown_00_ == 0) {
+      if (side->mode == 0) {
         ++side->unknown_08_;
       }
       AddClamped(&state_.unknown_26_, chain * 7);
@@ -274,6 +283,72 @@ int CEnmParam::Load(File* file) {
     return 1;
   }
   return 0;
+}
+
+// 0x41a820
+// TODO: nonmatching (register choice: the original keeps `this` in ebp and
+// `code` in ecx).
+void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
+  EnmSlot* slot = FindSlot(code);
+  if (slot == NULL) {
+    slot = AllocSlot(code, kind);
+    if (slot != NULL) {
+      if (!(slot->kind & 0x8000000)) {
+        slot->flags = 1;
+      }
+      slot->weapon = -1;
+      ChooseWeapon(slot, parent);
+    }
+  } else if (!(slot->flags & 2)) {
+    if (slot->level > 0 && --slot->level == 0) {
+      ChooseWeapon(slot, parent);
+    }
+  } else {
+    if ((state_.flags & 0x10000) && !(slot->flags & 8)) {
+      int limit;
+      if (slot->kind & 0x40000) {
+        limit = 3;
+      } else {
+        limit = (slot->kind & 0x2000000) ? 5 : 4;
+      }
+      if (slot->hits > limit) {
+        slot->flags |= 8;
+      }
+    }
+    unsigned int base = (code & kSideMask) | (code << 3);
+    int count = slot->part->extra_child_count + slot->part->child_count;
+    for (int i = 0; i < count; ++i) {
+      Grow(slot, base | i, 0);
+    }
+    int index = count;
+    int mode = state_.sides[(base & kSideMask) == 0x80000000].mode;
+    if ((mode & 1) && (slot->kind & 0x10000)) {
+      int n = slot->part->option_count;
+      for (int i = 0; i < n; ++i) {
+        Grow(slot, base | index++, 0x4010001);
+      }
+      slot->flags |= 0x1000;
+    }
+    if ((mode & 2) && (slot->kind & 0x20000)) {
+      int n = slot->part->option_count;
+      for (int i = 0; i < n; ++i) {
+        Grow(slot, base | index++, 0x4020001);
+      }
+      slot->flags |= 0x2000;
+    }
+    if (mode & 4) {
+      index += slot->part->option_count;
+      int n = slot->part->option4_count;
+      for (int i = 0; i < n; ++i) {
+        Grow(slot, base | index++, 0x4040001);
+      }
+      slot->flags |= 0x4000;
+    }
+    return;
+  }
+  ++weapon_parts_[slot->weapon];
+  ++part_total_;
+  power_total_ += slot->power;
 }
 
 // 0x41aa60
@@ -355,8 +430,233 @@ int CEnmParam::Initialize(Application* app) {
   return 1;
 }
 
+void CEnmParam::AddStep(int id) {
+  int count = state_.step_count;
+  if (!(state_.step_mask & (1 << id))) {
+    state_.steps[count][0] = id;
+    int cost = g_step_costs[id < 9 ? id : 9];
+    if (count == 0) {
+      state_.steps[count][1] = cost;
+    } else {
+      state_.steps[count][1] = state_.steps[count - 1][1] + cost;
+    }
+    ++state_.step_count;
+    state_.step_total += cost;
+    state_.step_mask |= 1 << id;
+  }
+}
+
+// 0x41abc0
+// TODO: nonmatching (close: the registers of the constants at the start and
+// the pointer of the last loop over the sides).
+void CEnmParam::Plan(int score) {
+  if (unknown_354_ < 1) {
+    unknown_354_ = 1;
+  }
+  if (battle_time_ < 1) {
+    battle_time_ = 1;
+  }
+  int count = static_cast<unsigned int>(score) / 300000 + 2;
+  int add = static_cast<int>(unknown_348_ / unknown_354_);
+  float rate = static_cast<float>(unknown_344_) / battle_time_;
+  if (add >= 50) {
+    add = 50;
+  }
+  AddClamped(&state_.unknown_28_, add);
+  AddClamped(&state_.unknown_2a_, static_cast<int>(rate * 100.0f));
+  state_.unknown_24_ += state_.unknown_26_ * 70 / 1024 + 10;
+  if (state_.unknown_24_ > 1200) {
+    state_.unknown_24_ = 1200;
+  }
+
+  unsigned int kinds[2] = {0, 0};
+  int left = CountDestroyed(count, kinds, 1, 0);
+  new_weapon_ = -1;
+  if (state_.weapon_count < 6 &&
+      (g_global.stage <= 1 ||
+       (left > 0 && g_global.stage >= state_.weapon_count * 2 - 2))) {
+    int order;
+    if (unknown_338_[0] > unknown_338_[1] &&
+        unknown_338_[0] > unknown_338_[2]) {
+      order = 0;
+    } else if (unknown_338_[1] > unknown_338_[0] &&
+               unknown_338_[1] > unknown_338_[2]) {
+      order = 1;
+    } else if (unknown_338_[2] > unknown_338_[0] &&
+               unknown_338_[2] > unknown_338_[1]) {
+      order = 2;
+    } else {
+      order = rand() % 3;
+    }
+    for (int i = 0; i < 7; ++i) {
+      int weapon = g_weapon_order[order][i];
+      unsigned int bit = 0x10000 << weapon;
+      if (!(state_.weapon_mask & bit)) {
+        state_.weapon_mask |= bit;
+        state_.weapons[state_.weapon_count] = weapon;
+        ++state_.weapon_count;
+        new_weapon_ = weapon;
+        break;
+      }
+    }
+    --left;
+  }
+
+  if (state_.sides[0].mode != 0 && state_.sides[1].mode != 0) {
+    if (left > 2) {
+      left = 2;
+    }
+    if (left > 0) {
+      left = CountDestroyed(left, kinds, 0, 0);
+      if (left > 0) {
+        CountDestroyed(left, kinds, 1, 1);
+      }
+    }
+  }
+  for (int i = 0; i < 2; ++i) {
+    if (state_.sides[i].mode == 0) {
+      if (state_.sides[i].unknown_08_ >= plan_.kind_counts_[2]) {
+        state_.sides[i].mode = 4;
+        state_.sides[i].unknown_08_ = 0;
+      } else {
+        switch (kinds[i] & 0xff0000) {
+          case 0x10000:
+            if (state_.sides[i].unknown_02_ >= plan_.kind_counts_[0]) {
+              state_.sides[i].mode = 1;
+              state_.sides[i].unknown_08_ = 0;
+            } else if (state_.sides[i].unknown_04_ >= plan_.kind_counts_[1]) {
+              state_.sides[i].mode = 2;
+              state_.sides[i].unknown_08_ = 0;
+            }
+            break;
+          case 0x20000:
+            if (state_.sides[i].unknown_04_ >= plan_.kind_counts_[1]) {
+              state_.sides[i].mode = 2;
+              state_.sides[i].unknown_08_ = 0;
+            } else if (state_.sides[i].unknown_02_ >= plan_.kind_counts_[0]) {
+              state_.sides[i].mode = 1;
+              state_.sides[i].unknown_08_ = 0;
+            }
+            break;
+        }
+      }
+    }
+  }
+  if (state_.sides[0].progress >= 100 && state_.sides[1].progress >= 100) {
+    for (int i = 0; i < 2; ++i) {
+      int mode = state_.sides[i].mode;
+      if (mode > 0 && mode <= 2) {
+        state_.sides[i].mode = 3;
+      }
+    }
+  }
+  for (int i = 0; i < 2; ++i) {
+    EnmSideStats* side = &state_.sides[i];
+    switch (side->mode) {
+      case 1:
+        side->progress = side->unknown_02_ * 100 /
+                         (plan_.kind_counts_[0] + plan_.kind_counts_[3]);
+        break;
+      case 2:
+        side->progress = side->unknown_04_ * 100 /
+                         (plan_.kind_counts_[1] + plan_.kind_counts_[4]);
+        break;
+      case 3:
+        side->progress =
+            (side->unknown_08_ + side->unknown_04_ + side->unknown_02_) * 100 /
+            (plan_.kind_counts_[5] + plan_.kind_counts_[1] +
+             plan_.kind_counts_[0]);
+        break;
+      case 4:
+        side->progress = (side->unknown_02_ + side->unknown_04_) * 100 /
+                         (plan_.kind_counts_[0] + plan_.kind_counts_[1] +
+                          plan_.kind_counts_[3] + plan_.kind_counts_[4]);
+        break;
+      default:
+        side->progress = 0;
+        break;
+    }
+  }
+
+  if (g_global.stage >= 1) {
+    AddStep(1);
+  }
+  if (state_.flags & 0x10000) {
+    AddStep(6);
+  }
+  int mode0 = state_.sides[0].mode;
+  int mode1 = state_.sides[1].mode;
+  if (state_.sides[0].progress < 65) {
+    mode0 = 0;
+  }
+  if (state_.sides[1].progress < 65) {
+    mode1 = 0;
+  }
+  if ((state_.flags & 0x20000) && (mode0 != 0 || mode1 != 0)) {
+    AddStep(8);
+  }
+  if (mode0 & 1) {
+    AddStep(2);
+    if (mode1 & 1) {
+      AddStep(9);
+    }
+    if (mode1 & 2) {
+      AddStep(10);
+    }
+    if (mode1 & 4) {
+      AddStep(11);
+    }
+  }
+  if (mode0 & 2) {
+    AddStep(4);
+    AddStep(5);
+    if (mode1 & 1) {
+      AddStep(12);
+    }
+    if (mode1 & 2) {
+      AddStep(13);
+    }
+    if (mode1 & 4) {
+      AddStep(14);
+    }
+  }
+  if (mode0 & 4) {
+    if (mode1 & 1) {
+      AddStep(15);
+    }
+    if (mode1 & 2) {
+      AddStep(16);
+    }
+    if (mode1 & 4) {
+      AddStep(17);
+    }
+  }
+  if (mode1 & 1) {
+    AddStep(3);
+  }
+  if (mode1 & 4) {
+    AddStep(7);
+  }
+  if (mode1 & 2) {
+    AddStep(4);
+    AddStep(5);
+  }
+
+  for (int i = 0; i < 7; ++i) {
+    weapon_parts_[i] = 0;
+  }
+  part_total_ = 0;
+  power_total_ = 0;
+  EnmSlot* root = FindSlot(0x40000000);
+  Grow(root, 0x40000001, 0);
+  Grow(root, 0x40000002, 0);
+  root = FindSlot(0x80000000);
+  Grow(root, 0x80000001, 0);
+  Grow(root, 0x80000002, 0);
+  AfterPlan();
+}
+
 // 0x41b5b0
-// TODO: nonmatching (the zero register).
 void CEnmParam::Reset() {
   memset(&state_, 0, sizeof(state_));
   state_.color = 0xff00ff00;
@@ -366,10 +666,10 @@ void CEnmParam::Reset() {
   for (int i = 0; i < slot_capacity_; ++i) {
     slots_[i].code = 0;
   }
-  state_.unknown_4c_ = 0x40000;
+  state_.step_mask = 0x40000;
   int count = state_.step_count;
   state_.steps[count][0] = 0;
-  char step = g_reset_steps[0];
+  int step = g_step_costs[0];
   if (count == 0) {
     state_.steps[count][1] = step;
   } else {
@@ -377,13 +677,10 @@ void CEnmParam::Reset() {
   }
   state_.step_total += step;
   ++state_.step_count;
-  state_.unknown_4c_ |= 1;
+  state_.step_mask |= 1;
   AllocSlot(0xc0000000, 0);
   AllocSlot(0x40000000, 0);
   AllocSlot(0x80000000, 0);
   ClearUnknown32c();
   Plan(0);
 }
-
-// 0x417c00
-void CEnmParam::ClearUnknown32c() { unknown_32c_ = 0; }
