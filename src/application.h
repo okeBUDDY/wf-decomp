@@ -78,6 +78,8 @@ struct Application : public Object, public AppSettings {
   enum { kMaxSystems = 16, kMaxDialogs = 16 };
 
   Application();  // 0x406f10
+  // 0x4021e0, scalar deleting dtor 0x402270
+  virtual ~Application() {}
   // Opens the log and the profile "<name>.ini" and starts the systems
   // graphics_flags asks for. Returns 0 when one cannot start.
   int Initialize(const char* title, const char* name);  // 0x406980
