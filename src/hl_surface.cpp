@@ -96,7 +96,7 @@ HLSurface::HLSurface() {
   buffer_ = NULL;
   unknown_18_ = 0;
   name_ = "  HLSurface";
-  unknown_20_ = unknown_21_ = true;
+  scale_x_ = scale_y_ = 1;
   id_ = -1;
 }
 
@@ -128,7 +128,7 @@ void HLSurface::Attach(unsigned short mode) {
   Log("[%d]%s\220\266\220\254: mode=%04X %dx%d(%d:%d) %dbit(%d)", id_,
       (mode_ & kKindMask) == kTexture ? "\303\270\275\301\254"   // texture
                                       : "\273\260\314\252\275",  // surface
-      mode_, width_, height_, unknown_20_, unknown_21_,
+      mode_, width_, height_, scale_x_, scale_y_,
       desc.ddpfPixelFormat.dwRGBBitCount, format_codes_[format_]);
 }
 

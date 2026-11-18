@@ -90,8 +90,8 @@ class HLSurface : public Object {
   int unknown_18_;                // 0x18
   short mode_;                    // 0x1c
   short id_;                      // 0x1e, -1: none
-  bool unknown_20_;               // 0x20
-  bool unknown_21_;               // 0x21
+  unsigned char scale_x_;         // 0x20, texels per pixel
+  unsigned char scale_y_;         // 0x21
   void* buffer_;                  // 0x24, malloc()ed
 };
 

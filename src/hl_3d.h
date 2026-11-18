@@ -13,6 +13,18 @@ struct Application;
 class HLMesh;
 class HLSurface;
 
+struct Transform;
+
+// A texture coordinate.
+struct TexCoord {
+  float u;
+  float v;
+};
+
+// Transforms `point` by `transform` into the screen position of `out`.
+void TransformPoint(D3DTLVERTEX* out, const Transform* transform,
+                    const D3DVECTOR* point);  // 0x402370
+
 // Math tables and scratch space, allocated by HL3D::CreateBuffers().
 extern float* g_sin_table;         // 0x468878, sin of 1024 steps a turn (+256)
 extern float* g_angle_table;       // 0x46887c, the radians of each step
@@ -56,6 +68,14 @@ class HL3D : public System {
   // Chooses linear or point filtering for `stage`.
   void SetFilter(BOOL linear, DWORD stage);  // 0x402b50
   void SetLighting(BOOL enable);             // 0x4030a0
+  // The texture coordinate of the texel `point` of `texture`.
+  void GetTexCoord(HLSurface* texture, TexCoord* out,
+                   const POINTS* point);  // 0x409bb0
+  // Transforms `count` points by `transform` and draws them with their
+  // texture coordinates in `color`.
+  void DrawVertices(D3DPRIMITIVETYPE type, const Transform* transform,
+                    const D3DVECTOR* points, const TexCoord* coords,
+                    D3DCOLOR color, int count);  // 0x409ed0
 
   void EndScene() {
     if (flags_ & kInScene) {

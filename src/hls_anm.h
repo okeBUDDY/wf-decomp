@@ -12,21 +12,21 @@
 
 struct Application;
 class HLSHitImage;
+class HLSurface;
 struct Transform;
 
 // vtable 0x451ca4.
 class HLSObject {
  public:
-  HLSObject() { unknown_04_ = 0; }
+  HLSObject() { texture_ = NULL; }
   virtual ~HLSObject() {}  // 0x407a60
   virtual void Reset() {}
   virtual void Draw(const Transform* transform, D3DCOLOR color, int blend) = 0;
   // Marks the object in `image` with `id`.
-  virtual void Hit(HLSHitImage* image, int x, int y, unsigned short id) {
-  }  // 0x407360
+  virtual void Hit(HLSHitImage* image, int x, int y, DWORD id) {}  // 0x407360
 
  protected:
-  int unknown_04_;  // 0x04
+  HLSurface* texture_;  // 0x04, used by HLSPat
 };
 
 // The objects and scripts of an animation set.
@@ -58,7 +58,7 @@ class HLSAnm : public HLSObject {
   virtual void Draw(const Transform* transform, D3DCOLOR color,
                     int blend);  // 0x4073e0
   virtual void Hit(HLSHitImage* image, int x, int y,
-                   unsigned short id);  // 0x4073c0
+                   DWORD id);  // 0x4073c0
 
  private:
   // Counts down the current entry and moves to the next one.

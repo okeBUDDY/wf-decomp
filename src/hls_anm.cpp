@@ -63,7 +63,7 @@ void HLSAnmSys::Finalize() {
 void HLSAnm::Reset() { cursor_ = NULL; }
 
 // 0x4073c0
-void HLSAnm::Hit(HLSHitImage* image, int x, int y, unsigned short id) {
+void HLSAnm::Hit(HLSHitImage* image, int x, int y, DWORD id) {
   if (object_ != NULL) {
     object_->Hit(image, x, y, id);
   }

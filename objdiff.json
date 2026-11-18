@@ -73,6 +73,11 @@
       "base_path": "build/obj/src/hls_hit_image.obj"
     },
     {
+      "name": "hls_pat",
+      "target_path": "build/target/hls_pat.obj",
+      "base_path": "build/obj/src/hls_pat.obj"
+    },
+    {
       "name": "object",
       "target_path": "build/target/object.obj",
       "base_path": "build/obj/src/object.obj"
