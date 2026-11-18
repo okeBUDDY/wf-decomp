@@ -1,0 +1,4 @@
+# Shared COMDAT constants that tools/shared_comdats.py cannot find because the
+# library references them from data, not code (merged into comdats.txt).
+# address name size
+0045212c ??_C@_02PCIJFNDE@?$AN?6?$AA@ 3   # "\r\n", libcmt crt0msg.obj _rterrs table

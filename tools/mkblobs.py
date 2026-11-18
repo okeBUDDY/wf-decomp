@@ -73,23 +73,29 @@ def load_comdats():
         for line in open(p):
             line = line.split("#", 1)[0].split()
             if line:
-                out[int(line[0], 16)] = (line[1], int(line[2], 16))
+                out.setdefault(int(line[0], 16), []).append((line[1], int(line[2], 16)))
     return out
 
 
 def pieces(unit, comdats):
     """Split the unit's ranges so that each shared COMDAT constant is its own
-    section: yields (section, lo, hi, comdat_name_or_None)."""
+    section: yields (section, lo, hi, comdat_name_or_None, duplicate).
+
+    Several names at one address (e.g. __real@00000000 and the 4-byte wide
+    string ??_C@_13NOLLCAOD@...) each get their own copy; /OPT:ICF folds the
+    copies back into one, while the libraries' definitions are discarded by
+    name. A single copy would instead be folded with a later library copy and
+    move there."""
     for secname, lo, hi in unit.ranges:
         cur = lo
         for a in sorted(c for c in comdats if lo <= c < hi):
-            name, size = comdats[a]
             if a > cur:
-                yield secname, cur, a, None
-            yield secname, a, a + size, name
-            cur = a + size
+                yield secname, cur, a, None, False
+            for i, (name, size) in enumerate(comdats[a]):
+                yield secname, a, a + size, name, i > 0
+            cur = a + comdats[a][0][1]
         if cur < hi:
-            yield secname, cur, hi, None
+            yield secname, cur, hi, None, False
 
 
 def build_blob(unit, pe, an, res, outdir, comdats):
@@ -103,7 +109,7 @@ def build_blob(unit, pe, an, res, outdir, comdats):
     relocs = an["relocs"]
     at_list = [r[0] for r in relocs]
     secs = []
-    for secname, lo, hi, comdat in pieces(unit, comdats):
+    for secname, lo, hi, comdat, dup in pieces(unit, comdats):
         align = 1
         while align < 16 and lo % (align * 2) == 0:
             align *= 2
@@ -117,6 +123,8 @@ def build_blob(unit, pe, an, res, outdir, comdats):
         else:
             sec = Section(secname, bytearray(pe.read(lo, hi - lo)), section_flags(secname, align))
         w.add_section(sec)
+        if dup:
+            continue
         secs.append((sec, lo, hi))
         i = bisect.bisect_left(at_list, lo)
         while i < len(relocs) and relocs[i][0] < hi:

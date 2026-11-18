@@ -9,9 +9,10 @@ unit game
     .xdata$x  0x45b378 0x45b9bc
     .CRT$XCU  0x45d008 0x45d05c
     .data     0x45d0a0 0x45dea0
-    .bss      0x467318 0x46927c
+    .bss      0x467320 0x46927c
     extern _png_create_write_struct 0x42418f
     extern _png_set_IHDR 0x424190
     extern __fltused 0x431afa
     extern __except_list 0x431f3c
+    extern ___security_cookie 0x432c7c
     extern _atof 0x432c7d
