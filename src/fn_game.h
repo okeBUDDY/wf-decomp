@@ -25,6 +25,11 @@ class FnGame : public UserFunc {
   virtual void Move();       // 0x41c190
   virtual void Draw();       // 0x41bea0
 
+  // Starts recording (`mode` 0) or playing back `path` (1, 2).
+  void SetMode(int mode, const char* path);  // 0x41be30
+  // Enters `state`.
+  void SetState(short state);  // 0x41be80
+
   unsigned short keys() const { return keys_; }
   unsigned short pressed() const { return pressed_; }
 
@@ -36,8 +41,8 @@ class FnGame : public UserFunc {
   int unknown_24_;          // 0x24
   short unknown_28_;        // 0x28
   short unknown_2a_;        // 0x2a
-  short unknown_2c_;        // 0x2c
-  short unknown_2e_;        // 0x2e
+  short state_;             // 0x2c
+  short state_time_;        // 0x2e, frames in state_
   int unknown_30_;          // 0x30
   unsigned short keys_;     // 0x34, held this frame
   unsigned short pressed_;  // 0x36, pressed this frame

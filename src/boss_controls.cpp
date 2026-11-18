@@ -9,6 +9,7 @@
 #include "application.h"
 #include "cglobal.h"
 #include "enm_param.h"
+#include "fn_game.h"
 #include "game.h"
 #include "game_data.h"
 #include "hl_3d.h"
@@ -141,6 +142,15 @@ void Control32::OnEvent(Actor* actor, int x, int y) {
     SendEvent(work->arms[2], x, y);
     SendEvent(work->arms[3], x, y);
   }
+}
+
+// 0x411550
+void Control32::OnDestroy(Actor* actor) {
+  PartControl::OnDestroy(actor);
+  if (!(g_game.flags() & Game::kGameOver)) {
+    g_fn_game.SetState(40);
+  }
+  boss_ = NULL;
 }
 
 // 0x411e20

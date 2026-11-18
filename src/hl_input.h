@@ -44,6 +44,9 @@ class HLInpDev : public Object {
   // Reads the device state into buttons_.
   virtual void Poll() = 0;
 
+  unsigned short buttons() const { return buttons_; }
+  unsigned short pressed() const { return pressed_; }
+
  protected:
   friend class HLInput;
   friend class InputTask;
@@ -117,6 +120,8 @@ class HLInput : public System {
   // Adds the attached joysticks and the keyboard to `set`. Returns 0 when
   // there is none or DirectInput is missing.
   int EnumDevices(Application* app, HLDevSet* set);  // 0x405ea0
+
+  HLInpDev* pad(int index) const { return pads_[index]; }
 
  private:
   friend class HLJoystick;
