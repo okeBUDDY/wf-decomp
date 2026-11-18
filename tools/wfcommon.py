@@ -49,7 +49,13 @@ def ensure_wineserver(env):
         subprocess.Popen(["wineserver", "-p"], env=env, stdin=subprocess.DEVNULL,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                          start_new_session=True)
-    except OSError:
+        # Boot the prefix with output detached: the services wine starts on
+        # the first call (winedevice.exe, ...) outlive it and would otherwise
+        # inherit, and hold open, the stdout pipe of the first cl/link call.
+        subprocess.run(["wine", "cmd", "/c", "exit"], env=env, stdin=subprocess.DEVNULL,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       start_new_session=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired):
         pass
 
 

@@ -34,6 +34,7 @@ class Resolver:
         self.addrs = sorted(syms)
         self.labels = {}  # unit name -> {addr: name}
         self.warnings = []
+        self.external = {}  # library/import symbol -> lowest key (address)
 
     def owner(self, t):
         r = self.splits.unit_of(t)
@@ -44,6 +45,7 @@ class Resolver:
     def resolve(self, t):
         s = self.syms.get(t)
         if s and s["type"] in ("lib", "libdata", "import"):
+            self.external[s["name"]] = min(self.external.get(s["name"], t), t)
             return s["name"], 0
         own = self.owner(t)
         if own:
@@ -61,6 +63,7 @@ class Resolver:
             a = self.addrs[i]
             s = self.syms[a]
             if s["type"] in ("lib", "libdata") and a <= t < a + max(s["size"], 1):
+                self.external[s["name"]] = min(self.external.get(s["name"], a), a)
                 return s["name"], t - a
         self.warnings.append(t)
         return f"abs_{t:08x}", None
@@ -78,6 +81,21 @@ def load_comdats():
 
 
 IAT_KEY = 0x451000
+# LINK aligns the start of a section group to the largest alignment of its
+# contributions, so no piece may ask for more than the group start has.
+GROUP_ALIGN = {}
+
+
+def set_group_align(splits):
+    starts = {}
+    for u in splits.units:
+        for sec, lo, hi in u.ranges:
+            starts[sec] = min(starts.get(sec, lo), lo)
+    for sec, lo in starts.items():
+        a = 1
+        while a < 16 and lo % (a * 2) == 0:
+            a *= 2
+        GROUP_ALIGN[sec] = a
 FIRST_UNIT = [None]
 
 
@@ -122,7 +140,7 @@ def build_blob(unit, pe, an, res, outdir, comdats):
     secs = []
     for secname, lo, hi, comdat, dup in pieces(unit, comdats):
         align = 1
-        while align < 16 and lo % (align * 2) == 0:
+        while align < GROUP_ALIGN.get(secname, 16) and lo % (align * 2) == 0:
             align *= 2
         if secname == ".bss":
             sec = Section(".bss", None, section_flags(".bss", align), size=hi - lo)
@@ -179,8 +197,17 @@ def main():
     units = [u for u in sp.units if not want or u.name in want]
     writers = []
     FIRST_UNIT[0] = sp.units[0]
+    set_group_align(sp)
     for u in units:
         writers.append((u,) + build_blob(u, pe, an, res, outdir, comdats))
+    # The first blob lists every library/import reference of all blobs, keyed
+    # like the original single object, so that LINK's undefined-symbol list (and
+    # with it the library search order) does not depend on the unit split.
+    if writers and writers[0][0] is sp.units[0]:
+        w0 = writers[0][1]
+        for name, key in res.external.items():
+            w0.undef_key.setdefault(name, key)
+            w0.phantoms.append(name)
     # second pass: define symbols (named ones from symbols.txt + labels)
     for u, w, secs in writers:
         names = dict(res.labels.get(u.name, {}))
