@@ -127,8 +127,8 @@ unit is compiled from source. Correct them as decompilation shows where the sour
 
 ## Linking decompiled code
 
-`mkblobs.py` takes every function that `compare.py` compiled into `build/obj/src/` and that has
-the original size, and puts the compiled section, with its relocations, into its unit's object in
+`mkblobs.py` takes every function that `compare.py` compiled into `build/obj/src/` and found to
+match (`build/matched.json`), and puts the compiled section, with its relocations, into its unit's object in
 place of the original bytes. The code that `build/wf.exe` contains then really is the compiler's
 output, linked by LINK:
 
@@ -137,8 +137,7 @@ output, linked by LINK:
   through the address the original instruction uses.
 * EH funclets (`.text$x`) and EH tables (`.xdata$x`) of compiled functions still come from
   the blob.
-* A function whose size differs keeps the original bytes, with a warning, so the layout
-  cannot shift.
+* Functions that do not match yet keep the original bytes.
 * With the 5 seed functions linked from source, the relink is unchanged.
 
 A unit with `src=` whose object has been built is linked from that object directly (`link.py`).

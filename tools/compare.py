@@ -188,6 +188,7 @@ def main():
         "units": units,
     }
     json.dump(cfg, open(os.path.join(ROOT, "objdiff.json"), "w"), indent=2)
+    json.dump(sorted(matched), open(os.path.join(BUILD, "matched.json"), "w"))
     open(os.path.join(BUILD, "progress.json"), "w").write(json.dumps(dict(
         functions_matched=total_match, functions_total=len(game_funcs),
         bytes_matched=matched_bytes, bytes_total=game_bytes)))

@@ -166,10 +166,12 @@ class CompiledFunction:
 
 
 def load_compiled(syms, lib_names):
-    """address -> CompiledFunction for every compiled function whose name is
-    in symbols.txt and whose size equals the original's (other functions keep
-    their original bytes, so the layout cannot change)."""
+    """address -> CompiledFunction for every compiled function that
+    compare.py found to match (build/matched.json); other functions keep their
+    original bytes."""
     by_name = {s["name"]: a for a, s in syms.items() if s["type"] == "func"}
+    mpath = os.path.join(BUILD, "matched.json")
+    matched = set(json.load(open(mpath))) if os.path.exists(mpath) else set()
     out = {}
     for path in sorted(glob.glob(os.path.join(BUILD, "obj", "src", "*.obj"))):
         coff = Coff(open(path, "rb").read(), path)
@@ -180,10 +182,7 @@ def load_compiled(syms, lib_names):
             for y in sec["syms"]:
                 if y["type"] & 0x20 and y["value"] == 0 and y["cls"] == 2 and y["name"] in by_name:
                     a = by_name[y["name"]]
-                    if len(sec["data"]) != syms[a]["size"]:
-                        print(f"warning: {y['name']}: compiled size {len(sec['data']):#x} != "
-                              f"{syms[a]['size']:#x}, keeping the original bytes")
-                    elif a not in out:
+                    if a in matched and a not in out:
                         out[a] = CompiledFunction(path, coff, sec, y["name"])
                     break
     return out
