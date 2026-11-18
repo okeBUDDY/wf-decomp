@@ -43,6 +43,11 @@
       "base_path": "build/obj/src/effect_controls.obj"
     },
     {
+      "name": "enm_battle",
+      "target_path": "build/target/enm_battle.obj",
+      "base_path": "build/obj/src/enm_battle.obj"
+    },
+    {
       "name": "enm_param",
       "target_path": "build/target/enm_param.obj",
       "base_path": "build/obj/src/enm_param.obj"
@@ -61,6 +66,11 @@
       "name": "enm_tactics",
       "target_path": "build/target/enm_tactics.obj",
       "base_path": "build/obj/src/enm_tactics.obj"
+    },
+    {
+      "name": "enm_title",
+      "target_path": "build/target/enm_title.obj",
+      "base_path": "build/obj/src/enm_title.obj"
     },
     {
       "name": "explosion_controls",

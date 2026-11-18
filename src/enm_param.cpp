@@ -435,14 +435,14 @@ void CEnmParam::AddStep(int id) {
 // TODO: nonmatching (close: the registers of the constants at the start and
 // the pointer of the last loop over the sides).
 void CEnmParam::Plan(int score) {
-  if (unknown_354_ < 1) {
-    unknown_354_ = 1;
+  if (player_samples_ < 1) {
+    player_samples_ = 1;
   }
   if (battle_time_ < 1) {
     battle_time_ = 1;
   }
   int count = static_cast<unsigned int>(score) / 300000 + 2;
-  int add = static_cast<int>(unknown_348_ / unknown_354_);
+  int add = static_cast<int>(player_travel_ / player_samples_);
   float rate = static_cast<float>(unknown_344_) / battle_time_;
   if (add >= 50) {
     add = 50;
@@ -638,7 +638,7 @@ void CEnmParam::Plan(int score) {
   root = FindSlot(0x80000000);
   Grow(root, 0x80000001, 0);
   Grow(root, 0x80000002, 0);
-  AfterPlan();
+  ChooseTitle();
 }
 
 // 0x41b5b0
@@ -666,6 +666,6 @@ void CEnmParam::Reset() {
   AllocSlot(0xc0000000, 0);
   AllocSlot(0x40000000, 0);
   AllocSlot(0x80000000, 0);
-  ClearUnknown32c();
+  ClearTitles();
   Plan(0);
 }

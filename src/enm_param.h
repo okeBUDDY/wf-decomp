@@ -173,6 +173,14 @@ struct EnmSideStats {
   short unknown_08_;  // 0x08, parts of kind 0x40000 counted
 };
 
+// The title of a boss (8 bytes).
+struct EnmTitle {
+  char words[2];  // 0x00, -1: none
+  short weapon;   // 0x02, the main weapon, 7: mixed, -1: none
+  short level;    // 0x04, of the weapon (at most 20), or the weapon count
+  short variant;  // 0x06, counts up each time the title comes again
+};
+
 // The state of CEnmParam that is saved with a game (0x7c bytes).
 struct EnmState {
   unsigned int flags;        // 0x08
@@ -192,10 +200,7 @@ struct EnmState {
   short step_count;          // 0x50
   short step_total;          // 0x52
   char steps[19][2];         // 0x54
-  char title[2];             // 0x7a, words of the boss's title, -1: none
-  short unknown_7c_;         // 0x7c
-  short unknown_7e_;         // 0x7e
-  short unknown_80_;         // 0x80
+  EnmTitle title;            // 0x7a
   short unknown_82_;         // 0x82
 };
 
@@ -225,19 +230,22 @@ class CEnmParam : public System {
   int Load(File* file);  // 0x41a660
   // Plans the next boss; `score` is the score so far.
   void Plan(int score);  // 0x41abc0
-  void AfterPlan();      // 0x417c10, not decompiled yet
+  // Chooses the title of the planned boss from the modes of its sides and
+  // its weapons.
+  void ChooseTitle();  // 0x417c10
   // Writes the parameters shown on the results to `out`; returns their
   // count.
   int GetParams(short* out);  // 0x419fa0
   // Writes the results of the stage to `text`, `*columns` wide and
   // `*lines` high.
   void FormatResult(char* text, int* columns, int* lines);  // 0x41a090
-  void ClearUnknown32c();                                   // 0x417c00
+  // Forgets the titles given so far.
+  void ClearTitles();  // 0x417c00
 
   // The battle tactics run by list_218_ on the boss; each returns 1 when
   // it is over.
   // Nonzero when the stronger side (by the percentage of its parts alive)
-  // is the one unknown_14c_ does not name, and the weaker one is down to
+  // is the one player_dir_ does not name, and the weaker one is down to
   // `percent`.
   int IsSideBeaten(Actor* boss, int percent);  // 0x416170
   int Tactic4161d0(Actor* boss);               // 0x4161d0
@@ -250,15 +258,20 @@ class CEnmParam : public System {
   int Tactic4168e0(Actor* boss);                // 0x4168e0
   int Tactic4169c0(Actor* boss);                // 0x4169c0
   int Tactic416ac0(Actor* boss);                // 0x416ac0
-  int Tactic416cb0(Actor* boss);
-  int Tactic416e10(Actor* boss);  // 0x416e10                // 0x416cb0
-  int Tactic417010(Actor* boss);  // 0x417010
-  int Tactic4170c0(Actor* boss);
-  int Tactic417430(Actor* boss);  // 0x417430
-  int Tactic417520(Actor* boss);  // 0x417520
-  int Tactic4175d0(Actor* boss);  // 0x4175d0
-  int Tactic4176f0(Actor* boss);  // 0x4176f0
-  int Tactic4177e0(Actor* boss);  // 0x4177e0                // 0x4170c0
+  int Tactic416cb0(Actor* boss);                // 0x416cb0
+  int Tactic416e10(Actor* boss);                // 0x416e10
+  int Tactic417010(Actor* boss);                // 0x417010
+  int Tactic4170c0(Actor* boss);                // 0x4170c0
+  int Tactic417430(Actor* boss);                // 0x417430
+  int Tactic417520(Actor* boss);                // 0x417520
+  int Tactic4175d0(Actor* boss);                // 0x4175d0
+  int Tactic4176f0(Actor* boss);                // 0x4176f0
+  int Tactic4177e0(Actor* boss);                // 0x4177e0
+  // Sets up the battle with the planned boss and creates it (control 32).
+  Actor* StartBattle(Actor* player);  // 0x417170
+  // Runs a frame of the battle: follows `player` and runs the tactics on
+  // `boss`, choosing the next one when a tactic is over.
+  void RunBattle(Actor* player, Actor* boss);  // 0x4178f0
   // Makes the armored parts glow for `time` frames (sending event 8 to
   // `actor`); 0 without armored parts.
   int GlowArmor(Actor* actor, int time);  // 0x4173a0
@@ -332,9 +345,11 @@ class CEnmParam : public System {
     // In battle: the rank + 50 of the cores per side and level.
     int core_power_[2][7];  // 0x10c
   };
-  int core_count_;             // 0x144
-  int core_total_;             // 0x148, cores the boss started with
-  int unknown_14c_;            // 0x14c
+  int core_count_;  // 0x144
+  int core_total_;  // 0x148, cores the boss started with
+  // Where the player is seen from the boss: 0 behind it (within 0x40 of
+  // 0x200), 1 at its side (within 0x100), 2 in front.
+  int player_dir_;             // 0x14c
   int glow_time;               // 0x150, of the glow (control 22) of a part
   int trans_count_;            // 0x154, parts that played trans1
   int unknown_158_;            // 0x158
@@ -355,15 +370,15 @@ class CEnmParam : public System {
   EnmDestroyRecord* records_;  // 0x194
   EnmPlan plan_;               // 0x198
   EnmList list_218_;           // 0x218
-  int unknown_22c_[64];        // 0x22c
-  int unknown_32c_;            // 0x32c
+  EnmTitle titles_[32];        // 0x22c, given so far
+  int title_count_;            // 0x32c
   int deaths_;                 // 0x330
   int battle_time_;            // 0x334
   int unknown_338_[3];         // 0x338, picks the order of new weapons
   int unknown_344_;            // 0x344
-  float unknown_348_;          // 0x348
-  int unknown_34c_[2];         // 0x34c
-  int unknown_354_;            // 0x354
+  float player_travel_;        // 0x348, sampled every 32 frames
+  float player_pos_[2];        // 0x34c, when last sampled
+  int player_samples_;         // 0x354
   int new_weapon_;             // 0x358, added by Plan, or -1
   int unknown_35c_;            // 0x35c
 };

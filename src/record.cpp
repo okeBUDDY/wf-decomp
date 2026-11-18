@@ -36,12 +36,12 @@ void RateGame() {
     SetRating(1, 0);
   } else if (sides[0].mode == 3 || sides[1].mode == 3) {
     if (sides[0].progress >= 100 && sides[1].progress >= 100) {
-      SetRating(6, g_enm_param.state_.title[0] - 13);
+      SetRating(6, g_enm_param.state_.title.words[0] - 13);
     } else {
-      SetRating(5, g_enm_param.state_.title[0] - 13);
+      SetRating(5, g_enm_param.state_.title.words[0] - 13);
     }
   } else if (sides[0].progress >= 100 && sides[1].progress >= 100) {
-    SetRating(5, g_enm_param.state_.title[0] - 13);
+    SetRating(5, g_enm_param.state_.title.words[0] - 13);
   } else if (sides[0].progress >= 65) {
     SetRating((sides[1].progress >= 65) + 3, 0);
   } else {

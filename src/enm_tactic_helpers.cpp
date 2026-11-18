@@ -12,7 +12,7 @@ int CEnmParam::IsSideBeaten(Actor* boss, int percent) {
   if (state_.step_mask & 2) {
     int left = parts_alive_[0] * 100 / unknown_f4_[0];
     int right = parts_alive_[1] * 100 / unknown_f4_[1];
-    if (unknown_14c_ == 2) {
+    if (player_dir_ == 2) {
       if (left > right && right <= percent) {
         return 1;
       }
@@ -42,7 +42,7 @@ void CEnmParam::RunOpening(Actor* boss, int next_step) {
       if (list_b0_.op != 0 && !(state_.flags & 2)) {
         break;
       }
-      if (unknown_14c_ == 2 && list_218_.arg > 0) {
+      if (player_dir_ == 2 && list_218_.arg > 0) {
         if (list_b0_.op == 0) {
           --list_218_.arg;
           list_b0_.Start(0x20004, 0);

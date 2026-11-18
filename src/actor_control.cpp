@@ -208,7 +208,7 @@ int Control35::Initialize() {
 void Control01::OnDestroy(Actor* actor) { g_game.OnPlayerDestroyed(); }
 
 // 0x417c00 (this object, so the enm_param.cpp callers do not inline it)
-void CEnmParam::ClearUnknown32c() { unknown_32c_ = 0; }
+void CEnmParam::ClearTitles() { title_count_ = 0; }
 
 Actor* Control32::boss_;
 int CorePartControl::max_unknown_22_;
