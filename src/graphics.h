@@ -12,13 +12,23 @@
 
 struct Application;
 
+class HLDevSet;
+
 class Graphics : public System {
  public:
+  enum { kMaxSurfaces = 128 };
+  enum Flags {
+    kDisplayModeSet = 0x1,  // full screen: restore the mode at the end
+    kCursorHidden = 0x2,
+  };
+
   Graphics();                                // 0x4053e0
   virtual int Initialize(Application* app);  // 0x405480
   virtual void Finalize();                   // 0x405810
-  virtual void Pause();                      // 0x4058e0
-  virtual void Resume();                     // 0x405910
+  // Frees the cursor.
+  virtual void Pause();  // 0x4058e0
+  // Clips the cursor again and restores the lost surfaces.
+  virtual void Resume();  // 0x405910
 
   // Copies the back buffer to the window area of the primary surface.
   void Blt() {
@@ -32,20 +42,32 @@ class Graphics : public System {
   void Flip() { primary_.surface_->Flip(NULL, DDFLIP_WAIT); }
   // Follows the window after it moved or was resized.
   void UpdateWindowRect(HWND window);  // 0x405300
+  // Full screen: keeps the cursor in the window (`clip`) or frees it.
+  void ClipCursor(int clip);  // 0x405350
+  // Adds the DirectDraw devices with 3D textures to `set`. Returns 0 when
+  // there is none.
+  int EnumDevices(HLDevSet* set);  // 0x405a30
 
   // The back buffer everything is drawn to.
   HLSurface* back() { return &back_; }
 
  private:
-  IDirectDraw7* ddraw_;  // 0x08
-  int unknown_0c_;       // 0x0c
-  int unknown_10_;       // 0x10
-  int unknown_14_;       // 0x14
-  int unknown_18_;       // 0x18
-  RECT window_rect_;     // 0x1c
-  HLSurface primary_;    // 0x2c
-  HLSurface back_;       // 0x54
-  int unknown_7c_;       // 0x7c
+  friend class HLSurface;
+
+  static BOOL WINAPI EnumDeviceProc(GUID* guid, LPSTR description, LPSTR name,
+                                    LPVOID context,
+                                    HMONITOR monitor);  // 0x405270
+
+  IDirectDraw7* ddraw_;          // 0x08
+  GUID* device_;                 // 0x0c, NULL: the primary display
+  Application* app_;             // 0x10
+  unsigned int flags_;           // 0x14, Flags
+  IDirectDrawClipper* clipper_;  // 0x18
+  RECT window_rect_;             // 0x1c, in screen coordinates
+  HLSurface primary_;            // 0x2c
+  HLSurface back_;               // 0x54
+  // 0x7c, malloc()ed: the surfaces to restore after a mode change.
+  HLSurface** surfaces_;
 };
 
 #endif  // WF_GRAPHICS_H_

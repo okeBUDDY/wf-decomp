@@ -46,7 +46,9 @@ struct AppSettings {
     kLog = 0x4,            // write "<name>.log"
     kSyncKeys = 0x10,      // F1-F4 pick the HLSync mode
     kSystemKeys = 0x20,    // Esc quits, F12 resets
+    kHideCursor = 0x40,    // full screen: hide the cursor
     kMessageField = 0x80,
+    kClipper = 0x100,  // clip the primary surface to the window
   };
 
   AppSettings()

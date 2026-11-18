@@ -9,9 +9,32 @@
 
 #include "object.h"
 
+class Graphics;
+
 class HLSurface : public Object {
  public:
   HLSurface();  // 0x40b920
+
+  // Reads the size and format of surface_ (`mode`: Modes).
+  void Attach(unsigned short mode);  // 0x40b970
+  // Releases the surface and the buffer.
+  void Release();  // 0x40ba80
+  // Creates a `width` x `height` surface. Returns 0 on error.
+  int Create(int width, int height, unsigned short mode);  // 0x40bda0
+  // Copies `pixels` into the surface.
+  void Load(void* pixels, unsigned short mode);  // 0x40bff0
+  // Restores the surface after a mode change, reloading its pixels.
+  void Restore() {
+    if (surface_ != NULL && surface_->IsLost() == DDERR_SURFACELOST) {
+      surface_->Restore();
+      if (buffer_ != NULL) {
+        Load(buffer_, mode_);
+      }
+    }
+  }
+
+  // The display surfaces are made with.
+  static Graphics* graphics_;  // 0x468f70
 
   IDirectDrawSurface7* surface() const { return surface_; }
 
@@ -25,7 +48,7 @@ class HLSurface : public Object {
   short pitch_;                   // 0x14
   short format_;                  // 0x16, pixel format index
   int unknown_18_;                // 0x18
-  short mode_;                    // 0x1c
+  unsigned short mode_;           // 0x1c
   short id_;                      // 0x1e, -1: none
   bool unknown_20_;               // 0x20
   bool unknown_21_;               // 0x21
