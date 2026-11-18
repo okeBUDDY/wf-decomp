@@ -211,6 +211,7 @@ void Control01::OnDestroy(Actor* actor) { g_game.OnPlayerDestroyed(); }
 void CEnmParam::ClearTitles() { title_count_ = 0; }
 
 Actor* Control32::boss_;
+int Control32::weapons_[7];
 int CorePartControl::max_unknown_22_;
 
 int g_core_controls[7] = {40, 41, 42, 44, 46, 47, 49};

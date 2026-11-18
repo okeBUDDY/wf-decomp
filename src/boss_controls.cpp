@@ -61,19 +61,6 @@ int Control33::OnCreate(Actor* actor, void* param) {
   return 1;
 }
 
-// Actor::work of control 32, the body of the boss.
-struct Control32Work {
-  enum Flags {
-    kDashing = 0x1,  // in PartWork::flags
-  };
-
-  char part_[0x20];    // 0x30, as PartWork (only its first 0x20 bytes)
-  Actor* arms[4];      // 0x50, the parts on the left (0, 1) and right (2, 3)
-  float deceleration;  // 0x60, of the dash
-  short brake_time;    // 0x64, frames into the dash it starts to brake, 0:
-                       // braking
-};
-
 // The pieces of the body.
 extern PartPiece g_body_pieces[4];  // 0x45d418
 

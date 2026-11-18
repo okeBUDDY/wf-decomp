@@ -319,6 +319,26 @@ class Control48 : public ScoredControl {
   virtual int GetHitPoints(Actor* actor) { return 5; }
 };
 
+// Actor::work of control 32, the body of the boss.
+struct Control32Work {
+  enum Flags {
+    kDashing = 0x1,  // in PartWork::flags
+    kTurning = 0x2,
+  };
+
+  char part_[0x20];    // 0x30, as PartWork (only its first 0x20 bytes)
+  Actor* arms[4];      // 0x50, the parts on the left (0, 1) and right (2, 3)
+  float deceleration;  // 0x60, of the dash
+  short brake_time;    // 0x64, frames into the dash it starts to brake, 0:
+                       // braking
+  // A turn (RunProgramB0): it speeds up until turn_peak, then slows down
+  // until turn_end, turning by `turn` from `turn_from`.
+  unsigned short turn_from;  // 0x66
+  short turn;                // 0x68
+  short turn_peak;           // 0x6a, frames into the turn
+  short turn_end;            // 0x6c
+};
+
 class Control32 : public LinkedPartControl {
  public:
   virtual int Initialize();  // 0x411500
@@ -343,10 +363,22 @@ class Control32 : public LinkedPartControl {
   void RunProgram9c(Actor* actor, EnmList* program);              // 0x4120d0
   void RunProgramB0(Actor* actor, EnmList* program);              // 0x412530
   void RunSideProgram(Actor* actor, EnmList* program, int side);  // 0x4119d0
+  // Starts a turn of `actor` to `angle`; 0 when it faces it already.
+  int StartTurn(Actor* actor, EnmList* program,
+                int angle);  // 0x411580
+  // Writes the weapons that the cores of `side` still have to `out`;
+  // returns their count.
+  int ListWeapons(int side, int* out);  // 0x411600
+  // Sends the event (`x`, `y`) to the parts of `side`.
+  void SignalSide(Actor* actor, int side, int x, int y);  // 0x411960
+  // The angle from `actor` to the player (or to where it starts).
+  unsigned short AngleToPlayer(Actor* actor);  // 0x4124f0
 
  private:
   // Where the body may move.
   static FloatRect bounds_;  // 0x469054
+  // Scratch space of RunSideProgram for ListWeapons.
+  static int weapons_[7];  // 0x469064
 };
 
 class Control33 : public LinkedPartControl {
