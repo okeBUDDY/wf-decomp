@@ -242,6 +242,7 @@ void Control43::OnDestroy(Actor* actor) {
 void CEnmParam::ClearUnknown32c() { unknown_32c_ = 0; }
 
 Actor* Control32::boss_;
+int CorePartControl::max_unknown_22_;
 
 int g_core_controls[7] = {40, 41, 42, 44, 46, 47, 49};
 int g_debris_controls[4] = {0, 17, 18, 19};
@@ -255,6 +256,43 @@ int ScoredControl::Prepare(Actor* actor, void* param) {
   actor->hit_points +=
       actor->hit_points * g_enm_param.state_.unknown_26_ / 1024;
   return 1;
+}
+
+// 0x418c90
+void PartControl::Schedule(Actor* actor, short delay, short next) {
+  OnDamage(actor, 1);
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  work->unknown_1e_ = delay;
+  work->state_time = next;
+}
+
+// 0x418cc0
+void CorePartControl::OnEvent(Actor* actor, int x, int y) {
+  PartWork* work = reinterpret_cast<PartWork*>(actor->work);
+  if (!(y & 0x2000) && !(work->flags & PartWork::kAlive)) {
+    return;
+  }
+  if (!(y & (0x10000 << GetLevel()))) {
+    return;
+  }
+  if (!(y & 0x100) && (y & 0xff) != 0) {
+    return;
+  }
+  if (x == 5) {
+    if (y & 0x800) {
+      if (!(work->flags & 0x2000000)) {
+        Setup(actor, 100);
+        work->flags |= 0x2000000;
+      }
+    } else if (work->flags & 0x2000000) {
+      Setup(actor, work->rank);
+      work->flags &= ~0x2000000;
+    }
+    if (work->unknown_22_ > max_unknown_22_) {
+      max_unknown_22_ = work->unknown_22_;
+    }
+  }
+  OnDamage(actor, x);
 }
 
 // 0x418d70

@@ -112,6 +112,8 @@ class PartControl : public ScoredControl {
   // Stops trans1 when no part plays it any more; then plays trans2 when
   // `next`.
   void StopTrans(PartWork* work, int next);  // 0x419580
+  // Waits `delay` frames (state 1), then calls OnDamage(actor, `next`).
+  void Schedule(Actor* actor, short delay, short next);  // 0x418c90
   // Runs the states OnDamage() sets; returns 1.
   int MovePart(Actor* actor);  // 0x419a70
   // 1 when the actor is outside the screen.
@@ -148,6 +150,9 @@ class CorePartControl : public PartControl {
   virtual void Setup(Actor* actor, int rank) = 0;
   // InitPart() plus the rank of the core.
   int InitCore(Actor* actor, void* param);  // 0x419220
+
+  // The largest PartWork::unknown_22_ of a core at event 5.
+  static int max_unknown_22_;  // 0x469274
 };
 
 // Simple controls ---------------------------------------------------------
