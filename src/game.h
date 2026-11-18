@@ -34,6 +34,7 @@ class Game {
   void OnPlayerDestroyed();  // 0x41ee60
   void OnPartDestroyed();    // 0x41ee80
   void OnBossDestroyed();    // 0x41eec0
+  const GameRules& rules() const { return rules_; }
 
  private:
   unsigned int flags_;  // 0x04

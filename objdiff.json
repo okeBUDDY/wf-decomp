@@ -23,6 +23,16 @@
       "base_path": "build/obj/src/application.obj"
     },
     {
+      "name": "enm_param",
+      "target_path": "build/target/enm_param.obj",
+      "base_path": "build/obj/src/enm_param.obj"
+    },
+    {
+      "name": "enm_plan",
+      "target_path": "build/target/enm_plan.obj",
+      "base_path": "build/obj/src/enm_plan.obj"
+    },
+    {
       "name": "file",
       "target_path": "build/target/file.obj",
       "base_path": "build/obj/src/file.obj"
@@ -91,11 +101,6 @@
       "name": "pack",
       "target_path": "build/target/pack.obj",
       "base_path": "build/obj/src/pack.obj"
-    },
-    {
-      "name": "pack_file",
-      "target_path": "build/target/pack_file.obj",
-      "base_path": "build/obj/src/pack_file.obj"
     },
     {
       "name": "path_util",

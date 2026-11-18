@@ -73,16 +73,63 @@ class PackFile : public File {
     pos_ = 0;
     size_ = 0;
   }
-  virtual ~PackFile();  // 0x40a1b0, scalar deleting dtor 0x40a290
+  // 0x40a1b0, scalar deleting dtor 0x40a290
+  virtual ~PackFile() { Close(); }
   // Opens the archive member `name`; only File::kRead is supported.
-  virtual int Open(const char* name, int mode);     // 0x40dbb0 (pack.cpp)
-  virtual void Close();                             // 0x409b40
-  virtual int Read(void* buffer, int size);         // 0x409b70
-  virtual int Write(const void* buffer, int size);  // 0x40a1f0
-  virtual void Flush();                             // shares 0x406900
-  virtual int Seek(long offset, int origin);        // 0x40a220
-  virtual long Tell();                              // 0x40a200
-  virtual long Size();                              // 0x40a210
+  virtual int Open(const char* name, int mode);  // 0x40dbb0 (pack.cpp)
+  // 0x409b40
+  virtual void Close() {
+    if (file_ != NULL) {
+      fclose(file_);
+    }
+    file_ = NULL;
+    pos_ = 0;
+    size_ = 0;
+  }
+  // 0x409b70
+  virtual int Read(void* buffer, int size) {
+    if (file_ != NULL) {
+      if (size > size_ - pos_) {
+        size = size_ - pos_;
+      }
+      pos_ += size;
+      return fread(buffer, 1, size, file_);
+    }
+    return 0;
+  }
+  // 0x40a1f0
+  virtual int Write(const void* buffer, int size) { return 0; }
+  // 0x406900 (an empty function shared by many classes)
+  virtual void Flush() {}
+  // 0x40a220
+  virtual int Seek(long offset, int origin) {
+    if (file_ != NULL) {
+      switch (origin) {
+        case SEEK_SET:
+          pos_ = offset;
+          break;
+        case SEEK_CUR:
+          pos_ = pos_ + offset;
+          break;
+        case SEEK_END:
+          pos_ = size_ + offset;
+          break;
+        default:
+          return -1;
+      }
+      if (pos_ > size_) {
+        pos_ = size_;
+      } else if (pos_ < 0) {
+        pos_ = 0;
+      }
+      return fseek(file_, offset_ + pos_, SEEK_SET);
+    }
+    return -1;
+  }
+  // 0x40a200
+  virtual long Tell() { return pos_; }
+  // 0x40a210
+  virtual long Size() { return size_; }
 
  private:
   long offset_;  // 0x08, start of the member in data.bin
