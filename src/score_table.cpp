@@ -11,7 +11,7 @@ extern Application g_application;  // 0x467328
 
 static const char* kRankNames[] = {"1ST", "2ND", "3RD", "4TH",
                                    "5TH", "6TH", "7TH", "8TH"};  // 0x45de80
-static char s_profile_value[256];                                // 0x468d90
+char g_text_buffer[256];                                         // 0x468d90
 
 // 0x420f80
 void ScoreTable::SetRules(const GameRules* rules) { rules_ = *rules; }
@@ -207,13 +207,13 @@ void ScoreTable::Import() {
     for (int i = 0; i < kEntries; ++i, ++entry) {
       char key[8];
       sprintf(key, "%d", i + 1);
-      g_application.profile.GetString(key, "", s_profile_value,
-                                      sizeof(s_profile_value));
-      if (s_profile_value[0] == '\0') {
+      g_application.profile.GetString(key, "", g_text_buffer,
+                                      sizeof(g_text_buffer));
+      if (g_text_buffer[0] == '\0') {
         Reset();
         break;
       }
-      sscanf(s_profile_value, "%d %hd %hd", &entry->score, &entry->stage,
+      sscanf(g_text_buffer, "%d %hd %hd", &entry->score, &entry->stage,
              &entry->reserved);
       sprintf(key, "%dname", i + 1);
       g_application.profile.GetString(key, "---", entry->name,

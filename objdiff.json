@@ -28,6 +28,21 @@
       "base_path": "build/obj/src/game.obj"
     },
     {
+      "name": "graphics",
+      "target_path": "build/target/graphics.obj",
+      "base_path": "build/obj/src/graphics.obj"
+    },
+    {
+      "name": "hl_3d",
+      "target_path": "build/target/hl_3d.obj",
+      "base_path": "build/obj/src/hl_3d.obj"
+    },
+    {
+      "name": "hl_surface",
+      "target_path": "build/target/hl_surface.obj",
+      "base_path": "build/obj/src/hl_surface.obj"
+    },
+    {
       "name": "hl_sync",
       "target_path": "build/target/hl_sync.obj",
       "base_path": "build/obj/src/hl_sync.obj"

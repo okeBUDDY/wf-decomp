@@ -10,6 +10,7 @@
 class UserFunc : public Object {
  public:
   UserFunc() {
+    name_ = "UserFunc";
     next_ = NULL;
     done_ = 0;
     frames_ = 0;

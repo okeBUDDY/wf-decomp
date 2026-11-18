@@ -33,6 +33,7 @@ class HLWindow : public System {
   virtual void Pause() {}
   virtual void Resume() {}
 
+  void set_title(const char* title) { title_ = title; }
   // Routes mouse events to `func` (NULL: nobody), ending a drag first.
   void SetMouseHandler(MouseFunc func, void* user);  // 0x40ca90
 

@@ -25,6 +25,11 @@ class HLSync : public System {
   virtual void Pause() {}
   virtual void Resume() {}
 
+  // Presents the frame drawn.
+  void Present() {
+    present_(this);
+    ++frames_;
+  }
   // Picks the present function for `mode` and the screen mode.
   void SetMode(unsigned char mode);  // 0x40c8e0
 

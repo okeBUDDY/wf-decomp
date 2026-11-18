@@ -6,9 +6,20 @@
 
 #include <string.h>
 
+// A scratch buffer for profile values and paths.
+extern char g_text_buffer[256];  // 0x468d90
+
 class Profile {
  public:
   enum { kSectionSize = 64, kValueSize = 32 };
+
+  Profile() { path_ = section_ = value_ = NULL; }
+  virtual ~Profile() {
+    if (path_ != NULL) {
+      delete[] path_;
+    }
+    path_ = section_ = value_ = NULL;
+  }
 
   // Selects the [section] later reads come from.
   void SetSection(const char* section) {
@@ -33,7 +44,6 @@ class Profile {
   void WriteInt(const char* key, int value, const char* format);  // 0x40cd50
 
  private:
-  int unknown_00_;
   char* path_;     // 0x04
   char* section_;  // 0x08
   // 0x0c, kValueSize bytes. It starts kValueSize bytes into the section
