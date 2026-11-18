@@ -87,17 +87,19 @@ class GameHud : public Task {
     unsigned int flags_;        // 0x14
     unsigned char mode_flags_;  // 0x14, the low byte, cleared by SetMode
   };
-  int mode_;               // 0x18
-  int next_mode_;          // 0x1c, started by the next IsProtected()
-  int step_;               // 0x20, of the current screen
-  int mode_time_;          // 0x24, frames in mode_
-  int replay_name_x_;      // 0x28, right-aligned at column 80
-  HLSTxt* texts_[8];       // 0x2c
-  HLSTxt* mode_texts_[4];  // 0x4c, the texts of the current screen
+  int mode_;           // 0x18
+  int next_mode_;      // 0x1c, started by the next IsProtected()
+  int step_;           // 0x20, of the current screen
+  int mode_time_;      // 0x24, frames in mode_
+  int replay_name_x_;  // 0x28, right-aligned at column 80
+  HLSTxt* texts_[8];   // 0x2c
+  // The state of the current screen.
   union {
+    HLSTxt* mode_texts_[4];  // 0x4c, the texts of the screen
     // The name entry screen.
     struct {
-      int cursor_;        // 0x5c, the letter being entered (0..3)
+      HLSTxt* name_entry_texts_[4];  // 0x4c
+      int cursor_;                   // 0x5c, the letter being entered (0..3)
       int char_index_;    // 0x60, the character selected in kNameChars
       float back_alpha_;  // 0x64, of the backdrop
       float text_alpha_;  // 0x68
@@ -106,9 +108,19 @@ class GameHud : public Task {
       short last_dirs_;   // 0x74, the directions held last frame
       short dirs_time_;   // 0x76, frames they have been held
     };
+    // The boss result screen.
+    struct {
+      HLSTxt* result_text_;  // 0x4c
+      float result_bar_;     // 0x50, how far the bar is shown (0..1)
+      float result_alpha_;   // 0x54, of the text
+      int result_height_;    // 0x58, of the text in pixels
+      short result_shown_;   // 0x5c, characters typed out so far
+      short result_length_;  // 0x5e, of the text
+    };
     // The game over screen.
     struct {
-      char unknown_5c_[0x74 - 0x5c];
+      HLSTxt* game_over_texts_[3];  // 0x4c
+      char unknown_58_[0x74 - 0x58];
       // The chart of the boss's parameters.
       int param_count_;         // 0x74
       short params_[13];        // 0x78, CEnmParam::GetParams(), at least 0x40

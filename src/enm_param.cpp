@@ -62,6 +62,9 @@ int CEnmParam::GetParams(short* out) {
   return count;
 }
 
+// 0x41a080
+int CEnmParam::GetResultSize() { return 360; }
+
 // 0x41a090
 void CEnmParam::FormatResult(char* text, int* columns, int* lines) {
   sprintf(text, "@@1STAGE %-3d                       @@0\n\n", g_global.stage);

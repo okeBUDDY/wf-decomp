@@ -242,6 +242,8 @@ class CEnmParam : public System {
   // Writes the parameters shown on the results to `out`; returns their
   // count.
   int GetParams(short* out);  // 0x419fa0
+  // The size of the buffer FormatResult() needs.
+  int GetResultSize();  // 0x41a080
   // Writes the results of the stage to `text`, `*columns` wide and
   // `*lines` high.
   void FormatResult(char* text, int* columns, int* lines);  // 0x41a090
