@@ -8,29 +8,15 @@
 #include "enm_param.h"
 #include "file.h"
 #include "fn_game.h"
+#include "fn_option.h"
 #include "fonts.h"
 #include "game.h"
-#include "game_config.h"
 #include "game_data.h"
 #include "hl_3d.h"
 #include "score_table.h"
 #include "snd_sys.h"
 #include "sounds.h"
 #include "sprite.h"
-
-// 0x401000
-void Sprite::SetColor(int r, int g, int b, int a) {
-  red_ = r;
-  green_ = g;
-  blue_ = b;
-  alpha_ = a;
-  unsigned long c = color();
-  vertices_[3].color = c;
-  vertices_[2].color = c;
-  vertices_[1].color = c;
-  vertices_[0].color = c;
-  fade_frames_ = 0;
-}
 
 // 0x4010a0
 cGlobal::cGlobal() {
@@ -271,7 +257,7 @@ int cGlobal::Initialize(Application* app) {
   g_application.d3d->SetTextureAddress(D3DTADDRESS_WRAP, 0);
   g_actor_system.SetMargin(100, 32);
   g_score_table.Init("wf.sco");
-  g_config.Load();
+  g_fn_option.LoadSettings();
   screen_fade = new Sprite;
   if (screen_fade == NULL) {
     Error("ﾒﾓﾘが足りません");

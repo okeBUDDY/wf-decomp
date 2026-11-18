@@ -31,9 +31,23 @@ class Sprite : public Task {
   // Draws the quad unless it is transparent.
   virtual void Run();  // 0x41bd60
 
-  // 0x401000: sets the colour (0-255 per channel) of all four corners and
-  // stops the fade.
-  void SetColor(int r, int g, int b, int a);
+  // Sets the colour (0-255 per channel) of all four corners and stops
+  // the fade. 0x401000 (out of line where it is not inlined)
+  void SetColor(int r, int g, int b, int a) {
+    red_ = r;
+    green_ = g;
+    blue_ = b;
+    alpha_ = a;
+    unsigned long c = color();
+    vertices_[3].color = c;
+    vertices_[2].color = c;
+    vertices_[1].color = c;
+    vertices_[0].color = c;
+    fade_frames_ = 0;
+  }
+  // Fades in from black / out to black in `frames`.
+  void FadeIn(short frames);   // 0x41beb0
+  void FadeOut(short frames);  // 0x41bf00
   // Fades from the current colour to (`r`, `g`, `b`, `a`) in `frames`.
   void FadeTo(short frames, int r, int g, int b, int a);  // 0x41bca0
 

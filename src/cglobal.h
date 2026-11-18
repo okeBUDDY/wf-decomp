@@ -26,7 +26,6 @@ class cGlobal : public System {
   int RegisterActorControls();  // 0x40ff00
 
  public:
-
   int unknown_08_;         // 0x08
   int stage;               // 0x0c, the current stage (from 0)
   int unknown_10_[2];      // 0x10
@@ -45,6 +44,9 @@ class cGlobal : public System {
   void ClearStage();  // 0x4011a0
   // Stops every sound and restores the volumes.
   void ResetSound();  // 0x4011f0
+  // Set the volume of the music (sound group 0) and the effects (1).
+  void SetMusicVolume(float volume);   // 0x41c6a0
+  void SetEffectVolume(float volume);  // 0x41c6c0
   // Clears the state of the game before a new one.
   void ResetGame();  // 0x401240
 

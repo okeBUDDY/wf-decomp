@@ -19,6 +19,9 @@ const int kSeqVersion = 100;
 
 }  // namespace
 
+// 0x40ea20
+void ClearSeqFlags() { memset(g_seq_flags, 0, sizeof(g_seq_flags)); }
+
 // 0x40ea60
 CSndFileSEQ::CSndFileSEQ()
     : commands_(NULL), names_(NULL), path_(NULL), piece_(NULL) {}

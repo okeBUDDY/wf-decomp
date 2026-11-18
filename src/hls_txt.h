@@ -33,6 +33,8 @@ class HLSTxt : public HLSObject {
   virtual void Draw(const Transform* transform, D3DCOLOR color,
                     int blend);  // 0x40b4d0
 
+  // Copies `text` into the text buffer.
+  void SetText(const char* text);  // 0x41ca50
   // 0x40a9d0
   void Release() {
     if (flags_ & kOwnsText) {

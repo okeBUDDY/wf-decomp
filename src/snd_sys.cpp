@@ -4,13 +4,12 @@
 
 #include "hl_device.h"
 #include "snd_buf.h"
+#include "snd_file_seq.h"
 
 static char kName[] = "HLSound";  // 0x45d25c
 
 SoundSystem* g_sound_system;  // 0x468f98
 CSndBufList* g_snd_buf_list;  // 0x468f9c
-
-void ResetStreams();  // 0x40ea20
 
 // 0x408e40
 BOOL CALLBACK SoundSystem::EnumDeviceProc(GUID* guid, LPCSTR description,
@@ -220,7 +219,7 @@ int SoundSystem::Initialize(Application* app) {
   group_volume_[1] = 1.0f;
   group_volume_[2] = 1.0f;
   group_volume_[3] = 1.0f;
-  ResetStreams();
+  ClearSeqFlags();
   return 1;
 }
 

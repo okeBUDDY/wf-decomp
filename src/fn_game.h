@@ -29,6 +29,11 @@ class FnGame : public UserFunc {
   void SetMode(int mode, const char* path);  // 0x41be30
   // Enters `state`.
   void SetState(short state);  // 0x41be80
+  // Fades the screen to black in `fade` frames and ends the stage `wait`
+  // frames after that (unless it is ending already).
+  void Exit(int fade, int wait);  // 0x41c140
+  // Tells the music the game started (g_seq_flags).
+  void SetSeqFlags();  // 0x41c170
 
   // 0 while recording, else playing back.
   int mode() const { return mode_; }
@@ -41,8 +46,8 @@ class FnGame : public UserFunc {
   unsigned int flags_;      // 0x1c
   int mode_;                // 0x20
   int unknown_24_;          // 0x24
-  short unknown_28_;        // 0x28
-  short unknown_2a_;        // 0x2a
+  short exit_frames_;       // 0x28, frames until the stage ends, 0: running
+  short exit_time_;         // 0x2a
   short state_;             // 0x2c
   short state_time_;        // 0x2e, frames in state_
   int unknown_30_;          // 0x30
