@@ -203,8 +203,6 @@ int CSndBuf::SetPath(const char* path, CSndFile* file, WAVEFORMATEX* format) {
 }
 
 // 0x40e610
-// TODO: nonmatching: eax/edx swapped in the two virtual calls of the
-// failure path.
 int CSndBuf::Load(const char* path, unsigned int flags, unsigned int channel) {
   if (flags_ != 0) {
     Release();
@@ -225,12 +223,13 @@ int CSndBuf::Load(const char* path, unsigned int flags, unsigned int channel) {
     }
     seconds_ = static_cast<float>(file->size()) / format.nAvgBytesPerSec;
     if (!SetPath(path, file, &format)) {
-      goto failed;
+    failed:
+      delete file;
+      Release();
+      return 0;
     }
     delete file;
     return 1;
-  failed:
-    delete file;
   }
   Release();
   return 0;

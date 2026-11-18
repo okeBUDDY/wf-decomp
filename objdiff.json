@@ -68,6 +68,11 @@
       "base_path": "build/obj/src/snd_file_wav.obj"
     },
     {
+      "name": "snd_strm",
+      "target_path": "build/target/snd_strm.obj",
+      "base_path": "build/obj/src/snd_strm.obj"
+    },
+    {
       "name": "snd_sys",
       "target_path": "build/target/snd_sys.obj",
       "base_path": "build/obj/src/snd_sys.obj"

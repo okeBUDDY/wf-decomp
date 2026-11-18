@@ -19,6 +19,8 @@ class CSndBuf : public Object {
     kChannelMask = 0x3,
     kLoaded = 0x100,
     kBufferInUse = 0x200,  // buffer_ handed out by GetBuffer()
+    kLoop = 0x400,         // CSndStrm: the file restarts at its end
+    kPrefill = 0x800,      // CSndStrm: the buffer is still being filled
     kFromDisk = 0x1000000,
     kUserFlags = 0xff000100,
   };
@@ -45,9 +47,10 @@ class CSndBuf : public Object {
   // Volume group (0..3) of the buffer.
   int group() const { return flags_ & 0xff; }
 
- private:
+ protected:
   friend class CSndBufList;
   friend class SoundSystem;
+  friend class Channel;
 
   int CreateBuffer(WAVEFORMATEX* format, int size);  // 0x40def0
   CSndFile* OpenSndFile(const char* path,

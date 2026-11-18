@@ -26,8 +26,12 @@ class Channel {
   enum Flags {
     kPauseCountMask = 0xffff,
     kLoop = 0x10000,
+    kUserFlags = 0xff0000,
+    kJustStarted = 0x1000000,
+    kStream = 0x2000000,
     kFading = 0x4000000,
     kStopAfterFade = 0x8000000,
+    kStartPending = 0x10000000,  // stream waits for its first fill
   };
 
   // 0x408ef0
@@ -63,6 +67,10 @@ class Channel {
   // then stops the channel when `stop` is set.
   void Fade(float from, float to, float time, int stop);  // 0x40f570
   int Start();                                            // 0x40f650
+  // Advances streaming, the play time and the fade by `elapsed` seconds.
+  void Update(float elapsed);  // 0x40f6a0
+  // Starts playing `sound` on this channel.
+  int Assign(CSndBuf* sound, unsigned int flags, float volume);  // 0x40f7a0
 
   unsigned int pause_count() const { return flags_ & kPauseCountMask; }
   void set_pause_count(unsigned int count) {
@@ -84,7 +92,7 @@ class Channel {
   Channel* next_;               // 0x14
   float volume_;                // 0x18
   float pan_;                   // 0x1c
-  int reserved_20_;             // 0x20
+  float remaining_;             // 0x20, seconds left (negative: looping)
   float fade_time_;             // 0x24
   float fade_elapsed_;          // 0x28
   float fade_from_;             // 0x2c

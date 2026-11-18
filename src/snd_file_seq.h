@@ -18,6 +18,8 @@ class CSndFileSEQ : public CSndFile {
   virtual int Read(void* buffer, int size);  // 0x40f0c0
   virtual void Seek(int position);           // 0x40f010
 
+  const char* path() const { return path_; }
+
  private:
   struct Command {
     unsigned char op;

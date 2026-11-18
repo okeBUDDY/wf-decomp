@@ -1,6 +1,7 @@
 #include "snd_sys.h"
 
 #include "snd_buf.h"
+#include "snd_strm.h"
 
 SoundSystem* Channel::system_;
 
@@ -132,4 +133,84 @@ int Channel::Start() {
     return Play();
   }
   return 1;
+}
+
+// 0x40f6a0
+void Channel::Update(float elapsed) {
+  if (flags_ & kStream) {
+    if (!static_cast<CSndStrm*>(sound_)->Update()) {
+      Release();
+      return;
+    }
+    if (flags_ & kStartPending) {
+      if (!static_cast<CSndStrm*>(sound_)->ready()) {
+        return;
+      }
+      if (!Start()) {
+        Release();
+        return;
+      }
+      flags_ &= ~kStartPending;
+    }
+  }
+  unsigned int flags = flags_;
+  if (flags & kJustStarted) {
+    flags_ = flags & ~kJustStarted;
+    return;
+  }
+  if (remaining_ > 0.0f) {
+    remaining_ -= elapsed;
+    if (remaining_ < 0.0f) {
+      Release();
+      return;
+    }
+  }
+  if (flags & kFading) {
+    fade_elapsed_ += elapsed;
+    if (fade_elapsed_ >= fade_time_) {
+      SetVolume(fade_from_ + fade_delta_);
+      if (flags_ & kStopAfterFade) {
+        Release();
+        return;
+      }
+      flags_ &= ~kFading;
+    } else {
+      SetVolume(fade_delta_ / fade_time_ * fade_elapsed_ + fade_from_);
+    }
+  }
+}
+
+// 0x40f7a0
+int Channel::Assign(CSndBuf* sound, unsigned int flags, float volume) {
+  if (sound == NULL || !(sound->flags_ & CSndBuf::kLoaded)) {
+    return 0;
+  }
+  Lock();
+  if (sound_ != NULL) {
+    Release();
+  }
+  sound_ = sound;
+  remaining_ = (flags & kLoop) ? -1.0f : sound->seconds_;
+  volume_ = volume;
+  pan_ = 0;
+  flags_ = (flags & kUserFlags) | kJustStarted;
+  SoundSystem* system = system_;
+  next_ = NULL;
+  prev_ = system->tail_;
+  if (system->head_ != NULL) {
+    system->tail_->next_ = this;
+  } else {
+    system->head_ = this;
+  }
+  system->tail_ = this;
+  int result;
+  if (sound_->GetName() == "CSndStrm") {
+    static_cast<CSndStrm*>(sound_)->SetLoop(flags_ & kLoop);
+    flags_ |= kStream | kStartPending;
+    result = 1;
+  } else {
+    result = Start();
+  }
+  Unlock();
+  return result;
 }
