@@ -35,6 +35,8 @@ class Replay : public Object {
   void Start(Actor* player);  // 0x415910
   // Closes the file and switches to `mode` on `path` (opened later).
   int Open(int mode, const char* path);  // 0x415720
+  // Returns 1 when `path` is a replay file of a version this build plays.
+  int IsReplayFile(const char* path);  // 0x415ac0
 
  private:
   enum { kVersion = 103, kOldVersion = 101 };

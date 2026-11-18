@@ -218,3 +218,17 @@ Replay::Replay() {
   mode_ = kNone;
   flags_ = 0;
 }
+
+// 0x415ac0
+int Replay::IsReplayFile(const char* path) {
+  File file;
+  if (!file.Open(path, File::kRead)) {
+    return 0;
+  }
+  unsigned int version;
+  if (file.ReadExact(&version, sizeof(version)) && version >= kOldVersion &&
+      version <= kVersion) {
+    return 1;
+  }
+  return 0;
+}
