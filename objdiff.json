@@ -8,6 +8,11 @@
   ],
   "units": [
     {
+      "name": "actor_control",
+      "target_path": "build/target/actor_control.obj",
+      "base_path": "build/obj/src/actor_control.obj"
+    },
+    {
       "name": "file",
       "target_path": "build/target/file.obj",
       "base_path": "build/obj/src/file.obj"
@@ -26,6 +31,16 @@
       "name": "pack_file",
       "target_path": "build/target/pack_file.obj",
       "base_path": "build/obj/src/pack_file.obj"
+    },
+    {
+      "name": "snd_file_ogg",
+      "target_path": "build/target/snd_file_ogg.obj",
+      "base_path": "build/obj/src/snd_file_ogg.obj"
+    },
+    {
+      "name": "snd_file_wav",
+      "target_path": "build/target/snd_file_wav.obj",
+      "base_path": "build/obj/src/snd_file_wav.obj"
     },
     {
       "name": "sprite",

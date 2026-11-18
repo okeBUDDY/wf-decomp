@@ -29,6 +29,8 @@ from splits import load_splits
 from wfcommon import BUILD, ORIG_EXE, PE, ROOT, VC71, Coff, run_wine, vc71_env, winpath
 
 CFLAGS = ["/nologo", "/c", "/O2", "/GX", "/GS", "/W3"]
+# Third-party headers (unpacked by tools/build_libs.py).
+LIB_INCLUDES = ["libogg-1.0/include", "libvorbis-1.0/include", "zlib-1.1.4", "libpng-1.2.5"]
 OBJDIR = os.path.join(BUILD, "obj", "src")
 TARGETDIR = os.path.join(BUILD, "target")
 
@@ -36,7 +38,8 @@ TARGETDIR = os.path.join(BUILD, "target")
 def compile_source(src):
     os.makedirs(OBJDIR, exist_ok=True)
     obj = os.path.join(OBJDIR, os.path.splitext(os.path.basename(src))[0] + ".obj")
-    args = CFLAGS + ["/I" + winpath(os.path.join(ROOT, "src")), "/Fo" + winpath(obj), winpath(src)]
+    incs = [os.path.join(ROOT, "src")] + [os.path.join(BUILD, "lib", "src", d) for d in LIB_INCLUDES]
+    args = CFLAGS + ["/I" + winpath(i) for i in incs] + ["/Fo" + winpath(obj), winpath(src)]
     rc, out = run_wine(f"{VC71}/bin/cl.exe", args, vc71_env(), check=False)
     lines = [ln for ln in out.splitlines() if ln.strip() and ln.strip() != os.path.basename(src)]
     if lines:

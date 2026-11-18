@@ -7,7 +7,7 @@
 
 class File {
  public:
-  File() : file_(NULL) {}
+  File() { file_ = NULL; }
   enum Mode { kRead, kWrite, kAppend, kReadUpdate };
 
   // scalar deleting dtor 0x401f40
@@ -33,6 +33,11 @@ class File {
 
 class PackFile : public File {
  public:
+  PackFile() {
+    file_ = NULL;
+    pos_ = 0;
+    size_ = 0;
+  }
   virtual ~PackFile();  // 0x40a1b0, scalar deleting dtor 0x40a290
   // Opens the archive member `name`; only File::kRead is supported.
   virtual int Open(const char* name, int mode);     // 0x40dbb0 (pack.cpp)
