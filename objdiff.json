@@ -48,6 +48,11 @@
       "base_path": "build/obj/src/enm_plan.obj"
     },
     {
+      "name": "explosion_controls",
+      "target_path": "build/target/explosion_controls.obj",
+      "base_path": "build/obj/src/explosion_controls.obj"
+    },
+    {
       "name": "file",
       "target_path": "build/target/file.obj",
       "base_path": "build/obj/src/file.obj"

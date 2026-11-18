@@ -253,7 +253,7 @@ class CEnmParam : public System {
   EnmState state_;       // 0x08
   int turn_speed_;       // 0x84, of the turrets, per frame
   int unknown_88_[3];    // 0x88
-  int unknown_94_;       // 0x94
+  int turret_count_;     // 0x94, of control 35
   int unknown_98_;       // 0x98
   EnmList list_9c_;      // 0x9c
   EnmList list_b0_;      // 0xb0
@@ -274,7 +274,7 @@ class CEnmParam : public System {
     int core_power_[2][7];  // 0x10c
   };
   int core_count_;             // 0x144
-  int unknown_148_;            // 0x148
+  int core_total_;             // 0x148, cores the boss started with
   int unknown_14c_;            // 0x14c
   int glow_time;               // 0x150, of the glow (control 22) of a part
   int trans_count_;            // 0x154, parts that played trans1

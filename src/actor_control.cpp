@@ -188,7 +188,7 @@ int Control17::OnMove(Actor* actor) { return actor->age <= 18; }
 void Control20::OnDestroy(Actor* actor) { g_boss = NULL; }
 
 // 0x4127c0
-void Control35::OnDestroy(Actor* actor) { --g_enm_param.unknown_94_; }
+void Control35::OnDestroy(Actor* actor) { --g_enm_param.turret_count_; }
 
 // 0x412820
 int Control35::Initialize() {

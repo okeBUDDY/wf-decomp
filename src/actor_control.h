@@ -247,6 +247,11 @@ class Control35 : public ActorControl {
   virtual int OnMove(Actor* actor);                 // 0x4129c0
 
  private:
+  // Starts a burst of bullets in a random direction.
+  void StartBurst(Actor* actor);  // 0x4127d0
+  // Fires a ring of 16 bullets once few cores are left.
+  void FireRing(Actor* actor);  // 0x412880
+
   static ActorDesc desc_;  // 0x469080
 };
 
