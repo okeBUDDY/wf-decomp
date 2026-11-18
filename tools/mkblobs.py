@@ -77,6 +77,17 @@ def load_comdats():
     return out
 
 
+IAT_KEY = 0x451000
+FIRST_UNIT = [None]
+
+
+def load_imports():
+    p = os.path.join(CONFIG, "imports.txt")
+    if not os.path.exists(p):
+        return []
+    return [line.split()[0] for line in open(p) if line.strip() and not line.startswith("#")]
+
+
 def pieces(unit, comdats):
     """Split the unit's ranges so that each shared COMDAT constant is its own
     section: yields (section, lo, hi, comdat_name_or_None, duplicate).
@@ -147,6 +158,11 @@ def build_blob(unit, pe, an, res, outdir, comdats):
     for name, key in unit.externs:
         w.undef_key[name] = key
         w.phantoms.append(name)
+    if unit is FIRST_UNIT[0]:
+        # import references in the order that reproduces the IAT (iatorder.py)
+        for i, name in enumerate(load_imports()):
+            w.undef_key[name] = IAT_KEY + i
+            w.phantoms.append(name)
     return w, secs
 
 
@@ -162,6 +178,7 @@ def main():
     want = set(sys.argv[1:])
     units = [u for u in sp.units if not want or u.name in want]
     writers = []
+    FIRST_UNIT[0] = sp.units[0]
     for u in units:
         writers.append((u,) + build_blob(u, pe, an, res, outdir, comdats))
     # second pass: define symbols (named ones from symbols.txt + labels)
