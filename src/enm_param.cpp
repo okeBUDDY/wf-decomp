@@ -549,8 +549,8 @@ void CEnmParam::Plan(int score) {
       }
     }
   }
-  for (int i = 0; i < 2; ++i) {
-    EnmSideStats* side = &state_.sides[i];
+  EnmSideStats* side = state_.sides;
+  for (int i = 0; i < 2; ++i, ++side) {
     switch (side->mode) {
       case 1:
         side->progress = side->unknown_02_ * 100 /

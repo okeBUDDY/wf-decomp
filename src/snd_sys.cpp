@@ -320,14 +320,17 @@ void SoundSystem::Finalize() {
 }
 
 // 0x4098e0
-// TODO: nonmatching: the original increments the pause count before masking
-// the flags (maybe a bitfield).
+// TODO: nonmatching (2 bytes: `or edx, edi` here is `or edi, edx`). The
+// `list` local moves the increment before the masking as in the original;
+// taking the address of `count` (permuter) fixes the rest, so count may have
+// gone through a by-reference helper.
 void SoundSystem::Pause() {
   if (state_ & kPaused) {
     return;
   }
   EnterCriticalSection(&lock_);
   thread_.Suspend();
+  CSndBufList* list = &buffers_;
   for (Channel* channel = head_; channel != NULL; channel = channel->next_) {
     unsigned int count = channel->pause_count();
     if (count == 0 && channel->buffer_ != NULL) {
@@ -335,7 +338,7 @@ void SoundSystem::Pause() {
     }
     channel->set_pause_count(++count);
   }
-  for (CSndBuf* buffer = buffers_.tail_; buffer != NULL;
+  for (CSndBuf* buffer = list->tail_; buffer != NULL;
        buffer = buffer->prev_) {
     buffer->Suspend();
   }
