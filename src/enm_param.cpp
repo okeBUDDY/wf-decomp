@@ -275,12 +275,12 @@ int CEnmParam::Load(File* file) {
 }
 
 // 0x41a820
-// TODO: nonmatching (87 differing instructions; register choice: the
-// original keeps `this` in ebp and `base` in ebx, here `this` is in ebx).
-// The side is read from `base` as the original does (`mov eax, ebx; and
-// eax, 0xc0000000; sub; neg; sbb; inc`); reading it from `code` scored
-// better (55) but differs when bits 27-28 of `code` are set. The `char`
-// weapon local gives the original's load/inc/store of the weapon total.
+// TODO: nonmatching (63 differing instructions, all in the option loops:
+// the original keeps `mode` in ecx and the option count in eax, here the
+// other way round). The two early returns, each counting the part, give the
+// original's registers for `this` (ebp), `code` (ecx), the slot flags (edx)
+// and the totals (edi), and its shared ChooseWeapon() call: with one count
+// after an if/else chain VC put `this` in ebx and `code` in edx.
 void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   EnmSlot* slot = FindSlot(code);
   if (slot == NULL) {
@@ -292,57 +292,56 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
       slot->weapon = -1;
       ChooseWeapon(slot, parent);
     }
-  } else if (!(slot->flags & 2)) {
+    CountPart(slot);
+    return;
+  }
+  if (!(slot->flags & 2)) {
     if (slot->level > 0 && --slot->level == 0) {
       ChooseWeapon(slot, parent);
     }
-  } else {
-    if ((state_.flags & 0x10000) && !(slot->flags & 8)) {
-      int limit;
-      if (slot->kind & 0x40000) {
-        limit = 3;
-      } else {
-        limit = (slot->kind & 0x2000000) ? 5 : 4;
-      }
-      if (slot->hits > limit) {
-        slot->flags |= 8;
-      }
-    }
-    int count = slot->part->extra_child_count + slot->part->child_count;
-    unsigned int base = (code & kSideMask) | (code << 3);
-    for (int i = 0; i < count; ++i) {
-      Grow(slot, base | i, 0);
-    }
-    int index = count;
-    int mode = state_.sides[(base & kSideMask) == 0x80000000].mode;
-    if ((mode & 1) && (slot->kind & 0x10000)) {
-      int n = slot->part->option_count;
-      for (int i = 0; i < n; ++i) {
-        Grow(slot, base | index++, 0x4010001);
-      }
-      slot->flags |= 0x1000;
-    }
-    if ((mode & 2) && (slot->kind & 0x20000)) {
-      int n = slot->part->option_count;
-      for (int i = 0; i < n; ++i) {
-        Grow(slot, base | index++, 0x4020001);
-      }
-      slot->flags |= 0x2000;
-    }
-    if (mode & 4) {
-      index += slot->part->option_count;
-      int n = slot->part->option4_count;
-      for (int i = 0; i < n; ++i) {
-        Grow(slot, base | index++, 0x4040001);
-      }
-      slot->flags |= 0x4000;
-    }
+    CountPart(slot);
     return;
   }
-  char weapon = slot->weapon;
-  ++weapon_parts_[weapon];
-  ++part_total_;
-  power_total_ += slot->power;
+  if ((state_.flags & 0x10000) && !(slot->flags & 8)) {
+    int limit;
+    if (slot->kind & 0x40000) {
+      limit = 3;
+    } else {
+      limit = (slot->kind & 0x2000000) ? 5 : 4;
+    }
+    if (slot->hits > limit) {
+      slot->flags |= 8;
+    }
+  }
+  int count = slot->part->extra_child_count + slot->part->child_count;
+  unsigned int base = (code & kSideMask) | (code << 3);
+  for (int i = 0; i < count; ++i) {
+    Grow(slot, base | i, 0);
+  }
+  int index = count;
+  int mode = state_.sides[(base & kSideMask) == 0x80000000].mode;
+  if ((mode & 1) && (slot->kind & 0x10000)) {
+    int n = slot->part->option_count;
+    for (int i = 0; i < n; ++i) {
+      Grow(slot, base | index++, 0x4010001);
+    }
+    slot->flags |= 0x1000;
+  }
+  if ((mode & 2) && (slot->kind & 0x20000)) {
+    int n = slot->part->option_count;
+    for (int i = 0; i < n; ++i) {
+      Grow(slot, base | index++, 0x4020001);
+    }
+    slot->flags |= 0x2000;
+  }
+  if (mode & 4) {
+    index += slot->part->option_count;
+    int n = slot->part->option4_count;
+    for (int i = 0; i < n; ++i) {
+      Grow(slot, base | index++, 0x4040001);
+    }
+    slot->flags |= 0x4000;
+  }
 }
 
 // 0x41aa60

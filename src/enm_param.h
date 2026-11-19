@@ -326,6 +326,12 @@ class CEnmParam : public System {
   // Plans the part at `code` (taking a slot for it when it has none) and
   // its children.
   void Grow(EnmSlot* parent, unsigned int code, int kind);  // 0x41a820
+  // Adds the part in `slot` to the planned totals.
+  void CountPart(const EnmSlot* slot) {
+    ++weapon_parts_[slot->weapon];
+    ++part_total_;
+    power_total_ += slot->power;
+  }
 
   // Adds step `id` to the steps of the game unless it is there already.
   void AddStep(int id);

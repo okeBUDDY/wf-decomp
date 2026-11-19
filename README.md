@@ -653,6 +653,23 @@ Known compiler behaviour worth remembering:
     from`, which is the known int case (12, with `movsx`).
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
+* **Step 43 (drafts only, no new matches; `CEnmParam::Grow` 87 -> 63).**
+  * **A shared tail written once after an if/else chain and the same tail written in each
+    branch with an early return allocate differently, even when cross-jumping merges the
+    copies back into one.** `Grow` counted the part once after `if (slot == NULL) {...} else
+    if (!(flags & 2)) {...} else {...; return;}`; the original has `if (slot == NULL) {...;
+    CountPart(slot); return; } if (!(flags & 2)) {...; CountPart(slot); return; }` and the
+    child planning at the function end. VC merges the two copies (and the `ChooseWeapon()`
+    call before them, as the original does), but allocates each copy before that: `this`
+    moves to ebp, `code` to ecx, the flags to edx and the weapon total to edi, as in the
+    original. The tail must index with `slot->weapon` directly (a `char`/`int` weapon local
+    gives 72-95) and keep the weapon/part/power order. Probes that led there: deleting the
+    tail, or all of it but one member update, already put `code` in ecx; deleting the
+    second option block gave the original prologue. Left: in the option loops the original
+    keeps `mode` in ecx and the option count in eax (here swapped), and computes `base |
+    index` into ecx/eax/edx in the three loops (here eax in all three). `short`/`unsigned
+    short`/`char` modes, C-style declarations at the top, a `side` local, five loop forms
+    (`while (n-- > 0)`, `for (; n > 0; --n)`, `index | base`, ...) stay at 63-84.
 * **Step 42 (drafts only, no new matches).**
   * **`CEnmParam::Plan`: the 2 bytes are a register choice for a constant, not the progress
     read.** With plain `state_.sides[0].mode` and `state_.sides[0].progress` (no `first`),
