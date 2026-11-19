@@ -1,0 +1,39 @@
+// Resource script of wf.exe, reconstructed from its .rsrc section.
+// UTF-8 here; tools/build_res.py converts it to Shift-JIS (code page 932) for rc.exe.
+// The icon (wf.ico) is extracted from the original exe into build/res/ and is not committed.
+#include <windows.h>
+#include "resource.h"
+
+#pragma code_page(932)
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+
+IDI_WF ICON "wf.ico"
+
+IDD_ABOUTBOX DIALOG 0, 0, 155, 63
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ﾊﾞｰｼﾞｮﾝ情報"
+FONT 9, "ＭＳ Ｐゴシック"
+BEGIN
+    DEFPUSHBUTTON "OK", IDOK, 53, 42, 50, 14
+    LTEXT "", IDC_ABOUT_TEXT, 39, 7, 109, 26
+    ICON "", IDC_ABOUT_ICON, 7, 7, 20, 20
+END
+
+IDD_CONFIG DIALOGEX 0, 0, 189, 113
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "DirectX Setting"
+FONT 9, "ＭＳ Ｐゴシック", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON "OK", IDOK, 85, 94, 50, 14
+    PUSHBUTTON "Cancel", IDCANCEL, 138, 94, 50, 14
+    CONTROL "Window mode.", IDC_WINDOW_MODE, "Button", BS_AUTORADIOBUTTON, 1, 5, 57, 10
+    CONTROL "Full screen mode.", IDC_FULL_SCREEN_MODE, "Button", BS_AUTORADIOBUTTON, 1, 18, 67, 10
+    COMBOBOX IDC_GRAPHICS, 29, 35, 159, 88, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "Graphics", IDC_STATIC, 1, 38, 27, 8
+    COMBOBOX IDC_CONTROL, 58, 53, 130, 96, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "Control", IDC_STATIC, 1, 56, 22, 8
+    COMBOBOX IDC_CONTROL_SUB, 29, 53, 27, 98, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX IDC_SOUND, 29, 71, 159, 88, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "Sound", IDC_STATIC, 1, 74, 19, 8
+    CONTROL "Don't show next time.", IDC_DONT_SHOW, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 1, 96, 79, 10
+END

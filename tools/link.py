@@ -50,10 +50,8 @@ def link(out=None, extra=()):
 
 
 def main():
-    if not os.path.exists(os.path.join(BUILD, "wf.res")):
-        import extract_res
-        sys.argv = ["extract_res.py", os.path.join(BUILD, "wf.res")]
-        extract_res.main()
+    import build_res
+    build_res.build(os.path.join(BUILD, "wf.res"))
     out = link()
     print("linked", out)
     if "--no-verify" not in sys.argv:

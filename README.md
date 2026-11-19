@@ -45,6 +45,7 @@ python3 tools/tusplit.py           # (re)generate config/splits.txt (73 units)
 python3 tools/compare.py           # compile src/, per-function match report
 python3 tools/mkblobs.py           # one object per unit -> build/blobs/ (uses compiled src/)
 python3 tools/iatorder.py && python3 tools/mkblobs.py   # import order (config/imports.txt)
+python3 tools/build_res.py         # res/wf.rc -> build/wf.res with rc.exe (link.py runs it too)
 python3 tools/link.py              # link build/wf.exe and run verify
 python3 tools/verify.py [-v]       # SHA-1, header and per-section diffs
 ```
@@ -71,6 +72,7 @@ mangled with warning C4129.
 | `config/comdats*.txt` | COMDAT constants that the game shares with the libraries |
 | `config/imports.txt` | Import reference order (generated, reproduces the IAT) |
 | `config/link.txt` | LINK command line |
+| `res/` | Resource script (`wf.rc`, `resource.h`); the icon is extracted at build time |
 | `config/libs.json` | Library sources, flags and archives |
 | `src/` | Decompiled C++ |
 | `tools/` | The pipeline; `linksim.py` models LINK's library search and IAT sort |
@@ -104,13 +106,27 @@ mangled with warning C4129.
   alignment. The game ranges start at 0x451270 (`.rdata`), 0x45d0a0 (`.data`) and
   0x467320 (`.bss`).
 
+## Resources
+
+`res/wf.rc` is the resource script, reconstructed from the original `.rsrc`: the icon
+(103), the about box (102, a `DIALOG`) and the DirectX settings dialog (101, a `DIALOGEX`), in
+that order, which is the order of the resource data in the exe. `tools/build_res.py` compiles
+it with the toolchain's `rc.exe` (via a Shift-JIS copy in `build/res/`), and LINK's `cvtres`
+turns the `.res` into a `.rsrc` that equals the original. The icon is the only binary
+resource. It is not committed: `build_res.py` extracts it from the original exe
+(RT_GROUP_ICON 103 and RT_ICON 1) into `build/res/wf.ico` on every build. `build_res.py --check`
+compares each resource that `rc` writes with the original's data. The symbolic names in
+`resource.h` are made up; only the numbers are in the exe.
+
 ## Remaining differences of build/wf.exe
+
+Baseline (differing bytes): headers 130, `.text` 4232, `.rdata` 2987, `.data` 0, `.rsrc` 0.
+
 
 | Where | Bytes | Cause / ideas |
 |---|---|---|
 | `.text` 0x442b70-0x446fff (vorbis `psy.obj`, `sharedbook.obj`, `codebook.obj`) | ~4.2k | Placement of static functions. `unitnorm` (from scales.h) is emitted first in our `psy.obj` but sits before `_vp_psy_init` in the original. The two identical `bitreverse` functions (sharedbook/codebook) are ICF-folded into codebook's copy, but the original keeps sharedbook's. Both point to a different VC7.0 build or service pack for the libraries (compare the `lsp.obj` symbol order). Every function on its own matches. |
 | `.rdata` 0x451000-0x451261 values, 0x45b9bc-0x45c6ff | ~3k | The IAT order matches, but the hint/name table (`.idata$6`) is laid out in a different order and is 14 bytes longer, so every IAT/ILT value differs. Probably the same unstable sort over a different list. The Rich header suggests the original pulled 12 more imports and 3 more import descriptors (Implib 9 vs 6), possibly from a different DirectX SDK. |
-| `.rsrc` | 483 | `extract_res.py` rebuilds the `.res`. The resource order or memory flags differ. |
 | headers | 130 | Rich header (object counts: see above), TimeDateStamp, checksum. |
 
 ## Translation units
