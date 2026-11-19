@@ -141,11 +141,6 @@ void Control32::OnDestroy(Actor* actor) {
 }
 
 // 0x411e20
-// TODO: nonmatching (12 bytes short: the original keeps the squared distance
-// in a 4-byte local and on the FPU stack for the test, and spills the
-// acceleration into the dead `actor` slot; here the acceleration stays on the
-// FPU stack. Declaration order, chained assignments and an inline helper for
-// the brake time do not change it.)
 int Control32::Dash(Actor* actor, EnmList* program, float x, float y,
                     float power, int boost) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
@@ -169,12 +164,17 @@ int Control32::Dash(Actor* actor, EnmList* program, float x, float y,
   float dx = x - transform->m[2][0];
   float dy = y - transform->m[2][1];
   float distance2 = dy * dy + dx * dx;
-  float acceleration = power * 0.005f;
-  work->deceleration = acceleration;
+  work->deceleration = power * 0.005f;
   if (distance2 > 0.0f) {
-    float speed = sqrt(sqrt(distance2) * acceleration * 2.0f /
-                       ((acceleration + acceleration) * acceleration));
-    work->brake_time = static_cast<short>(speed / acceleration * acceleration);
+    float acceleration = work->deceleration;
+    // Speeding up by `acceleration` (a) and braking by the deceleration (b)
+    // over the distance d peaks at a speed v with v^2 = 2 d a b / (a + b).
+    // `speed` is v / b, and the dash starts to brake after v / a frames.
+    float speed =
+        sqrt(sqrt(distance2) * acceleration * 2.0f /
+             ((work->deceleration + acceleration) * work->deceleration));
+    work->brake_time =
+        static_cast<short>(speed / acceleration * work->deceleration);
     if (work->brake_time <= 0) {
       work->brake_time = 1;
     }
