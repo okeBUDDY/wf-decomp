@@ -122,8 +122,6 @@ void Control01::OnEvent(Actor* actor, int event, int value) {
 }
 
 // 0x413130
-// TODO: nonmatching (2 instructions: the original stores `offset` with fstp
-// and reloads it for the negation, where this keeps it with fst)
 void Control01::Fire(Actor* actor) {
   PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
   short angle = 0;
@@ -151,8 +149,8 @@ void Control01::Fire(Actor* actor) {
     }
     case kShot: {
       float offset = static_cast<float>(rand() & 7);
-      float left = -offset;
       if (work->turn_time != 0) {
+        float left = -offset;
         shot_.x = left + actor->transform->m[2][0];
         shot_.y = actor->transform->m[2][1] - 4.0f;
         shot_.start_angle = (rand() & 0xf) - 7;
@@ -166,6 +164,7 @@ void Control01::Fire(Actor* actor) {
         shot_.start_angle = (rand() & 0xf) - 7;
         g_actor_system.Spawn(&shot_);
       } else {
+        float left = -offset;
         shot_.x = left + actor->transform->m[2][0];
         shot_.y = actor->transform->m[2][1] - 4.0f;
         shot_.start_angle = (rand() & 0x3f) - 0x1f;
