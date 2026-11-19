@@ -80,12 +80,19 @@ mangled with warning C4129.
 ## Compiler flags
 
 * Game: `cl /O2 /GX /GS`. `/GS` is required: 19 functions use `__security_cookie`.
-* ogg/vorbis: `cl /MT /W2 /GX /O2 /Ob1` (VC7.0).
-* zlib and libpng: `cl /MT /W3 /O1 /Ob0` (VC7.0), built into **one** archive
+* ogg/vorbis: `cl /MT /W2 /GX /O2 /Ob1 /YX` (VC7.0).
+* zlib and libpng: `cl /MT /W3 /O1 /Ob0 /YX` (VC7.0), built into **one** archive
   (`png.lib`), because their objects interleave in `.text`.
-* vorbis `lsp.obj` needs the order of its undefined symbols `_frexp`/`__CIacos` swapped
-  (`swap_symbols` in libs.json). No flag reproduces the original order, which points to a
-  slightly different compiler build.
+* `/YX` (automatic precompiled headers, the default of VC6-era project files) does not change
+  any function's code, but it changes the object layout: `cl` emits the static functions of
+  headers where the precompiled header ends (vorbis `unitnorm` from `scales.h` lands right
+  before `_vp_psy_init`, `vorbis_ftoi` & co. move behind `_get_prev_page` in `vorbisfile.obj`)
+  and it reorders some undefined symbols (`__CIacos` before `_frexp` in `lsp.obj`, which
+  decides the libcmt pull order). `build_libs.py` compiles the files of a library one after
+  the other in source order with one `.pch` (`/Fp`), as the IDE did. With `/YX`, LINK's
+  `/OPT:ICF` also keeps sharedbook's copy of the two identical `bitreverse` functions, as the
+  original does (which copy survives depends on the whole set of COMDATs: a small test link
+  flips with the number of unrelated functions).
 
 ## How the relink is made to match
 
@@ -120,14 +127,42 @@ compares each resource that `rc` writes with the original's data. The symbolic n
 
 ## Remaining differences of build/wf.exe
 
-Baseline (differing bytes): headers 130, `.text` 4232, `.rdata` 2987, `.data` 0, `.rsrc` 0.
+Baseline (differing bytes): headers 130, `.text` 0, `.rdata` 2987, `.data` 0, `.rsrc` 0.
 
+| Section | Cause | Bytes | Fixable |
+|---|---|---|---|
+| `.rdata` | Hint/name table (`.idata$6`) order and a 14-byte `COMCTL32.dll` name at its start; every IAT/ILT value follows from it | 2987 | Yes, worked out but not applied (see below) |
+| headers | Rich header: `Import` 161 vs 173, `Implib710 2179` 7 vs 6, `Implib700 9210` 6 vs 9 (the import part, see below) | part of 130 | Yes, with the import fix |
+| headers | Rich header: `Utc1310_C 3077` 150 vs 151 (one more C object, likely a libcmt member pulled by discarded game code) | part of 130 | Unknown object; not tried |
+| headers | Rich header: `Utc13_CPP 9178` (PSDK `dxguid.lib`) vs `Utc1310_CPP 4035` (a newer DirectX SDK's `dxguid.lib`, built with cl 13.10.4035) | part of 130 | No: that SDK is not in the toolchain; the data it adds already matches |
+| headers | TimeDateStamp, CheckSum | 4 + 2 | Only by a documented post-link patch (not done) |
 
-| Where | Bytes | Cause / ideas |
-|---|---|---|
-| `.text` 0x442b70-0x446fff (vorbis `psy.obj`, `sharedbook.obj`, `codebook.obj`) | ~4.2k | Placement of static functions. `unitnorm` (from scales.h) is emitted first in our `psy.obj` but sits before `_vp_psy_init` in the original. The two identical `bitreverse` functions (sharedbook/codebook) are ICF-folded into codebook's copy, but the original keeps sharedbook's. Both point to a different VC7.0 build or service pack for the libraries (compare the `lsp.obj` symbol order). Every function on its own matches. |
-| `.rdata` 0x451000-0x451261 values, 0x45b9bc-0x45c6ff | ~3k | The IAT order matches, but the hint/name table (`.idata$6`) is laid out in a different order and is 14 bytes longer, so every IAT/ILT value differs. Probably the same unstable sort over a different list. The Rich header suggests the original pulled 12 more imports and 3 more import descriptors (Implib 9 vs 6), possibly from a different DirectX SDK. |
-| headers | 130 | Rich header (object counts: see above), TimeDateStamp, checksum. |
+No difference comes from the 30 unmatched game functions: they link from the original bytes.
+
+**Import findings (step 25, not applied yet).** The original `.idata$6` is in pull order:
+`COMCTL32.dll`, then WINMM, DDRAW, DSOUND, DINPUT, the game's KERNEL32 imports, USER32,
+GDI32 (each DLL's name after its imports), then the CRT's KERNEL32 imports. So:
+
+* `comctl32.lib` came first on the command line. Its only imports were discarded by
+  `/OPT:REF` (LINK warns LNK4089), but the DLL name string stays. That also gives the Rich
+  `Implib700` 9 (comctl32's descriptor, thunk and `__NULL_IMPORT_DESCRIPTOR`).
+* kernel32 was searched twice in the first pass: before user32, and again after libcmt
+  (the `_RtlUnwind@16` thunk sits between libcmt and ogg in `.text`). LINK drops a repeated
+  library only when it is the same file, so this is reproduced with `kernel32.lib`
+  (`Vc7/lib`) before user32 and `PlatformSDK/Lib/Kernel32.Lib` after `libcmt.lib`.
+* `imports.txt` must then list only the game's own imports, in the original hint/name order
+  per DLL, instead of the `iatorder.py` permutation of all imports.
+* A test link with that command line
+  (`comctl32 winmm ddraw dsound dinput dxguid uuid png vorbisfile kernel32 user32 gdi32 libcmt
+  <PSDK>/Kernel32.Lib ogg vorbis`) gives the original `.idata$6` byte for byte, `.data` 0,
+  `.rsrc` 0, and `linksim.py` predicts its IAT exactly. The IAT order is still wrong there,
+  because the original's qsort input also held 11 discarded game imports
+  (Rich `Import` 173 vs 162). A search over where they can go (labels only; the qsort compares
+  DLL names) found label sets that reproduce the whole IAT: one more COMCTL32 or KERNEL32
+  import plus 10 USER32 ones. The rest of the search space was not finished. To apply it:
+  add the dropped imports as `extern` references (their names are free, as they are
+  discarded), update `link.txt`, `link.py`/`linksim.py` (a path entry for the second
+  kernel32) and `iatorder.py`, and check with `verify.py`.
 
 ## Translation units
 

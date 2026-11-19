@@ -12,7 +12,6 @@ import os
 import shutil
 import tarfile
 
-from coffpatch import swap_undefined_symbols
 from wfcommon import BUILD, CONFIG, THIRDPARTY, VC70, VC71, run_wine, wine_env, winpath
 
 SRC = os.path.join(BUILD, "lib", "src")
@@ -48,10 +47,21 @@ def build_lib(name, libs, flags=None, jobs=4, gy=False):
     defs = [f"/D{d}" for d in cfg["defines"]]
     cl = f"{VC70}/bin/cl.exe" if cfg["compiler"] == "vc70" else f"{VC71}/bin/cl.exe"
 
+    # /YX (automatic precompiled headers, the VC6 project default) makes each
+    # compile reuse or rewrite one .pch, so the files are compiled one after the
+    # other in project order, as the IDE did. It changes where cl emits the static
+    # functions of headers, and the order of some undefined symbols.
+    pch = "/YX" in fl
+    if pch:
+        fl.append("/Fp" + winpath(os.path.join(outdir, name + ".pch")))
+        if os.path.exists(os.path.join(outdir, name + ".pch")):
+            os.remove(os.path.join(outdir, name + ".pch"))
+        jobs = 1
+
     def one(src):
         obj = os.path.join(outdir, os.path.splitext(os.path.basename(src))[0] + ".obj")
         args = ["/nologo", "/c"] + fl + defs + ["/Fo" + winpath(obj), winpath(os.path.join(root, src))]
-        return obj, run_wine(cl, args, env, check=False)
+        return obj, run_wine(cl, args, env, cwd=outdir if pch else None, check=False)
 
     objs = []
     with concurrent.futures.ThreadPoolExecutor(jobs) as ex:
@@ -59,8 +69,6 @@ def build_lib(name, libs, flags=None, jobs=4, gy=False):
             if rc != 0:
                 raise RuntimeError(out)
             objs.append(obj)
-    for objname, (a, b) in cfg.get("swap_symbols", {}).items():
-        swap_undefined_symbols(os.path.join(outdir, objname), a, b)
     return objs
 
 

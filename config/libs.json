@@ -1,5 +1,5 @@
 {
-  "_comment": "Third-party static libraries linked into wf.exe. Built with VS.NET 2002 (cl 13.00.9466). Flags were determined by matching code against wf.exe. 'archive' names the .lib the objects go into: libpng and zlib objects interleave in wf.exe, so they were one library.",
+  "_comment": "Third-party static libraries linked into wf.exe. Built with VS.NET 2002 (cl 13.00.9466). Flags were determined by matching code against wf.exe. 'archive' names the .lib the objects go into: libpng and zlib objects interleave in wf.exe, so they were one library. All were built with /YX (automatic precompiled headers, the VC6/VC7 project default), compiled one after the other in source order: /YX changes where cl emits static functions from headers and the order of some undefined symbols.",
   "libs": {
     "ogg": {
       "tarball": "libogg-1.0.tar.gz",
@@ -11,7 +11,8 @@
         "/W2",
         "/GX",
         "/O2",
-        "/Ob1"
+        "/Ob1",
+        "/YX"
       ],
       "defines": [
         "WIN32",
@@ -38,7 +39,8 @@
         "/W2",
         "/GX",
         "/O2",
-        "/Ob1"
+        "/Ob1",
+        "/YX"
       ],
       "defines": [
         "WIN32",
@@ -71,14 +73,7 @@
         "lib/synthesis.c",
         "lib/window.c"
       ],
-      "archive": "vorbis",
-      "swap_symbols": {
-        "lsp.obj": [
-          "_frexp",
-          "__CIacos"
-        ]
-      },
-      "_swap_note": "wf.exe pulls acos.obj before frexp.obj in the second libcmt pass, so the original lsp.obj referenced __CIacos before _frexp. Code is unaffected."
+      "archive": "vorbis"
     },
     "vorbisfile": {
       "tarball": "libvorbis-1.0.tar.gz",
@@ -90,7 +85,8 @@
         "/W2",
         "/GX",
         "/O2",
-        "/Ob1"
+        "/Ob1",
+        "/YX"
       ],
       "defines": [
         "WIN32",
@@ -116,7 +112,8 @@
         "/MT",
         "/W3",
         "/O1",
-        "/Ob0"
+        "/Ob0",
+        "/YX"
       ],
       "defines": [
         "WIN32",
@@ -150,7 +147,8 @@
         "/MT",
         "/W3",
         "/O1",
-        "/Ob0"
+        "/Ob0",
+        "/YX"
       ],
       "defines": [
         "WIN32",
