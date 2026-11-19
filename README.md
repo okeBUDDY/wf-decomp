@@ -259,6 +259,19 @@ emitted in several files, such as header inlines, count in each):
 
 Known compiler behaviour worth remembering:
 
+* **Single-use locals are forward-substituted (step 41).** VC moves a local that is used once
+  to its use, which reorders x87 work: in `CEnmParam::Plan` a `float travel` read once was
+  computed after `rate`; used twice (`__min(static_cast<int>(travel), 50)`) it is computed in
+  statement order, which forces the original's spill of `rate`. When the original evaluates
+  something earlier than the draft, look for a second use (a macro like `__min` duplicates
+  its argument). Also, the stack slot of a spilled local follows liveness in IL order: `rate`
+  shared the dead `score` parameter's slot until `count` (the last use of `score`) was moved
+  after it.
+* **A local reference changes register choices (step 41).** `const short& from =
+  actor->angle;` instead of a copy, `const unsigned int& new_count = ++count;`, and `const
+  EnmSideStats& first = state_.sides[0];` each fixed an operand or CSE choice that no value
+  form reached (`Control32::RunProgramB0`, `SoundSystem::Pause`, `CEnmParam::Plan`). A
+  reference that is only an alias of a local that is never modified changes nothing.
 * VC7.1 tracks which callee-saved registers a same-TU function clobbers and lets callers
   keep values in the others. A helper that the original calls (instead of inlining) and whose
   callers assume it saves everything belongs in a separate TU.
@@ -640,7 +653,81 @@ Known compiler behaviour worth remembering:
     from`, which is the known int case (12, with `movsx`).
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
-* **Step 41 (2 new matches: `SoundSystem::Pause`, `Control32::RunProgramB0`).**
+* **Step 42 (drafts only, no new matches).**
+  * **`CEnmParam::Plan`: the 2 bytes are a register choice for a constant, not the progress
+    read.** With plain `state_.sides[0].mode` and `state_.sides[0].progress` (no `first`),
+    VC already reads the mode as `[ebp]` (the `&state_.sides[0]` CSE left over from the side
+    loops) and the progress off esi, as the original does. Only `0x20000` is not loaded into
+    ebp (the original shares it between the flags test and `AddStep(17)`), and so 0x400 is
+    not loaded into edi either (49 instructions). Every form that gets the constant into a
+    register keeps a variable for `&state_.sides[0]` in ebp past the mode read: `first.progress`,
+    or `const EnmSideStats (&sides)[2] = state_.sides;` used only for side 1's progress
+    (`[ebp + 0x10]`, also 2 bytes). A permuter run from the plain form reached 0 only through a
+    dead arm: `case 2: if (state_.sides != NULL) { <body> } else { <body> }` in the progress
+    switch, or the same around `side->mode = 2; side->unknown_08_ = 0;` in the 0x10000 case
+    of the kinds loop. VC folds `state_.sides != NULL` late, so the uses in the dead copy
+    still count for the allocator. `true`, `this != NULL`, `side` and `plan_.kind_counts_ !=
+    NULL` as the condition, or the `if` without the `else`, do not do it; the dead arm around
+    case 1 gives 2 other bytes, around any other statement 49-51. Not natural, so not
+    committed. Ruled out: the order of the case labels (all 120; it reorders the jump table), an
+    inline `Percent(n, total)` for the four cases, an `int total` local, `100 * n`, swapped
+    divisor operands and a `continue` in case 2, a `mode` local for the switch,
+    `&state_.sides[i]` or `state_.sides[i].` in the progress or kinds loop, `side <
+    state_.sides + 2` and `side != state_.sides + 2` loop tests, `side = &first` loop starts
+    (62-103), `first` used for the top `mode != 0` check, a `const short&` to the side 0
+    progress, flags locals or references for the 0x10000/0x20000 tests, and
+    `first.mode != 0 ? first.mode : 0`.
+  * **A late-folded dead arm is a cheap probe of allocator weights.** Wrapping a statement in
+    `if (<member array> != NULL) { S } else { S }` compiles to `S` but changes the register
+    allocation. It is not a fix (no natural source would contain it), but it shows which
+    statements' weights matter. In `Grow` the scan over every statement never moves `this` to
+    ebp (best 60 with the flags reference, around the second option loop's `Grow` call); in
+    `Initialize` it does not move the input pointer; in `HLSurface::Load` it does not change
+    the product order.
+  * `CEnmParam::Grow`: a flags reference declared before the `flags & 2` test (with the if/else
+    nested in a plain `else`), used for the `& 8` test only or for both tests, a pointer
+    instead, a non-const reference used for the `|= 8`/`0x1000`/`0x2000`/`0x4000` stores (all
+    16 combinations; the later uses fold to `[esi + 8]`), and a function-scope `count` or `index`
+    reused for the tail's weapon total (VC allocates webs, so it changes nothing) stay at 71-90.
+    A 40-minute permuter run from the flags-pointer form (71) found only semantic changes.
+  * `FnGame::Initialize`: `pause` declared before `SetState()` (19) or before the HUD add (53),
+    `unsigned`/`const`/`bool` pauses, `pause != 0`, an `HLInput*` local in the `if`, a
+    `result` local for both returns and `if (!pause) { return 1; }` keep eax (14).
+  * `FnGame::RateGame`: `grade = title = 0;` (and `title = grade = 0;`), the both-zero test
+    nested inside the either-zero test (also as a ternary), the either-zero case split into two
+    `else if`s, and `short` mode locals keep the shared tail at the end (20-31).
+  * **Resumed run.** `CEnmParam::Plan`: a natural pointer local gets 0x20000 into ebp from the
+    plain form too: `EnmSideStats* sides = state_.sides; if (sides[0].mode != 0 &&
+    sides[1].mode != 0)` for the test before the second `CountDestroyed()` gives the original
+    code except that this test reads side 1's mode as `[ebp + 0xa]` (the original: `[esi +
+    0x16]`). The pointer needs two uses close together: `sides[0]` with `state_.sides[1]` is
+    forward-substituted (49), `sides[0]` at the test plus `sides[0].mode` for `mode0` or a
+    `sides[i]` mode-3 loop is 49, `sides[0].progress` in the `>= 100` test gives the 0x20000
+    too but reads that progress off ebp, and `side = sides` loop starts break the loops
+    (53-93). Every field other than `mode` read through the pointer comes off ebp, so no
+    pointer form found gives 0. Also no help: the progress switch as an inline
+    `UpdateProgress(side, counts)` (`__forceinline` keeps the code, plain `inline` is not
+    inlined), a `kind` local for the kinds switch, a `counts` pointer for `plan_.kind_counts_`,
+    `side` pointers in the mode-3 loop or the `>= 100` test, `state_.sides[i]` reads inside
+    the side loops (111-121). Permuter runs from both pointer forms (the test form 40 minutes, about
+    4600 iterations; the progress form 35 minutes) found nothing better.
+  * `HLSurface::Load`: every spelling of the `row_skip` product (operand order, parentheses,
+    `scale_y_ * a - a`, a split `*=`) canonicalizes to the same 9; a `const`, `short`
+    (22) or split `bits` bytes local changes nothing. All 729 orders of the statements
+    `int width = image.width();`, `bytes`, `row_skip` (from `width` or `image.width()`),
+    `step`, `width /= scale_x_;` and `height` (one statement, or declared then divided) give 9
+    at best: with `row_skip` taken from the named width (declared before `bytes`) the product
+    is the original's, but the division of the width must then come after the height's
+    (17, the divisions swapped) or `this` gets spilled (191).
+  * `FnGame::RateGame`: the either-zero case moved last (`else if (both nonzero) {...} else
+    {grade 1}`, 28), the zero case in an `else` after a `!= 0 ||` test, and the whole chain in an
+    inline `GradeSides()` with returns (34-52) keep the tail last. `FnGame::Initialize`: a free
+    inline helper for the store, a `mask` local and `unsigned short`/`char` pauses (14-35)
+    keep eax. `CEnmParam::Grow`: `base` from `slot->code` or a copy of `code`, and five more tail
+    forms (`int parts = ++...`, `weapon_parts_[weapon]++`, an `int&`, an `int*`) stay at 87; the
+    original keeps the tail's incremented count in edi (pushed in the prologue, with `this`
+    in ebp and ebx pushed only in the else block), here edx.
+* **Step 41 (2 new matches: `SoundSystem::Pause`, `Control32::RunProgramB0`; `CEnmParam::Plan` at 2 bytes).**
   * **A local reference changes the destination of a commutative operation.** Both drafts
     had VC write `a op b` into the right operand's register where the original used the
     left one. `Pause` matched with `const unsigned int& new_count = ++count;
@@ -651,24 +738,30 @@ Known compiler behaviour worth remembering:
     `unsigned short& to = from; to += off;` also give `add ebx, eax`). `StartTurn` takes a
     `short` and `off` is masked, so neither change alters behaviour. References to locals
     that are only read (`const int& p = pause;`) are pure aliases and change nothing.
-  * **`CEnmParam::Plan` 64 -> 49** (permuter hint, 835 from 1770): `const EnmSideStats& first
-    = state_.sides[0];` before the `state_.flags & 0x10000` test, with `mode0 = first.mode`
-    and `first.progress < 65`, keeps `&state_.sides[0]` in ebp up to the mode reads as in the
-    original, which frees ebp for the 0x20000 constant shared by the flags test and
-    `AddStep(17)`. Reading only the mode through `first` (and the progress off `state_`,
-    as the original's `[esi + 0x12]` suggests) loses it again (64), and so does declaring it
-    anywhere earlier. `kinds[0] = kinds[1] = 0;` stores `kinds[1]` first like the original
-    (`= {0, 0}`, `= {}`, `memset` and a loop do not). Left: `rate` is not spilled and the
-    first progress read is `[ebp + 6]` instead of `[esi + 0x12]`. The
-    `kinds` loop now steps a `side` pointer like the progress loop (one `side` variable
-    for both), which puts `mov eax, ebp` before `xor edx, edx` as in the original (53 -> 51,
-    then 49 with the `kinds` stores). What is left is the rate spill and its knock-on
-    alignment padding, and the one progress read. The rate spill: VC orders independent x87
-    work so that the later-used value sits deeper (every statement order of `travel`/`rate`
-    in a probe computes `rate` first and keeps it in st1 across `__ftol2`); the original
-    computes the travel quotient first and so has to spill `rate`. References to `rate`,
-    `add`, `count` or the members, `/Op` (rounds every conversion) and a `volatile` rate
-    (stored into `score`'s slot, after the `_ftol`) do not reproduce it.
+  * **`CEnmParam::Plan` 64 -> 2 bytes.** (1) A permuter run (835 from 1770) found that a
+    pointer to `state_.sides[0]` before the `state_.flags & 0x10000` test, written as `const
+    EnmSideStats& first = state_.sides[0];` with `mode0 = first.mode` and `first.progress <
+    65`, keeps `&state_.sides[0]` in ebp up to the mode read as in the original, which frees
+    ebp for the 0x20000 constant shared by the flags test and `AddStep(17)`. Reading only the
+    mode through `first` loses it (VC folds a single use back into `[esi + 0xc]`), and so does
+    declaring it anywhere earlier. (2) The `kinds` loop steps the same `side` pointer as the
+    progress loop (one variable for both): `mov eax, ebp` before `xor edx, edx`. (3)
+    `kinds[0] = kinds[1] = 0;` stores `kinds[1]` first like the original (`= {0, 0}`, `= {}`,
+    `memset` and a loop do not). (4) **The rate spill:** a value used once is forward-substituted
+    to its use, so VC computes `rate` first and keeps it in st1 across `__ftol2`. With `travel`
+    used twice, `int add = __min(static_cast<int>(travel), 50);` (or an explicit second
+    `static_cast<int>(travel)` in the test), VC computes the travel quotient first and spills
+    `rate`, as the original does (a probe TU shows the same: an fp local with two uses is
+    evaluated in statement order). (5) `rate`'s home then shared the dead `score` slot;
+    computing `count` after `rate` keeps `score` live across it, so `rate` shares `kinds[0]`'s
+    slot as in the original. Left: the first progress read is `[ebp + 6]`, the original's is
+    `[esi + 0x12]`; using `state_.sides[0].progress` there drops the ebp CSE (49), and a
+    `const short&` to the mode, a second reference for side 1, ternaries for the modes, an
+    indexed `side[i]` in both loops and `state_.sides->progress` do not help.
+    A 45-minute permuter run from the 2-byte state (score 5, about 4700 iterations) found
+    nothing. Ruled out for the rate before that: references to `rate`, `add`, `count` or the members,
+    `/Op` (rounds every conversion), a `volatile` rate, every statement order of single-use
+    `travel`/`rate`.
   * `CEnmParam::Grow`: `const short& mode = state_.sides[...].mode` (re-read after each
     loop, so wrong code) gives the original's `this` ebp / `base` ebx, and a `const unsigned
     int& flags = slot->flags` at the top of the else block puts `code` in ecx (71) but
@@ -677,7 +770,10 @@ Known compiler behaviour worth remembering:
     the tail (`int& parts`, `const int& total = ++parts;`, `part_total_`), an `EnmSlot& s`
     for the else block or the tail, a `CEnmParam& self`, and nine spellings of the side
     index (`(state_.sides + side)->mode`, `this->`, `? 1 : 0`, ...) leave it at 87; a ternary
-    picking `state_.sides[1].mode` or `[0].mode` is the original size but 82.
+    picking `state_.sides[1].mode` or `[0].mode` is the original size but 82. Combining the
+    flags reference with `int i = 0` or a `part` local at the top of the else block (92-121),
+    and three more tail forms (`weapon_parts_[w] = weapon_parts_[w] + 1`, an `int parts`
+    temporary, a `short power` local) do not help either.
   * `FnGame::Initialize`, `HLSurface::Load`, `FnGame::RateGame`: reference forms (`HLInput*&`
     / `HLInput&` / `Application&` locals, `int& pause`, `const unsigned int& flags`, `const
     short& w = image.width()`, `const HLImage& img`, `const unsigned char&` scale factors)

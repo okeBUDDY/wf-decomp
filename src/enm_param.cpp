@@ -451,11 +451,17 @@ void CEnmParam::AddStep(int id) {
 }
 
 // 0x41abc0
-// TODO: nonmatching (same size; the original spills rate to the stack in
-// the prologue and reads the first side's progress off `this`). The `first`
-// reference keeps &state_.sides[0] in ebp up to the mode reads, which frees
-// ebp for 0x20000 as in the original; the chained `kinds` assignment stores
-// kinds[1] first, as the original does.
+// TODO: nonmatching (2 bytes: the original reads the first side's progress
+// off `this`, [esi + 0x12], not off `first`). The `first` reference keeps
+// &state_.sides[0] in ebp up to the mode reads, which frees ebp for 0x20000
+// as in the original; the chained `kinds` assignment stores kinds[1] first.
+// Plain state_.sides[0] reads give the right mode/progress addressing but
+// leave 0x20000 out of a register (49); an `EnmSideStats* sides` pointer for
+// the sides[0]/sides[1] mode test before CountDestroyed() also frees ebp for
+// 0x20000 but reads side 1's mode off ebp there; see README step 42.
+// `travel` is used twice (through __min), so VC computes it before `rate`
+// and spills `rate` across the _ftol; `count` after `rate` keeps `rate` out
+// of the dead `score` slot.
 void CEnmParam::Plan(int score) {
   if (player_samples_ < 1) {
     player_samples_ = 1;
@@ -463,12 +469,10 @@ void CEnmParam::Plan(int score) {
   if (battle_time_ < 1) {
     battle_time_ = 1;
   }
-  int count = static_cast<unsigned int>(score) / 300000 + 2;
-  int add = static_cast<int>(player_travel_ / player_samples_);
+  float travel = player_travel_ / player_samples_;
   float rate = static_cast<float>(unknown_344_) / battle_time_;
-  if (add >= 50) {
-    add = 50;
-  }
+  int count = static_cast<unsigned int>(score) / 300000 + 2;
+  int add = __min(static_cast<int>(travel), 50);
   AddClamped(&state_.unknown_28_, add);
   AddClamped(&state_.unknown_2a_, static_cast<int>(rate * 100.0f));
   state_.unknown_24_ += state_.unknown_26_ * 70 / 1024 + 10;
