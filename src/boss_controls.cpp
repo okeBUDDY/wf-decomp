@@ -210,22 +210,17 @@ static __forceinline float DashPower(const EnmList* program) {
 }
 
 // 0x4120d0
-// TODO: nonmatching (the original keeps `actor` in esi and `program` in edi,
-// merges three of the Dash() calls into one call site, increments
-// program->time in memory and loads actor->angle with movsx). The `dashing`
-// bool gives the original's `mov al, [esi+0x34]; mov ecx, 1; test cl, al`.
 void Control32::RunProgram9c(Actor* actor, EnmList* program) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
-  bool dashing = (reinterpret_cast<PartWork*>(actor->work)->flags &
-                  Control32Work::kDashing) != 0;
+  PartWork* part = reinterpret_cast<PartWork*>(actor->work);
+  bool dashing = (part->flags & Control32Work::kDashing) != 0;
   if (dashing) {
     if (work->brake_time != 0 && program->time >= work->brake_time) {
       actor->acceleration = -work->deceleration;
       work->brake_time = 0;
     }
-    if (!(actor->speed > 0.0f)) {
-      reinterpret_cast<PartWork*>(actor->work)->flags &=
-          ~Control32Work::kDashing;
+    if (actor->speed <= 0.0f) {
+      part->flags &= ~Control32Work::kDashing;
       program->op = 0;
       ++program->time;
       return;
@@ -236,8 +231,6 @@ void Control32::RunProgram9c(Actor* actor, EnmList* program) {
         if (!Dash(actor, program, rand() % 320 - 160 + 320.0f,
                   rand() % 100 - 50 + 160.0f, DashPower(program), 0)) {
           program->op = 0;
-          ++program->time;
-          return;
         }
         break;
       case 0x10005: {
@@ -253,29 +246,22 @@ void Control32::RunProgram9c(Actor* actor, EnmList* program) {
         }
         if (!Dash(actor, program, x, y, power, 1)) {
           program->op = 0;
-          ++program->time;
-          return;
         }
         break;
       }
       case 0x10004:
         if (!Dash(actor, program, 320.0f, 160.0f, DashPower(program), 0)) {
           program->op = 0;
-          ++program->time;
-          return;
         }
         break;
       case 0x10003: {
         float power = DashPower(program);
-        Transform* transform = actor->transform;
         float x = g_sin_table[(actor->angle - 0x200) & 0x3ff] * 4096.0f +
-                  transform->m[2][0];
-        float y = transform->m[2][1] -
+                  actor->transform->m[2][0];
+        float y = actor->transform->m[2][1] -
                   g_sin_table[(actor->angle - 0x100) & 0x3ff] * 4096.0f;
         if (!Dash(actor, program, x, y, power * 6.0f, 1)) {
           program->op = 0;
-          ++program->time;
-          return;
         }
         break;
       }
@@ -283,8 +269,7 @@ void Control32::RunProgram9c(Actor* actor, EnmList* program) {
         actor->start_angle = program->arg;
         actor->speed = 1.6f;
         actor->acceleration = -0.02f;
-        reinterpret_cast<PartWork*>(actor->work)->flags |=
-            Control32Work::kDashing;
+        part->flags |= Control32Work::kDashing;
         work->brake_time = 0;
         break;
       case 0x10001:
@@ -295,7 +280,7 @@ void Control32::RunProgram9c(Actor* actor, EnmList* program) {
             actor->speed = 5.0f;
             ++program->step;
           case 1:
-            if (!(actor->speed > 0.0f)) {
+            if (actor->speed <= 0.0f) {
               g_enm_param.state_.flags |= 0x100;
               bounds_.top = 64.0f;
               program->op = 0;
