@@ -228,23 +228,22 @@ int HLInput::EnumDevices(Application* app, HLDevSet* set) {
 }
 
 // 0x405f30
-// TODO: nonmatching: the loop index and the devs_ offset swap ebx/ebp and
-// the returns are not merged.
 int InputTask::IsProtected() {
-  if (!(input_->app_->flags & Application::kInactive)) {
-    for (int i = 0; i < input_->pad_count_; ++i) {
-      if (input_->devs_[i] != NULL) {
-        HLInpDev* dev = input_->devs_[i];
-        dev->buttons_ = 0;
-        dev->Poll();
-        dev->pressed_ = dev->buttons_ & ~dev->previous_;
-        dev->previous_ = dev->buttons_;
-        if (dev->pressed_ & input_->time_stop_mask_) {
-          if (input_->app_->flags & Application::kTimeStopped) {
-            input_->app_->SetTimeStop(0);
-          } else {
-            input_->app_->SetTimeStop(1);
-          }
+  if (input_->app_->flags & Application::kInactive) {
+    return 1;
+  }
+  for (int i = 0; i < input_->pad_count_; ++i) {
+    HLInpDev* dev = input_->devs_[i];
+    if (dev != NULL) {
+      dev->buttons_ = 0;
+      dev->Poll();
+      dev->pressed_ = dev->buttons_ & ~dev->previous_;
+      dev->previous_ = dev->buttons_;
+      if (dev->pressed_ & input_->time_stop_mask_) {
+        if (input_->app_->flags & Application::kTimeStopped) {
+          input_->app_->SetTimeStop(0);
+        } else {
+          input_->app_->SetTimeStop(1);
         }
       }
     }

@@ -110,8 +110,10 @@ int Replay::Open(int mode, const char* path) {
 }
 
 // 0x415790
-// TODO: nonmatching (the original keeps lives and extend_count in stack
-// locals; register choice)
+// TODO: nonmatching. Closer in shape (but more bytes off): copy
+// header.rules field by field, and read header.stage/score/timer into
+// locals before g_game.Start() (the original keeps them in edi/ebx/ebp across
+// the calls); ebx/ebp are then still pushed later than in the original.
 int Replay::LoadHeader() {
   if (mode_ != kPlay) {
     return 1;
@@ -167,8 +169,6 @@ int Replay::LoadHeader() {
 }
 
 // 0x415910
-// TODO: nonmatching (store order of the header fields; the original merges
-// the failure paths differently)
 void Replay::Start(Actor* player) {
   switch (mode_) {
     case kRecord: {
@@ -189,7 +189,10 @@ void Replay::Start(Actor* player) {
       header.timer = g_game.timer_ + g_game.bonus_;
       header.lives = g_game.lives_;
       header.extend_count = g_game.extend_count_;
-      header.rules = g_game.rules_;
+      header.rules.mode = g_game.rules_.mode;
+      header.rules.time_limit = g_game.rules_.time_limit;
+      header.rules.stock = g_game.rules_.stock;
+      header.rules.extend = g_game.rules_.extend;
       if (!file_.WriteExact(&header, sizeof(header))) {
         file_.Close();
         return;
@@ -206,8 +209,8 @@ void Replay::Start(Actor* player) {
     // Fall through.
     case kPlay:
       srand(seed_);
-      flags_ |= kOpen;
       frame_ = 0;
+      flags_ |= kOpen;
       run_.frames = 0;
       break;
   }
