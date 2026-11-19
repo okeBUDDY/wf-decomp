@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-674 of 678 game functions match (96.22% of the 128586 game code bytes; `tools/compare.py`),
+675 of 678 game functions match (97.56% of the 128586 game code bytes; `tools/compare.py`),
 and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -250,7 +250,7 @@ emitted in several files, such as header inlines, count in each):
 |---|---|---|
 | Core objects | `object.cpp` 13/13, `task.cpp` 9/9, `task_list_delete.cpp` 1/1, `thread.cpp` 2/2, `file.cpp` 6/6, `pack.cpp` 8/8, `path_util.cpp` 2/2, `profile.cpp` 2/2 | 43/43 |
 | Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 34/35 (with FnOption), `fn_title.cpp` 11/11, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 13/13, `game_hud_name_entry.cpp` 9/9, `game_hud_result.cpp` 5/5, `graphics.cpp` 13/13 | 161/162 |
-| HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 13/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 157/158 |
+| HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 14/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 158/158 |
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 18/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 81/81 |
 | Sound | `snd_sys.cpp` 29/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 146/146 |
 | Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 17/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 10/10, `background.cpp` 10/10 | 195/195 |
@@ -662,10 +662,81 @@ Known compiler behaviour worth remembering:
     from`, which is the known int case (12, with `movsx`).
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
-* **Step 44 (1 new match: `CEnmParam::Grow`).**
+* **Step 45 (drafts only, no new matches).** Probe work on the three drafts.
+  * `FnGame::RateGame`: VC7.1 duplicates a return tail into its predecessors only when it
+    is tiny: three register stores (19 bytes, plus the `xor ecx, ecx` block, 21) are
+    duplicated, three stores with an immediate or a fourth store (the `g_global.stage`
+    load) are not, whatever the types (`char` stage, `char` grade/title). Duplicated
+    copies that end in `ret` are never cross-jumped afterwards (all copies stay), and
+    identical source-level tails are merged before allocation and placed last, so
+    "duplicate, then cross-jump back into case 0" cannot be the original's mechanism.
+    Per-branch `grade = ..; title = ..; <stores>; return;` copies are constant-propagated
+    (immediate stores). Also last: the tail after `do { ... break; } while (0)` and
+    `for (;;)` forms, `title = 0` hoisted before the chain with the title assignment
+    shared by the 6/5 arms, `grade = title = 0` initializers with the whole chain inside
+    `if (m0 != 0 || m1 != 0)` (VC hoists the zeroing), and `int`/`bool` return values. A
+    scan of the original for backward `jmp`s into a straight `ret` tail finds only
+    `RateGame` and `HL3D::Initialize` among game functions (the latter is the shared
+    EH epilogue placed after the first `return`).
+  * `FnGame::Initialize` (probe TU): the input pointer goes to ecx as soon as `pause` (eax)
+    stays live after the store (`g_bgm = pause;` after or inside the `if`,
+    `set_mask(pause)`, `return pause | 1`), so the original's ecx probably means eax was
+    taken there. Still eax: an inline free or member helper for the pause test, `if
+    (!pause) return 1;`, an `App&` local, testing the flags directly, `mode_ != 2 &&
+    pause` with `break` in case 2, removing any case or the `Add` call; in the full file
+    an `Application*`/`Application&` local for every `g_application` use, `return 1;`
+    inside the `if`, and `default: break;` (all 14). The store helper out of the class,
+    `__forceinline`, an `int` or `const&` parameter, returning `*this` or a static free
+    function keep eax too.
+  * `CEnmParam::Plan`: a `first` reference read only at offset 0 (the mode, even twice:
+    the top `mode != 0` test and `mode0`) leaves 0x20000 out of a register (49) like the
+    plain form; any read at another offset gets 0x20000 into ebp but that read then comes
+    off ebp: `first.progress` (the committed form), `(&first)[1].mode` for `mode1` with a
+    plain progress read (also 2 bytes, `[ebp + 0xa]` for `[esi + 0x16]`), `first.progress`
+    in the `>= 100` test. The dead `score` parameter reused for the flags, `mode0`,
+    `mode1` or the progress, `mode1` declared first, the two progress tests swapped,
+    if/else or interleaved mode forms, the mode locals before `AddStep(1)`/`AddStep(6)`,
+    a `side = state_.sides;` reset or a `sides` pointer for `mode0`, and `(&first)[i]` in
+    the mode-3 loop are 2 bytes or worse (37-343 instructions).
+* **Step 44 (2 new matches: `CEnmParam::Grow`, `HLSurface::Load`).**
   * `Grow` matched by building the child codes in the `code` parameter instead of a `base`
     local (see the compiler note above); step 38 had tried `code` reused as `base` before
     the early-return/`short`/`++count` forms existed, when it did not help.
+  * `HLSurface::Load` matched with a local copy of the vertical scale: `int scale_y =
+    scale_y_;` then `int width = image.width();` before `bytes`, `row_skip = (scale_y - 1) *
+    bytes * width`, `step`, `width /= scale_x_;`, `height = image.height() / scale_y`. The
+    named width gave the original's product since step 42, but with the width divided
+    first VC spilled `this` and reloaded `scale_x_` (191); the `scale_y` copy (a narrow
+    `unsigned char` copy does not do it, nor an `int scale_x` copy) keeps the original's
+    allocation. Lesson: when a fix of one expression wrecks the allocation, try a local copy
+    of each member the nearby code reads.
+  * `FnGame::Initialize` in a probe TU (`tools/fas.py` on a 30-line copy of the switch and the
+    pause tail reproduces the draft's `mov eax, [input]`): the tail after the switch takes the
+    original's ecx only when the switch's default edge does not reach it (a `default:` arm
+    holding its own copy of the pause test and `return 1;`). With the default edge into the
+    tail it is eax for every form tried: if/else chains, case orders, `default: break;`, an
+    `int mode` copy before or after `pause`, a `bool`/`unsigned` pause, no pause local, a
+    direct field store, an `Input*` or `App*` local, `pause = 0; break;` in case 2. In the
+    full file the `default:` copy form is 19 (the two copies are not merged); copies in cases
+    0 and 1 are 30; `int result = 1` returns stay at 14.
+  * `FnGame::RateGame` in a probe TU: the tail stays last for a `goto` label right after the
+    first case (VC lays out the join block itself), `int title = 0`/`grade = 0`
+    initializers, a `char` grade/title, direct stores instead of `SetRating`, and with the
+    first case's grade 1 arm moved or removed. Storing `g_rating.stage` before the chain
+    makes VC duplicate the two-store tail into every branch (no cross-jumping), which is
+    the only form seen so far that moves the tail at all (a constant stage store does the
+    same for the 6/5/1 arms); the original's tail is the full three-store one, cross-jumped
+    into the first case. Lead: find what makes VC duplicate (then cross-jump) that tail. Full file: `char`/`short`
+    grade/title locals, mode/progress locals (`int`, `short`) and an early return in the
+    first case (constant stores) are 20-54.
+  * `CEnmParam::Plan`: `short`/`unsigned short`/`char` mode0/mode1, ternaries or `if
+    (progress >= 65)` forms for the modes, both modes read before the 0x10000 test, a
+    `mode[2]` loop, copies of `g_global.stage`, `state_.flags` (before either test),
+    `state_.weapon_count`, `player_samples_`, `plan_.kind_counts_[0..2]` or a `counts`
+    pointer in the kinds loop, a `side1` reference, local copies in the progress cases
+    (forward-substituted), and a `side` pointer declared before the top test and reused by
+    the loops (side 1 through it: `[ebp + 0xa]` again; through `state_.sides[1]`: 49) all
+    stay at 2 bytes or worse.
 * **Step 43 (drafts only, no new matches; `CEnmParam::Grow` 87 -> 6).**
   * **A shared tail written once after an if/else chain and the same tail written in each
     branch with an early return allocate differently, even when cross-jumping merges the
@@ -992,6 +1063,9 @@ Known compiler behaviour worth remembering:
   * The permuter's `base.c` can get `int const;` stub members from words in comments, which
     pycparser rejects; rename them by hand. The permuter compiles candidates spliced into the
     live source file, so do not edit that file (or run `multi_variants.py` on it) while it runs.
+* A single-file `compare.py` run (also through `multi_variants.py`/`try_variants.py`) rewrites
+  `objdiff.json` with one unit; run the full compare before committing, and stage files by
+  name rather than with `git add -A`.
 * `build/obj/src/` keeps objects of deleted or merged sources (`fn_option.obj`, ...);
   `fdiff.py` may read such a stale object, so delete them after renaming a file.
 

@@ -346,16 +346,13 @@ int HLSurface::Create(int width, int height, unsigned short mode) {
 }
 
 // 0x40bff0
-// TODO: nonmatching (9 differing instructions): the original multiplies
-// row_skip as ((scale_y_ - 1) * bytes) * width, VC here as
-// ((scale_y_ - 1) * width) * bytes. A named width assigned before `bytes`
-// (`int width = image.width();` ... `width /= scale_x_;`) gives the
-// original's product (VC multiplies the later-assigned variable first), but
-// then the width and height divisions are swapped or, with the width divided
-// first, the whole allocation changes. One `out` for all 16-bit cases
-// (declared with `pad`) made the 565 case's `src[1] & 0xfc` form match.
-// Declaration order (all 120 orders tried), `result = 1` before Log() and a
-// separate `++out` in the 24-bit 4444/5551 loops took the draft from 70 to 12.
+// The image width is read into `width` before `bytes` (VC multiplies the
+// later-assigned variable first, so row_skip is ((scale_y - 1) * bytes) *
+// width as in the original), and `scale_y` is a local copy of scale_y_,
+// which keeps the allocation of the width-first divisions. One `out` for
+// all 16-bit cases (declared with `pad`) gives the 565 case's `src[1] & 0xfc`
+// form; the declaration order, `result = 1` before Log() and a separate
+// `++out` in the 24-bit 4444/5551 loops fix the rest.
 int HLSurface::Load(const char* file, unsigned short mode) {
   int result = 0;
   HLImage image;
@@ -375,12 +372,14 @@ int HLSurface::Load(const char* file, unsigned short mode) {
       unsigned char* dest = static_cast<unsigned char*>(Lock());
       if (dest != NULL) {
         const unsigned char* src = image.pixels();
+        int scale_y = scale_y_;
+        int width = image.width();
         int bytes = image.bits() / 8;
-        // Every scale_x_-th pixel of every scale_y_-th row.
-        int row_skip = (scale_y_ - 1) * bytes * image.width();
+        // Every scale_x_-th pixel of every scale_y-th row.
+        int row_skip = (scale_y - 1) * bytes * width;
         int step = scale_x_ * bytes;
-        int width = image.width() / scale_x_;
-        int height = image.height() / scale_y_;
+        width /= scale_x_;
+        int height = image.height() / scale_y;
         int pad;
         unsigned short* out = reinterpret_cast<unsigned short*>(dest);
         switch (format_codes_[format_]) {
