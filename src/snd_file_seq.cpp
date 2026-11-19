@@ -50,8 +50,6 @@ void CSndFileSEQ::Close() {
 }
 
 // 0x40eb10
-// TODO: nonmatching: the original stores &piece_format back into the
-// `format` argument slot and uses ebx as the zero register.
 CSndFile* CSndFileSEQ::OpenPiece(const char* name, WAVEFORMATEX* format) {
   if (name == NULL) {
     return NULL;
@@ -76,17 +74,20 @@ CSndFile* CSndFileSEQ::OpenPiece(const char* name, WAVEFORMATEX* format) {
     return NULL;
   }
   if (piece->Open(path_, format, from_disk_)) {
-    if (rate_ == 0) {
+    // The first piece sets the format; the others must have the same.
+    if (rate_ != 0) {
+      if (rate_ != format->nSamplesPerSec || bits_ != format->wBitsPerSample ||
+          channels_ != format->nChannels) {
+        goto failed;
+      }
+    } else {
       rate_ = static_cast<unsigned short>(format->nSamplesPerSec);
       bits_ = static_cast<unsigned char>(format->wBitsPerSample);
       channels_ = static_cast<unsigned char>(format->nChannels);
-      return piece;
     }
-    if (rate_ == format->nSamplesPerSec && bits_ == format->wBitsPerSample &&
-        channels_ == format->nChannels) {
-      return piece;
-    }
+    return piece;
   }
+failed:
   piece->Close();
   delete piece;
   return NULL;
