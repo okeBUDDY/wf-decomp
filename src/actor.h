@@ -112,7 +112,7 @@ class Actor {
   unsigned short ToLocalAngle(unsigned short screen_angle);  // 0x411690
   // The angle from the actor to (`x`, `y`) on the screen, relative to its
   // parent; its own angle before it has moved or when it is there.
-  unsigned short AngleTo(float x, float y);  // 0x411d90
+  short AngleTo(float x, float y);  // 0x411d90
   // Turns toward `target` (if any) by at most `speed`; at once from 0x200.
   void TurnTo(Actor* target, short speed);  // 0x414a00
   // Moves the actor to the draw list of `new_layer`.
@@ -161,7 +161,7 @@ class Actor {
   unsigned short age;           // 0x12, frames since creation
   unsigned short hit_age;       // 0x14, the age when first hit
   short debris;                 // 0x16, control of the debris actor
-  unsigned short angle;         // 0x18
+  short angle;                  // 0x18
   unsigned short start_angle;   // 0x1a
   float speed;                  // 0x1c, along start_angle
   float acceleration;           // 0x20
@@ -174,7 +174,7 @@ class Actor {
   unsigned short hit_id;        // 0x74
   short id;                     // 0x76, control id
   unsigned short layer;         // 0x78
-  unsigned short matrix_angle;  // 0x7a, the angle of the rotation in transform
+  short matrix_angle;           // 0x7a, the angle of the rotation in transform
   float scale;                  // 0x7c
   Actor* parent;                // 0x80
   Actor* next_sibling;          // 0x84, the one created before

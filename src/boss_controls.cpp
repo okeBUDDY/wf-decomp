@@ -479,7 +479,7 @@ void Control32::RunProgramB0(Actor* actor, EnmList* program) {
       break;
     case 0x20002:
       actor->angle = (actor->angle - program->arg) & 0x3ff;
-      if (static_cast<short>(actor->angle) >= 0x200) {
+      if (actor->angle >= 0x200) {
         actor->angle -= 0x400;
       }
       actor->angle += program->arg;

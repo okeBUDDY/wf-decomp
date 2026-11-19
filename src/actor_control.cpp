@@ -680,7 +680,7 @@ int PartControl::MovePart(Actor* actor) {
       break;
     case 6:
     case 7: {
-      unsigned short old_angle = turret->angle;
+      short old_angle = turret->angle;
       turret->TurnTo(g_player, g_enm_param.turn_speed_);
       turret->angle = turret->ClampAngle(turret->angle, work->low, work->high);
       if (old_angle == turret->angle) {
@@ -870,7 +870,7 @@ unsigned short Actor::ToLocalAngle(unsigned short screen_angle) {
 }
 
 // 0x411d90
-unsigned short Actor::AngleTo(float x, float y) {
+short Actor::AngleTo(float x, float y) {
   if (!(flags & kMovedOnce)) {
     return angle;
   }
