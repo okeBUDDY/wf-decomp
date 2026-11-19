@@ -109,26 +109,36 @@ static inline void SetRating(int grade, int title) {
 }
 
 // 0x418b60
-// TODO: nonmatching (the original merges the stores into the tail of the
-// first case, with the values in registers).
+// TODO: nonmatching (the same code, but the original places the shared
+// SetRating() tail right after the first case, not at the end).
 void FnGame::RateGame() {
   const EnmSideStats* sides = g_enm_param.state_.sides;
+  int grade;
+  int title;
   if (sides[0].mode == 0 && sides[1].mode == 0) {
-    SetRating(0, 0);
+    grade = 0;
+    title = 0;
   } else if (sides[0].mode == 0 || sides[1].mode == 0) {
     // Only one side reached a later mode.
-    SetRating(1, 0);
+    grade = 1;
+    title = 0;
   } else if (sides[0].mode == 3 || sides[1].mode == 3) {
     if (sides[0].progress >= 100 && sides[1].progress >= 100) {
-      SetRating(6, g_enm_param.state_.title.words[0] - 13);
+      grade = 6;
+      title = g_enm_param.state_.title.words[0] - 13;
     } else {
-      SetRating(5, g_enm_param.state_.title.words[0] - 13);
+      grade = 5;
+      title = g_enm_param.state_.title.words[0] - 13;
     }
   } else if (sides[0].progress >= 100 && sides[1].progress >= 100) {
-    SetRating(5, g_enm_param.state_.title.words[0] - 13);
+    grade = 5;
+    title = g_enm_param.state_.title.words[0] - 13;
   } else if (sides[0].progress >= 65) {
-    SetRating((sides[1].progress >= 65) + 3, 0);
+    grade = (sides[1].progress >= 65) + 3;
+    title = 0;
   } else {
-    SetRating((sides[1].progress >= 65) + 2, 0);
+    grade = (sides[1].progress >= 65) + 2;
+    title = 0;
   }
+  SetRating(grade, title);
 }
