@@ -609,7 +609,6 @@ void PartControl::SpawnFlare(Actor* actor) {
 }
 
 // 0x4198e0
-// TODO: nonmatching (`this` and `how` swap ebx and ebp).
 void PartControl::OnDamage(Actor* actor, int how) {
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
   StopTrans(work, 1);
@@ -617,9 +616,10 @@ void PartControl::OnDamage(Actor* actor, int how) {
     work->state = 0;
     work->flags |= PartWork::kAlive;
   }
+  const unsigned int& flags = work->flags;
   switch (how) {
     case 6:
-      if (!(work->flags & 0x10000)) {
+      if (!(flags & 0x10000)) {
         return;
       }
       // Fall through.
@@ -639,15 +639,15 @@ void PartControl::OnDamage(Actor* actor, int how) {
       }
       break;
     case 7:
-      if (!(work->flags & 0x10000)) {
+      if (!(flags & 0x10000)) {
         return;
       }
       break;
     case 4:
-      if (!(work->flags & 0x20000)) {
+      if (!(flags & 0x20000)) {
         return;
       }
-      if (work->flags & 0x8000000) {
+      if (flags & 0x8000000) {
         work->flags &= ~0x8000000;
         how = 3;
       } else {
@@ -656,7 +656,7 @@ void PartControl::OnDamage(Actor* actor, int how) {
       PlayTrans(work);
       break;
     case 8:
-      if (!(work->flags & 0x40000)) {
+      if (!(flags & 0x40000)) {
         return;
       }
       break;
