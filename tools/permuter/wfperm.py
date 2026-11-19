@@ -303,6 +303,8 @@ def to_c(header, body):
     """C rendering of a C++ definition (header up to `{`, then body)."""
     # `new T` -> `((T*)new__())`; compile.py turns it back.
     body = re.sub(r"\bnew\s+([A-Za-z_]\w*)(?!\s*[\[(])", r"((\1*)new__())", body)
+    # `delete p;` -> `delete__(p);`
+    body = re.sub(r"\bdelete\s+([A-Za-z_][\w.>-]*)\s*;", r"delete__(\1);", body)
     for bad in (r"\bnew\b", r"\bdelete\b", r"\boperator\b", r"\btemplate\b"):
         if re.search(bad, body):
             print(f"warning: {bad} is C++ only; edit base.c by hand", file=sys.stderr)
@@ -325,6 +327,7 @@ def from_c(c_text, func_name, header):
     body = text[text.index("{"):]
     body = re.sub(r"\bstruct\s+(?=\w)", "", body)
     body = re.sub(r"\(\s*(\w+)\s*\*\s*\)\s*new__\s*\(\s*\)", r"(new \1)", body)
+    body = re.sub(r"\bdelete__\s*\(([^;]*)\)\s*;", r"delete \1;", body)
     body = calls_to_methods(body)
     body = re.sub(r"\b([A-Za-z]\w*?)__(?=[A-Za-z])", r"\1::", body)
     return header.rstrip() + " " + body.rstrip() + "\n"

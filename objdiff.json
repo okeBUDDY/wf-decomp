@@ -98,11 +98,6 @@
       "base_path": "build/obj/src/fn_game.obj"
     },
     {
-      "name": "fn_option",
-      "target_path": "build/target/fn_option.obj",
-      "base_path": "build/obj/src/fn_option.obj"
-    },
-    {
       "name": "fn_title",
       "target_path": "build/target/fn_title.obj",
       "base_path": "build/obj/src/fn_title.obj"
