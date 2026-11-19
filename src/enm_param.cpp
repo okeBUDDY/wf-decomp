@@ -275,12 +275,13 @@ int CEnmParam::Load(File* file) {
 }
 
 // 0x41a820
-// TODO: nonmatching (63 differing instructions, all in the option loops:
-// the original keeps `mode` in ecx and the option count in eax, here the
-// other way round). The two early returns, each counting the part, give the
-// original's registers for `this` (ebp), `code` (ecx), the slot flags (edx)
-// and the totals (edi), and its shared ChooseWeapon() call: with one count
-// after an if/else chain VC put `this` in ebx and `code` in edx.
+// TODO: nonmatching (10 differing instructions: in each option loop the
+// original pushes the kind before computing `base | index` into ecx, eax
+// and edx in the three loops; here into eax, before the push). The two early
+// returns, each counting the part, give the original's registers for `this`
+// (ebp), `code` (ecx), the slot flags (edx) and the totals (edi), and its
+// shared ChooseWeapon() call; `short` option counts (the type of the
+// fields) put `mode` in ecx and the counts in eax.
 void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   EnmSlot* slot = FindSlot(code);
   if (slot == NULL) {
@@ -321,14 +322,14 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   int index = count;
   int mode = state_.sides[(base & kSideMask) == 0x80000000].mode;
   if ((mode & 1) && (slot->kind & 0x10000)) {
-    int n = slot->part->option_count;
+    short n = slot->part->option_count;
     for (int i = 0; i < n; ++i) {
       Grow(slot, base | index++, 0x4010001);
     }
     slot->flags |= 0x1000;
   }
   if ((mode & 2) && (slot->kind & 0x20000)) {
-    int n = slot->part->option_count;
+    short n = slot->part->option_count;
     for (int i = 0; i < n; ++i) {
       Grow(slot, base | index++, 0x4020001);
     }
@@ -336,7 +337,7 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   }
   if (mode & 4) {
     index += slot->part->option_count;
-    int n = slot->part->option4_count;
+    short n = slot->part->option4_count;
     for (int i = 0; i < n; ++i) {
       Grow(slot, base | index++, 0x4040001);
     }

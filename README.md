@@ -653,7 +653,7 @@ Known compiler behaviour worth remembering:
     from`, which is the known int case (12, with `movsx`).
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
-* **Step 43 (drafts only, no new matches; `CEnmParam::Grow` 87 -> 63).**
+* **Step 43 (drafts only, no new matches; `CEnmParam::Grow` 87 -> 10).**
   * **A shared tail written once after an if/else chain and the same tail written in each
     branch with an early return allocate differently, even when cross-jumping merges the
     copies back into one.** `Grow` counted the part once after `if (slot == NULL) {...} else
@@ -670,6 +670,15 @@ Known compiler behaviour worth remembering:
     index` into ecx/eax/edx in the three loops (here eax in all three). `short`/`unsigned
     short`/`char` modes, C-style declarations at the top, a `side` local, five loop forms
     (`while (n-- > 0)`, `for (; n > 0; --n)`, `index | base`, ...) stay at 63-84.
+  * **`Grow` 63 -> 10: `short n` for the option counts** (the fields are `short`). A
+    dead-arm probe (`if (state_.sides != NULL) { S } else { S }` around each statement)
+    showed that more weight on the first two loop bodies flips `mode` to ecx and the counts
+    to eax; the narrow count type does that naturally (`char`/`unsigned short`: 13). Left:
+    the original pushes the kind before `mov ecx, edi; or ecx, ebx` (ecx, eax, edx in the
+    three loops); here `mov eax, edi` is scheduled first in all three. Ruled out on the
+    `short` base: `index++ | base`, a `child` local (28), `while (n-- > 0)`/`for (; n > 0;
+    --n)` (69), `++index` in the loop header or as a statement (47), `index + i` (82), a
+    `short i` (69), `base + index++` (60).
 * **Step 42 (drafts only, no new matches).**
   * **`CEnmParam::Plan`: the 2 bytes are a register choice for a constant, not the progress
     read.** With plain `state_.sides[0].mode` and `state_.sides[0].progress` (no `first`),
