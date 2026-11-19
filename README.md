@@ -10,9 +10,9 @@ The current state:
 * All 361 identified library functions (libogg 1.0, libvorbis 1.0, zlib 1.1.4,
   libpng 1.2.5) are rebuilt from source and match byte for byte.
 * The whole exe is relinked with the original LINK from game "blob" objects,
-  the rebuilt libraries, libcmt and the SDK import libraries. The result has the
-  same size and layout, and `.data` and the IAT order match. The remaining differences
-  are listed below.
+  the rebuilt libraries, libcmt and the SDK import libraries. Every section (`.text`,
+  `.rdata` with the import table, `.data`, `.rsrc`) is byte-identical; only the Rich header
+  and the link timestamp differ (listed below).
 * There is a per-function compare pipeline for decompiled C++ (`tools/compare.py`, `objdiff.json`).
 
 ## Setup
@@ -49,6 +49,7 @@ python3 tools/iatorder.py --check  # predicted IAT vs the original
 python3 tools/build_res.py         # res/wf.rc -> build/wf.res with rc.exe (link.py runs it too)
 python3 tools/link.py              # link build/wf.exe and run verify
 python3 tools/verify.py [-v]       # SHA-1, header and per-section diffs
+python3 tools/postlink.py          # OPTIONAL: stamped copy build/wf-stamped.exe (see below)
 ```
 
 ### Source encoding
@@ -74,6 +75,7 @@ mangled with warning C4129.
 | `config/imports.txt` | Import reference order (generated, reproduces the IAT) |
 | `config/imports-discarded.txt` | Imports of discarded game code (placement found by search, names guessed) |
 | `config/link.txt` | LINK command line |
+| `config/postlink.txt` | Header values for the optional post-link stamp |
 | `res/` | Resource script (`wf.rc`, `resource.h`); the icon is extracted at build time |
 | `config/libs.json` | Library sources, flags and archives |
 | `src/` | Decompiled C++ |
@@ -146,19 +148,40 @@ compares each resource that `rc` writes with the original's data. The symbolic n
 
 ## Remaining differences of build/wf.exe
 
-Baseline (differing bytes): headers 128, `.text` 0, `.rdata` 0, `.data` 0, `.rsrc` 0.
+Baseline (differing bytes): headers 128, `.text` 0, `.rdata` 0, `.data` 0, `.rsrc` 0 (the
+header count can drop by a byte or so when a byte of the link time happens to equal the original's).
+With the optional `tools/postlink.py` stamp (`build/wf-stamped.exe`): headers 124, all
+sections 0.
 
 | Section | Cause | Bytes | Fixable |
 |---|---|---|---|
-| headers | Rich header: `Utc1310_C 3077` 150 vs 151 (one more C object, likely a libcmt member pulled by discarded game code) | part of 128 | Under investigation |
-| headers | Rich header: `Utc13_CPP 9178` (PSDK `dxguid.lib`) vs `Utc1310_CPP 4035` (a newer DirectX SDK's `dxguid.lib`, built with cl 13.10.4035) | part of 128 | No: that SDK is not in the toolchain; the data it adds already matches |
-| headers | TimeDateStamp | 4 | Only by a post-link patch |
+| headers | Rich header: `Utc13_CPP 9178` (PSDK `dxguid.lib`) vs `Utc1310_CPP 4035` (a newer DirectX SDK's `dxguid.lib`, built with cl 13.10.4035). Every Rich DWORD is XORed with a key that sums all entries, so this one entry changes all 124 bytes | 124 | No: that SDK is not in the toolchain; the data it adds already matches |
+| headers | Rich header: `Utc1310_C 3077` 150 vs 151 (one more libcmt C object, see below) | (in the 124) | Known how, but it makes the header worse until dxguid matches |
+| headers | Rich header entry order: `Implib710 2067` is first seen after `Utc13_C 9466` instead of right after the dxguid entry | (in the 124) | Not examined; probably the newer dxguid.lib too |
+| headers | TimeDateStamp | 4 | Only by the post-link stamp |
 
 The `CheckSum` is 0 in both files. No difference comes from the 29 unmatched game functions:
-they link from the original bytes.
+they link from the original bytes. The Rich `Import` (173) and `Implib` counts equal the
+original's since step 27 (from the import fix).
 
-Step 27 applied the import findings: `.rdata` went from 2987 to 0 differing bytes, and the
-Rich `Import` (173) and `Implib` counts now equal the original's.
+**The missing libcmt object.** The original pulled 151 libcmt C objects (`Utc1310_C 3077`),
+the relink 150. The extra one left no bytes in the exe, so it was pulled by discarded game
+code, has only COMDAT code (no `.data`/`.bss`/`.CRT$` contributions) and needs nothing that is
+not already linked. 116 libcmt members qualify (`__vsnprintf`, `_strtok`, `__snprintf`,
+`_strlwr`, the `_mbs*` functions, ...), so it cannot be identified. An `extern __vsnprintf`
+(a debug trace next to `OutputDebugStringA` would fit) gives 151 and leaves every section
+identical, but it moves the PE header from 0x110 to 0x108 (headers 128 -> 289), so it is not
+applied. The reason is in LINK (`link.exe` 7.10 at 0x4591b0): the Rich buffer is
+`entries * 8 + 0x20 + 8 * ((key >> 5) % 3)` bytes, so the zero padding after `Rich` (and with
+it `e_lfanew`) depends on the XOR key. The key is a checksum over the DOS header and all
+entries, so with our dxguid entry, 150 objects happen to give the original's padding (16) and
+151 give 8. Once the dxguid entry matches, the extern should be added with it.
+
+**Post-link stamp (optional, separate).** `python3 tools/postlink.py` copies `build/wf.exe` to
+`build/wf-stamped.exe`, writes the `TimeDateStamp` and `CheckSum` from `config/postlink.txt`
+(the original's values) into the copy, and runs `verify.py` on it. It patches only values that
+LINK takes from the clock; `build/wf.exe` stays the plain link output, and the baselines above
+are given for both.
 
 ## Translation units
 

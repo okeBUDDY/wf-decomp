@@ -1,0 +1,5 @@
+# Header values for tools/postlink.py (an optional, separate step; see README).
+# LINK writes the current time into TimeDateStamp, so a relink can never
+# reproduce it. These are the original wf.exe's values.
+TimeDateStamp 0x42d0e1ae
+CheckSum 0x00000000
