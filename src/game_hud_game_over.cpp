@@ -69,15 +69,18 @@ void GameHud::ReleaseGameOver() {
 }
 
 // 0x420330
-// TODO: nonmatching: the original does each corner in turn (no loads moved
-// ahead of the stores before them) and addresses chart_ off `this`.
+// The closing corner is copied field by field: a struct assignment makes VC
+// rebase the corner stores off &chart_[0] and &chart_[6].
 void GameHud::UpdateChart() {
   for (int i = 0; i < 6; ++i) {
+    D3DVECTOR& corner = chart_[i];
     float scale = shown_params_[i] * 0.0625f;
-    chart_[i].x = g_hexagon[i].x * scale;
-    chart_[i].y = g_hexagon[i].y * scale;
+    corner.x = g_hexagon[i].x * scale;
+    corner.y = g_hexagon[i].y * scale;
   }
-  chart_[6] = chart_[0];
+  chart_[6].x = chart_[0].x;
+  chart_[6].y = chart_[0].y;
+  chart_[6].z = chart_[0].z;
 }
 
 // 0x420480

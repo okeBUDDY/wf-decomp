@@ -3,7 +3,8 @@
 usage: python3 tools/multi_variants.py src/file.cpp addr1,addr2,... variants.py [--base]
 
 variants.py defines V = [[(old, new), ...], ...]; every variant's edits are applied together
-(in order, first occurrence each), the file is compiled with compare.py, and each address is
+(in order, first occurrence each); an edit written as (path, old, new) applies to another file,
+such as a header the source includes. The file is compiled with compare.py, and each address is
 reported as OK or <differing bytes>b/<differing instructions>i (fdiff.py -n). --base scores
 the unchanged source first. The source is restored afterwards. compare.py overwrites
 build/matched.json, so run a full compare before mkblobs/link.
@@ -47,26 +48,39 @@ def main():
             res.append(f"{a[-5:]}:{d.group(1) if d else '?'}b/{n.group(1) if n else '?'}i")
         return ' '.join(res)
 
+    originals = {path: orig}
+
+    def restore():
+        for p, text in originals.items():
+            with open(p, 'w', encoding='utf-8') as f:
+                f.write(text)
+
     try:
         if '--base' in sys.argv:
             print('base', score())
         for i, v in enumerate(variants):
-            s = orig
+            texts = {path: orig}
             bad = False
-            for old, new in v:
+            for edit in v:
+                p, old, new = edit if len(edit) == 3 else (path, *edit)
+                if p not in originals:
+                    with open(p, encoding='utf-8') as f:
+                        originals[p] = f.read()
+                s = texts.get(p, originals[p])
                 if old not in s:
-                    print(i, 'OLD NOT FOUND', old[:60])
+                    print(i, 'OLD NOT FOUND', p, old[:60])
                     bad = True
                     break
-                s = s.replace(old, new, 1)
+                texts[p] = s.replace(old, new, 1)
             if bad:
                 continue
-            with open(path, 'w', encoding='utf-8') as f:
-                f.write(s)
+            restore()
+            for p, text in texts.items():
+                with open(p, 'w', encoding='utf-8') as f:
+                    f.write(text)
             print(i, score(), flush=True)
     finally:
-        with open(path, 'w', encoding='utf-8') as f:
-            f.write(orig)
+        restore()
 
 
 if __name__ == '__main__':
