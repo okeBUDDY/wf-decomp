@@ -653,7 +653,7 @@ Known compiler behaviour worth remembering:
     from`, which is the known int case (12, with `movsx`).
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
-* **Step 43 (drafts only, no new matches; `CEnmParam::Grow` 87 -> 10).**
+* **Step 43 (drafts only, no new matches; `CEnmParam::Grow` 87 -> 6).**
   * **A shared tail written once after an if/else chain and the same tail written in each
     branch with an early return allocate differently, even when cross-jumping merges the
     copies back into one.** `Grow` counted the part once after `if (slot == NULL) {...} else
@@ -679,6 +679,21 @@ Known compiler behaviour worth remembering:
     `short` base: `index++ | base`, a `child` local (28), `while (n-- > 0)`/`for (; n > 0;
     --n)` (69), `++index` in the loop header or as a statement (47), `index + i` (82), a
     `short i` (69), `base + index++` (60).
+  * **`Grow` 10 -> 6: `Grow(slot, base | count, kind); ++count;`.** With the increment as its
+    own statement the push of the kind comes first and the three loops use ecx, eax and edx
+    as in the original, but a separate `index = count` variable moves `this` to edi (47);
+    reusing `count` as the running index keeps the original's callee-saved registers. Left:
+    the original copies the count and ors `base` in (`mov ecx, edi; or ecx, ebx`); VC here
+    copies `base`. VC orders the operands of `|` by definition, not by spelling: the
+    later-defined value is copied (`index++` and a separate `index` defined after `base` both
+    give the count first). `count | base`, casts, `int base`, an `unsigned` count, a
+    `ChildCode()` helper in either parameter order, a `child` local or `|=`, C-style
+    declarations, and splitting the count's sum around `base` (17) do not; `base` computed
+    before `count` copies the count but changes the first loop (13).
+    Split `base` forms (`base = code & kSideMask; base |= code << 3;`, either order) and
+    `child_count + extra_child_count` give 13; a permuter run (~730 iterations) from the 6-instruction
+    form found nothing below its base score. `Plan`, `HLSurface::Load`, `FnGame::RateGame`
+    and `FnGame::Initialize` are unchanged from step 42.
 * **Step 42 (drafts only, no new matches).**
   * **`CEnmParam::Plan`: the 2 bytes are a register choice for a constant, not the progress
     read.** With plain `state_.sides[0].mode` and `state_.sides[0].progress` (no `first`),

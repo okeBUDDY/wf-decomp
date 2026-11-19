@@ -275,13 +275,14 @@ int CEnmParam::Load(File* file) {
 }
 
 // 0x41a820
-// TODO: nonmatching (10 differing instructions: in each option loop the
-// original pushes the kind before computing `base | index` into ecx, eax
-// and edx in the three loops; here into eax, before the push). The two early
+// TODO: nonmatching (6 differing instructions: the original computes the
+// child codes of the option loops as `mov ecx, edi; or ecx, ebx`, the count
+// copied first; VC here copies `base` and ors the count in). The two early
 // returns, each counting the part, give the original's registers for `this`
 // (ebp), `code` (ecx), the slot flags (edx) and the totals (edi), and its
-// shared ChooseWeapon() call; `short` option counts (the type of the
-// fields) put `mode` in ecx and the counts in eax.
+// shared ChooseWeapon() call; `short` option counts (the type of the fields)
+// put `mode` in ecx and the counts in eax; `++count` after each call (not
+// `index++` in the argument) keeps the push of the kind first.
 void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   EnmSlot* slot = FindSlot(code);
   if (slot == NULL) {
@@ -319,27 +320,29 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   for (int i = 0; i < count; ++i) {
     Grow(slot, base | i, 0);
   }
-  int index = count;
   int mode = state_.sides[(base & kSideMask) == 0x80000000].mode;
   if ((mode & 1) && (slot->kind & 0x10000)) {
     short n = slot->part->option_count;
     for (int i = 0; i < n; ++i) {
-      Grow(slot, base | index++, 0x4010001);
+      Grow(slot, base | count, 0x4010001);
+      ++count;
     }
     slot->flags |= 0x1000;
   }
   if ((mode & 2) && (slot->kind & 0x20000)) {
     short n = slot->part->option_count;
     for (int i = 0; i < n; ++i) {
-      Grow(slot, base | index++, 0x4020001);
+      Grow(slot, base | count, 0x4020001);
+      ++count;
     }
     slot->flags |= 0x2000;
   }
   if (mode & 4) {
-    index += slot->part->option_count;
+    count += slot->part->option_count;
     short n = slot->part->option4_count;
     for (int i = 0; i < n; ++i) {
-      Grow(slot, base | index++, 0x4040001);
+      Grow(slot, base | count, 0x4040001);
+      ++count;
     }
     slot->flags |= 0x4000;
   }
