@@ -128,6 +128,12 @@ class HL3D : public System {
   void DrawTexels(D3DPRIMITIVETYPE type, const Transform* transform,
                   const D3DVECTOR* points, const POINTS* texels, D3DCOLOR color,
                   int count);  // 0x41c8e0
+  // Point filtering for `stage` (SetFilter(FALSE, stage) as callers inline
+  // it).
+  void SetPointFilter(DWORD stage) {
+    device_->SetTextureStageState(stage, D3DTSS_MINFILTER, D3DTFN_POINT);
+    device_->SetTextureStageState(stage, D3DTSS_MAGFILTER, D3DTFG_POINT);
+  }
   // Draws without a texture from now on.
   void ClearTexture() {
     if (texture_ != NULL) {

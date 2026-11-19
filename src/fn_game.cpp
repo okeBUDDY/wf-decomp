@@ -414,7 +414,7 @@ FnOption::FnOption() {
   name_ = "fnOption";
   for (int i = 0; i < kItems; ++i) {
     items_[i] = NULL;
-    enabled_[i] = true;
+    enabled_[i] = 1;
   }
   background_ = NULL;
 }
@@ -476,11 +476,9 @@ void FnOption::Apply() {
 }
 
 // 0x41c8a0
-// TODO: nonmatching: the original zeroes ecx before the sete of `custom`
-// and schedules the prologue differently.
 void FnOption::SetPreset(int preset) {
   const int* rules = presets_[preset];
-  bool custom = preset == kCustomPreset;
+  int custom = preset == kCustomPreset;
   for (int i = 0; i < kRules; ++i) {
     enabled_[kFirstRuleItem + i] = custom;
     values_[kFirstRuleItem + i] = rules[i];
@@ -803,9 +801,6 @@ void FnOption::Draw() {
 }
 
 // 0x41dc60
-// TODO: nonmatching: the original does not reload screen_fade for FadeTo()
-// (with a local it folds the colour), and keeps the last trigger text's
-// pointer in eax.
 int FnOption::Initialize() {
   g_global.ClearStage();
   BackgroundGrid* background = new BackgroundGrid;

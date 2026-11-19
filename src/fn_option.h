@@ -71,7 +71,7 @@ class FnOption : public UserFunc {
   short cursor_;          // 0x18, the selected item
   short blink_;           // 0x1a, alpha of the cursor, 255 down to 0
   short values_[kItems];  // 0x1c, of each menu item
-  bool enabled_[kItems];  // 0x40, of each menu item
+  unsigned char enabled_[kItems];  // 0x40, of each menu item
   char unknown_52_[2];
   HLSTxt* items_[kItems];       // 0x54, the text of each menu item
   BackgroundGrid* background_;  // 0x9c

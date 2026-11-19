@@ -298,9 +298,7 @@ void GameHud::DrawNameEntry() {
   turned.m[2][1] += 240;
   g_application.d3d->DrawTexels(D3DPT_TRIANGLESTRIP, &turned, kBarPoints,
                                 kBarTexels, 0xc800ff80, 4);
-  d3d = g_application.d3d;
-  d3d->device_->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTFN_POINT);
-  d3d->device_->SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTFG_POINT);
+  g_application.d3d->SetPointFilter(0);
 
   if (flags_ & kFlagNameCursor) {
     g_application.d3d->ClearTexture();

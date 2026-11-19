@@ -115,9 +115,7 @@ void GameHud::DrawResult() {
   g_application.d3d->SetFilter(result_bar_ != 1.0f, 0);
   g_application.d3d->DrawTexels(D3DPT_TRIANGLESTRIP, &transform, kResultBar,
                                 kResultBarTexels, 0xc800ff80, 4);
-  HL3D* d3d = g_application.d3d;
-  d3d->device_->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTFN_POINT);
-  d3d->device_->SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTFG_POINT);
+  g_application.d3d->SetPointFilter(0);
   D3DCOLOR palette[2];
   palette[0] = static_cast<int>(result_alpha_ * 128) << 24 | 0xffffff;
   palette[1] = static_cast<int>(result_alpha_ * 200) << 24 | 0xffc800;

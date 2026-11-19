@@ -214,7 +214,7 @@ matches.
 
 ## Decompiled code
 
-648 of 678 game functions match (84.65% of the 128586 game code bytes; `tools/compare.py`),
+649 of 678 game functions match (84.69% of the 128586 game code bytes; `tools/compare.py`),
 and 122 of the 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -230,7 +230,7 @@ emitted in several files, such as header inlines, count in each):
 | Area | Files | Matched |
 |---|---|---|
 | Core objects | `object.cpp` 13/13, `task.cpp` 9/9, `task_list_delete.cpp` 1/1, `thread.cpp` 2/2, `file.cpp` 6/6, `pack.cpp` 8/8, `path_util.cpp` 2/2, `profile.cpp` 2/2 | 43/43 |
-| Application, globals, stages | `win_main.cpp` 1/1, `application.cpp` 16/16, `cglobal.cpp` 26/27, `game.cpp` 10/10, `fn_game.cpp` 28/32 (with FnOption), `fn_title.cpp` 8/8, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 8/9, `game_hud_name_entry.cpp` 4/5, `game_hud_result.cpp` 3/4, `graphics.cpp` 13/13 | 126/134 |
+| Application, globals, stages | `win_main.cpp` 1/1, `application.cpp` 16/16, `cglobal.cpp` 26/27, `game.cpp` 10/10, `fn_game.cpp` 29/32 (with FnOption), `fn_title.cpp` 8/8, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 8/9, `game_hud_name_entry.cpp` 4/5, `game_hud_result.cpp` 3/4, `graphics.cpp` 13/13 | 127/134 |
 | HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 12/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 156/158 |
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 34/35, `hls_txt.cpp` 15/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 75/79 |
 | Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 35/36 | 144/146 |
@@ -340,11 +340,29 @@ Known compiler behaviour worth remembering:
 * `Application::Initialize` tests the device and the window in one `||` condition with the
   `set_title` call between them (`a() || (set(), b())`): that places the shared `return 0`
   after the input failure and lets the later failures return AddSystem's 0 in eax.
+* Member types show in conversions: `FnOption::enabled_` is an `unsigned char` array, not
+  `bool`, and `SetPreset`'s flag an `int` (the original zeroes ecx before the `sete`; a `bool`
+  store needs no zeroing).
+* A member pointer kept as `add edi, 0xc` (the address of `device_`) and reloaded after the
+  call is an inline member using `this->device_` twice: `HL3D::SetPointFilter()` in
+  `DrawResult`/`DrawNameEntry`, where an explicit `d3d->device_->...` pair keeps `d3d` instead.
 * Unresolved leads: `FnOption::Move` inlines `PlayEffect()` four times in the original (it
-  needs `__forceinline` here, then keeps `g_application.input` in edi); the three inlined
+  needs `__forceinline` here, 8 bytes too long now); the original keeps `g_application.input`
+  in edi from the pad read to the button case and reloads `pad(0)` there, where this keeps the
+  pad itself. `HLSTxtSys::Print` spills the character code into the dead `text` parameter
+  slot (`mov [esp+0x24], edx`, then `mov cx, [esp+0x24]`); a by-value or by-pointer inline
+  lookup helper does not reproduce it. The three inlined
   `SetTexture(..., &g_fonts.textures[2], 0)` calls (`DrawResult`, `DrawNameEntry`,
   `FnOption::Draw`) load `texture_` before the last transform stores, while the calls with a
-  variable texture match; `BackgroundGrid::Run` keeps the tile's x and y on the x87 stack and
+  variable texture match. The original loads `texture_` into a register right after
+  `d3d` and schedules it above the transform stores (in `DrawNameEntry` too for the NULL
+  check), as if the stores could not alias it; member, free-function, `const&`, reversed-test,
+  local-copy, accessor/setter and early-return forms of the helper, `/G5`-`/G7`, and direct
+  transform stores instead of `ScaleTransform` all leave it in place (DrawResult is 1 byte
+  short with only this left). `RateGame` and `NextReplay` (`record.cpp`) both differ by tail
+  duplication: the original keeps one shared tail (stores of `g_rating` from int registers;
+  one `return 1` epilogue) where VC duplicates it here; early-return and explicit-store forms
+  and `/Os` do not change it. `BackgroundGrid::Run` keeps the tile's x and y on the x87 stack and
   computes `-x_ + x` with `fchs`/`fadd st(2)`; `HLSTxtSys::Measure` is 26 bytes off (esi/edi).
 * `build/obj/src/` keeps objects of deleted or merged sources (`fn_option.obj`, ...);
   `fdiff.py` may read such a stale object, so delete them after renaming a file.
