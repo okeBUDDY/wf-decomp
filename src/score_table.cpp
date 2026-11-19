@@ -50,10 +50,19 @@ int ScoreTable::FindRank(const ScoreEntry* entry) {
 }
 
 // 0x421010
-// TODO: nonmatching (rank/entry register allocation swapped)
 void ScoreTable::Insert(const ScoreEntry* entry, int rank) {
   if (rank < 0) {
-    rank = FindRank(entry);
+    // The search of FindRank(), written out (calling it changes the
+    // register choice).
+    for (rank = kEntries - 1; rank >= 0; --rank) {
+      if (entry->score < entries_[rank].score) {
+        break;
+      }
+    }
+    ++rank;
+    if (rank == kEntries) {
+      rank = -1;
+    }
   }
   if (rank >= 0) {
     for (int i = kEntries - 1; i > rank; --i) {

@@ -313,23 +313,22 @@ int LinkedPartControl::SpawnGlow(Actor* actor) {
 }
 
 // 0x418ef0
-// TODO: nonmatching (the original keeps `low` in eax from the start).
 unsigned short Actor::ClampAngle(unsigned short value, short low, short high) {
-  unsigned short result = low;
   short range = high - low;
-  if (range > 0) {
-    if (range >= 0x400) {
-      return value;
-    }
-    short offset = (value - low) & 0x3ff;
-    if (offset <= range) {
-      return value;
-    }
-    if (offset < (range >> 1) + 0x200) {
-      result = high;
-    }
+  if (range <= 0) {
+    return low;
   }
-  return result;
+  if (range >= 0x400) {
+    return value;
+  }
+  short offset = (value - low) & 0x3ff;
+  if (offset <= range) {
+    return value;
+  }
+  if (offset < (range >> 1) + 0x200) {
+    return high;
+  }
+  return low;
 }
 
 // 0x418f50

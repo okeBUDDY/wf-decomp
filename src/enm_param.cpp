@@ -237,40 +237,42 @@ void CEnmParam::LogDestroy(EnmSlot* slot, int chain, int rapid) {
 }
 
 // 0x41a5b0
-// TODO: nonmatching (block order).
 int CEnmParam::Save(File* file) {
-  if (file->WriteExact(&slot_count_, 4) &&
-      file->WriteExact(&state_, sizeof(state_))) {
-    EnmSlot* slot = &slots_[slot_capacity_ - 1];
-    for (int i = slot_count_; i > 0; --i, --slot) {
-      if (!file->WriteExact(slot, 0x18)) {
-        return 0;
-      }
-    }
-    return 1;
+  if (!file->WriteExact(&slot_count_, 4)) {
+    return 0;
   }
-  return 0;
+  if (!file->WriteExact(&state_, sizeof(state_))) {
+    return 0;
+  }
+  EnmSlot* slot = &slots_[slot_capacity_ - 1];
+  for (int i = slot_count_; i > 0; --i, --slot) {
+    if (!file->WriteExact(slot, 0x18)) {
+      return 0;
+    }
+  }
+  return 1;
 }
 
 // 0x41a660
-// TODO: nonmatching (block order).
 int CEnmParam::Load(File* file) {
-  if (file->ReadExact(&slot_count_, 4) &&
-      file->ReadExact(&state_, sizeof(state_))) {
-    EnmSlot* slot = &slots_[slot_capacity_ - 1];
-    for (int i = slot_count_; i > 0; --i, --slot) {
-      if (!file->ReadExact(slot, 0x18)) {
-        return 0;
-      }
-      slot->part = plan_.Find(slot->code, slot->kind);
-      if (slot->part == NULL) {
-        return 0;
-      }
-      slot->lerp_at = 0;
-    }
-    return 1;
+  if (!file->ReadExact(&slot_count_, 4)) {
+    return 0;
   }
-  return 0;
+  if (!file->ReadExact(&state_, sizeof(state_))) {
+    return 0;
+  }
+  EnmSlot* slot = &slots_[slot_capacity_ - 1];
+  for (int i = slot_count_; i > 0; --i, --slot) {
+    if (!file->ReadExact(slot, 0x18)) {
+      return 0;
+    }
+    slot->part = plan_.Find(slot->code, slot->kind);
+    if (slot->part == NULL) {
+      return 0;
+    }
+    slot->lerp_at = 0;
+  }
+  return 1;
 }
 
 // 0x41a820
