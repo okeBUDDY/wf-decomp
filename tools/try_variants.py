@@ -37,8 +37,14 @@ def run(path, addr, variants, compile_path=None):
                 continue
             d = re.search(r"(\d+) bytes differ", m.group(2))
             sz = re.search(r"size \S+ != \S+", m.group(2))
+            nd = ""
+            if m.group(1) != "OK":
+                fd = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "fdiff.py"), "-n", addr],
+                                    cwd=ROOT, capture_output=True, text=True, env=env).stdout
+                n = re.search(r"(\d+) instructions differ", fd)
+                nd = f"({n.group(1)} insns)" if n else ""
             results.append(" ".join(x for x in (m.group(1), d.group(1) if d else "",
-                                                sz.group(0) if sz else "") if x))
+                                                sz.group(0) if sz else "", nd) if x))
     finally:
         open(path, "w", encoding="utf-8").write(orig)
     return results

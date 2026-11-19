@@ -193,7 +193,8 @@ int Control32::Dash(Actor* actor, EnmList* program, float x, float y,
       SendEvent(work->arms[2], 9, 0x110a);
       SendEvent(work->arms[3], 9, 0x110a);
       if (power > 1.0f && work->brake_time > 90) {
-        g_application.sound->channel(26)->Assign(&g_sounds[kSndBoost2], 0, 1.0f);
+        g_application.sound->channel(26)->Assign(&g_sounds[kSndBoost2], 0,
+                                                 1.0f);
         return 1;
       }
       g_application.sound->channel(25)->Assign(&g_sounds[kSndBoost1], 0, 1.0f);
@@ -424,10 +425,10 @@ void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
 }
 
 // 0x412530
-// TODO: nonmatching (register choice: the original keeps `program` in edi
-// and the angle in ebx, and adds the new angles for StartTurn() in 16 bits,
-// as if its parameter were a short; StartTurn() itself matches only with
-// an int)
+// TODO: nonmatching (one register: the original adds the new angle of case
+// 0x20004 into `from`'s register (add ebx, eax; push ebx), and the push of
+// case 0x20001 then stays apart; here it is add eax, ebx and the two pushes
+// are cross-jumped. An int `from` gives the add but loads it with movsx.)
 void Control32::RunProgramB0(Actor* actor, EnmList* program) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
   PartWork* part = reinterpret_cast<PartWork*>(actor->work);
@@ -458,8 +459,8 @@ void Control32::RunProgramB0(Actor* actor, EnmList* program) {
         if (off > -32 && off < 32) {
           work->turn_peak = program->time;
           work->turn_end = program->time + 90;
-          short done = actor->angle - work->turn_from;
-          work->turn = done + (done < 0 ? -45 : 45);
+          work->turn = actor->angle - work->turn_from;
+          work->turn += work->turn >= 0 ? 45 : -45;
         }
       }
     } else {
@@ -469,40 +470,44 @@ void Control32::RunProgramB0(Actor* actor, EnmList* program) {
       turned = -turned;
     }
     actor->angle = work->turn_from + turned;
-    ++program->time;
-    return;
-  }
-  int angle;
-  switch (program->op) {
-    case 0x20001:
-      angle = actor->angle + ((rand() & 1) ? 0x200 : -0x200);
-      break;
-    case 0x20002:
-      actor->angle = (actor->angle - program->arg) & 0x3ff;
-      if (actor->angle >= 0x200) {
-        actor->angle -= 0x400;
+  } else {
+    switch (program->op) {
+      case 0x20001:
+        if (!StartTurn(actor, program,
+                       actor->angle + ((rand() & 1) ? 0x200 : -0x200))) {
+          program->op = 0;
+        }
+        break;
+      case 0x20002:
+        actor->angle = (actor->angle - program->arg) & 0x3ff;
+        if (actor->angle >= 0x200) {
+          actor->angle -= 0x400;
+        }
+        actor->angle += program->arg;
+        if (!StartTurn(actor, program, program->arg)) {
+          program->op = 0;
+        }
+        break;
+      case 0x20003: {
+        int turns = ((program->arg - 90) & ~0x3ff) + 0x400;
+        if (!StartTurn(actor, program, actor->angle + turns)) {
+          program->op = 0;
+        }
+        break;
       }
-      actor->angle += program->arg;
-      angle = program->arg;
-      break;
-    case 0x20003:
-      angle = actor->angle + ((program->arg - 90) & ~0x3ff) + 0x400;
-      break;
-    case 0x20004: {
-      unsigned short from = actor->angle;
-      short off = (AngleToPlayer(actor) - 0x200 - program->arg - from) & 0x3ff;
-      if (off >= 0x200) {
-        off -= 0x400;
+      case 0x20004: {
+        unsigned short from = actor->angle;
+        short off =
+            (AngleToPlayer(actor) - 0x200 - program->arg - from) & 0x3ff;
+        if (off >= 0x200) {
+          off -= 0x400;
+        }
+        if (!StartTurn(actor, program, from + off)) {
+          program->op = 0;
+        }
+        break;
       }
-      angle = from + off;
-      break;
     }
-    default:
-      ++program->time;
-      return;
-  }
-  if (!StartTurn(actor, program, angle)) {
-    program->op = 0;
   }
   ++program->time;
 }

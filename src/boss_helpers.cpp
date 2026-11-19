@@ -12,7 +12,7 @@
 #include "hl_3d.h"
 
 // 0x411580
-int Control32::StartTurn(Actor* actor, EnmList* program, int angle) {
+int Control32::StartTurn(Actor* actor, EnmList* program, short angle) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
   work->turn_from = actor->angle;
   work->turn = angle - actor->angle;
@@ -24,8 +24,10 @@ int Control32::StartTurn(Actor* actor, EnmList* program, int angle) {
     work->turn_peak = size;
     work->turn_end = size + 90;
   } else {
-    work->turn_peak = static_cast<short>(sqrt(static_cast<double>(size * 90)));
-    work->turn_end = work->turn_peak * 2;
+    // `angle` is done with and holds the peak.
+    angle = static_cast<short>(sqrt(static_cast<double>(size * 90)));
+    work->turn_peak = angle;
+    work->turn_end = angle * 2;
   }
   reinterpret_cast<PartWork*>(actor->work)->flags |= Control32Work::kTurning;
   program->time = 0;

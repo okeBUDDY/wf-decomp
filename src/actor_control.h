@@ -365,7 +365,7 @@ class Control32 : public LinkedPartControl {
   void RunSideProgram(Actor* actor, EnmList* program, int side);  // 0x4119d0
   // Starts a turn of `actor` to `angle`; 0 when it faces it already.
   int StartTurn(Actor* actor, EnmList* program,
-                int angle);  // 0x411580
+                short angle);  // 0x411580
   // Writes the weapons that the cores of `side` still have to `out`;
   // returns their count.
   int ListWeapons(int side, int* out);  // 0x411600
