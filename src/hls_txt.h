@@ -65,6 +65,7 @@ class HLSTxtSys : public Object {
   enum { kMaxMappings = 16 };
 
   HLSTxtSys();  // 0x40acf0
+  ~HLSTxtSys() {}
 
   // Sets up the font: `char_count` characters from `first` (a one or two
   // byte character), `width` x `height` each, in rows of `columns` from

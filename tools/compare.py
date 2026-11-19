@@ -30,6 +30,14 @@ from splits import load_splits
 from wfcommon import BUILD, ORIG_EXE, PE, ROOT, VC71, Coff, run_wine, vc71_env, winpath
 
 CFLAGS = ["/nologo", "/c", "/O2", "/GX", "/GS", "/W3"]
+
+
+def cflags_for(src):
+    """CFLAGS plus WF_EXTRA_CFLAGS (for flag experiments, such as the per-file
+    sweeps described in the README)."""
+    return CFLAGS + os.environ.get("WF_EXTRA_CFLAGS", "").split()
+
+
 # Third-party headers (unpacked by tools/build_libs.py).
 LIB_INCLUDES = ["libogg-1.0/include", "libvorbis-1.0/include", "zlib-1.1.4", "libpng-1.2.5"]
 OBJDIR = os.path.join(BUILD, "obj", "src")
@@ -88,7 +96,7 @@ def compile_source(src):
     if not os.path.exists(sjis):
         raise SystemExit(f"{src}: not under src/")
     incs = [SJIS_DIR] + [os.path.join(BUILD, "lib", "src", d) for d in LIB_INCLUDES]
-    args = CFLAGS + ["/I" + winpath(i) for i in incs] + ["/Fo" + winpath(obj), winpath(sjis)]
+    args = cflags_for(src) + ["/I" + winpath(i) for i in incs] + ["/Fo" + winpath(obj), winpath(sjis)]
     env = dict(vc71_env(), **CL_LOCALE)
     rc, out = run_wine(f"{VC71}/bin/cl.exe", args, env, check=False)
     out = re.sub(re.escape(winpath(SJIS_DIR)), winpath(SRC_DIR).replace("\\", "\\\\"), out,

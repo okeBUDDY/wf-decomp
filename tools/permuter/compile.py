@@ -15,7 +15,7 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.dirname(HERE))
 
 import wfperm  # noqa: E402
-from compare import CFLAGS, CL_LOCALE, LIB_INCLUDES, SJIS_DIR, mirror_sources  # noqa: E402
+from compare import CL_LOCALE, LIB_INCLUDES, cflags_for, SJIS_DIR, mirror_sources  # noqa: E402
 from wfcommon import BUILD, ORIG_EXE, PE, ROOT, VC71, Coff, run_wine, vc71_env, winpath  # noqa: E402
 from gensyms import read_symbols  # noqa: E402
 
@@ -43,7 +43,7 @@ def main():
     try:
         open(cfile, "wb").write(text.encode("cp932"))
         incs = [os.path.dirname(sjis), SJIS_DIR] + [os.path.join(BUILD, "lib", "src", d) for d in LIB_INCLUDES]
-        args = CFLAGS + ["/I" + winpath(i) for i in incs] + ["/Fo" + winpath(obj), winpath(cfile)]
+        args = cflags_for(src) + ["/I" + winpath(i) for i in incs] + ["/Fo" + winpath(obj), winpath(cfile)]
         rc, log = run_wine(f"{VC71}/bin/cl.exe", args, dict(vc71_env(), **CL_LOCALE), check=False)
         if rc != 0:
             sys.stderr.write(log)

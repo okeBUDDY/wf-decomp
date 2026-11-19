@@ -26,8 +26,6 @@ CEnmParam g_enm_param;     // 0x4677b0
 // Implicit ctor 0x401bf0, dtor 0x401e00.
 PatFiles g_pats;  // 0x467d70
 // Implicit ctor 0x401e90, dtor 0x401f80.
-// TODO: nonmatching (the implicit dtor 0x401f80: the original interleaves
-// the vector dtor's argument pushes with the vptr stores).
 Fonts g_fonts;  // 0x467ec0
 
 // 0x4010a0

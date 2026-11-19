@@ -116,15 +116,12 @@ void Actor::InitRoot() {
   control = NULL;
   parent = next_sibling = prev_sibling = first_child = last_child = NULL;
   draw_prev = draw_next = NULL;
-  // TODO: nonmatching (the lea of &screen is scheduled first).
   Transform* t = &screen;
   transform = t;
   t->m[0][1] = t->m[0][2] = t->m[1][0] = t->m[1][2] = t->m[2][0] = t->m[2][1] =
       0.0f;
   t->m[0][0] = t->m[1][1] = t->m[2][2] = 1.0f;
-  relative.m[0][0] = relative.m[1][1] = relative.m[2][2] = 1.0f;
-  relative.m[0][1] = relative.m[0][2] = relative.m[1][0] = relative.m[1][2] =
-      relative.m[2][0] = relative.m[2][1] = 0.0f;
+  SetIdentity(&relative);
 }
 
 // 0x407c80
