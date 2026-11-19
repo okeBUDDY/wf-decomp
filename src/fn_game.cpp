@@ -488,39 +488,6 @@ void FnOption::SetPreset(int preset) {
 // 0x41ca50
 void HLSTxt::SetText(const char* text) { strcpy(text_, text); }
 
-// 0x41c8e0
-void HL3D::DrawTexels(D3DPRIMITIVETYPE type, const Transform* transform,
-                      const D3DVECTOR* points, const POINTS* texels,
-                      D3DCOLOR color, int count) {
-  if (texture_ == NULL) {
-    return;
-  }
-  if (vertex_count_ + count > kMaxVertices) {
-    vertex_count_ = 0;
-  }
-  float scale_u = 1.0f / (texture_->scale_x_ * texture_->width_);
-  float scale_v = 1.0f / (texture_->scale_y_ * texture_->height_);
-  D3DTLVERTEX* vertex = &vertices_[vertex_count_];
-  for (int i = 0; i < count; ++i) {
-    g_vector_work[24] = transform->m[0][0] * points->x +
-                        transform->m[1][0] * points->y + transform->m[2][0];
-    g_vector_work[25] = transform->m[0][1] * points->x +
-                        transform->m[1][1] * points->y + transform->m[2][1];
-    vertex->sx = g_vector_work[24];
-    vertex->sy = g_vector_work[25];
-    vertex->sz = points->z;
-    vertex->tu = (texels->x + 0.45f) * scale_u;
-    vertex->tv = (texels->y + 0.45f) * scale_v;
-    vertex->color = color;
-    ++points;
-    ++texels;
-    ++vertex;
-  }
-  device_->DrawPrimitive(type, D3DFVF_TLVERTEX, &vertices_[vertex_count_],
-                         count, 0);
-  vertex_count_ += count;
-}
-
 // 0x41caf0
 void FnOption::LoadSettings() {
   LANGID language = GetUserDefaultLangID();
@@ -753,8 +720,6 @@ void FnOption::Move() {
 }
 
 // 0x41d880
-// TODO: nonmatching: the inlined SetTexture() of the title bar compares
-// the current texture before the transform stores in the original.
 void FnOption::Draw() {
   g_application.d3d->ClearTexture();
   Transform transform;
@@ -797,9 +762,11 @@ void FnOption::Draw() {
   }
 
   SetIdentity(&transform);
-  transform.m[2][0] = -static_cast<float>(
-      static_cast<unsigned int>(g_application.frame_count & 0x3f) * 2);
-  transform.m[2][1] = 450;
+  TranslateTransform(
+      &transform,
+      -static_cast<float>(
+          static_cast<unsigned int>(g_application.frame_count & 0x3f) * 2),
+      450);
   SetTexture(g_application.d3d, &g_fonts.textures[2], 0);
   g_application.d3d->DrawTexels(D3DPT_TRIANGLESTRIP, &transform, kTitleBar,
                                 kTitleBarTexels, 0xc800ff80, 4);

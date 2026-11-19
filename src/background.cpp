@@ -91,28 +91,7 @@ int BackgroundGrid::IsProtected() {
   return 1;
 }
 
-// 0x415f30
-void RotateTransform(Transform* transform, int angle) {
-  Transform* rotation = reinterpret_cast<Transform*>(g_matrix_work + 0x80);
-  rotation->m[0][0] = rotation->m[1][1] = rotation->m[2][2] = 1;
-  rotation->m[0][1] = rotation->m[0][2] = rotation->m[1][0] =
-      rotation->m[1][2] = rotation->m[2][0] = rotation->m[2][1] = 0;
-  reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[0][1] =
-      g_sin_table[angle & 0x3ff];
-  reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[1][0] =
-      -reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[0][1];
-  reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[1][1] =
-      g_sin_table[(angle + 0x100) & 0x3ff];
-  reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[0][0] =
-      reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[1][1];
-  MultiplyTransform(
-      transform, reinterpret_cast<Transform*>(g_matrix_work + 0x80), transform);
-}
-
 // 0x416030
-// TODO: nonmatching (4 instructions: the stores of the +320/+240 translation
-// come after the pushes of DrawPoints()' color and transform arguments in the
-// original; single-line moves of DrawTile() do not fix it)
 void BackgroundGrid::Run() {
   app_->d3d->ClearTexture();
   app_->d3d->SetAlphaBlend(D3DBLEND_INVSRCALPHA);

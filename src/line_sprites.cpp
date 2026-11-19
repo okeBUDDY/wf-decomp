@@ -7,30 +7,6 @@
 #include "application.h"
 #include "hl_3d.h"
 
-// 0x415040
-void HL3D::DrawPoints(D3DPRIMITIVETYPE type, const Transform* transform,
-                      const D3DVECTOR* points, D3DCOLOR color, int count) {
-  if (vertex_count_ + count > kMaxVertices) {
-    vertex_count_ = 0;
-  }
-  D3DTLVERTEX* vertex = &vertices_[vertex_count_];
-  for (int i = 0; i < count; ++i) {
-    g_vector_work[24] = transform->m[0][0] * points->x +
-                        transform->m[1][0] * points->y + transform->m[2][0];
-    g_vector_work[25] = transform->m[0][1] * points->x +
-                        transform->m[1][1] * points->y + transform->m[2][1];
-    vertex->sx = g_vector_work[24];
-    vertex->sy = g_vector_work[25];
-    vertex->sz = points->z;
-    vertex->color = color;
-    ++points;
-    ++vertex;
-  }
-  device_->DrawPrimitive(type, D3DFVF_TLVERTEX, &vertices_[vertex_count_],
-                         count, 0);
-  vertex_count_ += count;
-}
-
 // The triangle of the ring.
 ShockwaveSprite g_shockwave;  // 0x46904c
 LaserSprite g_laser;          // 0x4690f0

@@ -244,9 +244,6 @@ int GameHud::MoveNameEntry() {
 }
 
 // 0x41f830
-// TODO: nonmatching: the original loads d3d->texture_ into a register for
-// both texture checks (`mov eax, [edi+0x20]; test eax, eax`) where this
-// compares memory; the rest matches.
 void GameHud::DrawNameEntry() {
   HL3D* d3d = g_application.d3d;
   Transform transform;

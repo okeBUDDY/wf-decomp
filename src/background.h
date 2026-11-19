@@ -11,7 +11,23 @@
 #include "task_list.h"
 
 // Turns `transform` by `angle` (1024 steps a turn).
-void RotateTransform(Transform* transform, int angle);  // 0x415f30
+// 0x415f30 (out of line where first used: background.cpp)
+inline void RotateTransform(Transform* transform, int angle) {
+  Transform* rotation = reinterpret_cast<Transform*>(g_matrix_work + 0x80);
+  rotation->m[0][0] = rotation->m[1][1] = rotation->m[2][2] = 1;
+  rotation->m[0][1] = rotation->m[0][2] = rotation->m[1][0] =
+      rotation->m[1][2] = rotation->m[2][0] = rotation->m[2][1] = 0;
+  reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[0][1] =
+      g_sin_table[angle & 0x3ff];
+  reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[1][0] =
+      -reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[0][1];
+  reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[1][1] =
+      g_sin_table[(angle + 0x100) & 0x3ff];
+  reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[0][0] =
+      reinterpret_cast<Transform*>(g_matrix_work + 0x80)->m[1][1];
+  MultiplyTransform(
+      transform, reinterpret_cast<Transform*>(g_matrix_work + 0x80), transform);
+}
 
 class BackgroundGrid : public Task {
  public:

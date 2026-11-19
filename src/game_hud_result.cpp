@@ -92,8 +92,6 @@ int GameHud::MoveResult() {
 }
 
 // 0x4200e0
-// TODO: nonmatching: as in DrawNameEntry, the original loads d3d->texture_
-// (`mov eax, [ecx+0x20]`) before the last transform stores.
 void GameHud::DrawResult() {
   Transform transform;
   transform.m[2][2] = 1;

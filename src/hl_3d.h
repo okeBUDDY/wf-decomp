@@ -58,16 +58,50 @@ void RotateTransformX(Transform* transform, float radians);  // 0x402550
 void RotateTransformY(Transform* transform, float radians);  // 0x4025e0
 void RotateTransformZ(Transform* transform, float radians);  // 0x402670
 
-// `out` = `a` x `b`.
-void MultiplyTransform(Transform* out, const Transform* a,
-                       const Transform* b);  // 0x4023d0
-
 // Math tables and scratch space, allocated by HL3D::CreateBuffers().
 extern float* g_sin_table;       // 0x468878, sin of 1024 steps a turn (+256)
 extern float* g_angle_table;     // 0x46887c, the radians of each step
 extern float* g_vector_work;     // 0x468870, 0x78 bytes
 extern float* g_matrix_work;     // 0x468874, 0x280 bytes
 extern Transform g_base_matrix;  // 0x468830
+
+// The product MultiplyTransform() builds, in g_matrix_work.
+inline float& TransformProduct(int row, int column) {
+  return g_matrix_work[0x90 + row * 4 + column];
+}
+
+// `out` = `a` x `b`. 0x4023d0, out of line where first used (hl_math.cpp).
+inline void MultiplyTransform(Transform* out, const Transform* a,
+                              const Transform* b) {
+  TransformProduct(0, 0) = b->m[0][0] * a->m[0][0] + b->m[0][1] * a->m[1][0] +
+                           b->m[0][2] * a->m[2][0];
+  TransformProduct(0, 1) = b->m[0][0] * a->m[0][1] + b->m[0][1] * a->m[1][1] +
+                           b->m[0][2] * a->m[2][1];
+  TransformProduct(0, 2) = b->m[0][0] * a->m[0][2] + b->m[0][1] * a->m[1][2] +
+                           b->m[0][2] * a->m[2][2];
+  TransformProduct(1, 0) = b->m[1][0] * a->m[0][0] + b->m[1][1] * a->m[1][0] +
+                           b->m[1][2] * a->m[2][0];
+  TransformProduct(1, 1) = b->m[1][0] * a->m[0][1] + b->m[1][1] * a->m[1][1] +
+                           b->m[1][2] * a->m[2][1];
+  TransformProduct(1, 2) = b->m[1][0] * a->m[0][2] + b->m[1][1] * a->m[1][2] +
+                           b->m[1][2] * a->m[2][2];
+  TransformProduct(2, 0) = b->m[2][0] * a->m[0][0] + b->m[2][1] * a->m[1][0] +
+                           b->m[2][2] * a->m[2][0];
+  TransformProduct(2, 1) = b->m[2][0] * a->m[0][1] + a->m[1][1] * b->m[2][1] +
+                           b->m[2][2] * a->m[2][1];
+  TransformProduct(2, 2) = b->m[2][0] * a->m[0][2] + b->m[2][1] * a->m[1][2] +
+                           b->m[2][2] * a->m[2][2];
+  Transform* product = reinterpret_cast<Transform*>(&TransformProduct(0, 0));
+  out->m[0][0] = product->m[0][0];
+  out->m[0][1] = product->m[0][1];
+  out->m[0][2] = product->m[0][2];
+  out->m[1][0] = product->m[1][0];
+  out->m[1][1] = product->m[1][1];
+  out->m[1][2] = product->m[1][2];
+  out->m[2][0] = product->m[2][0];
+  out->m[2][1] = product->m[2][1];
+  out->m[2][2] = product->m[2][2];
+}
 
 class HLCamera;
 
@@ -214,6 +248,64 @@ inline void SetTexture(HL3D* d3d, HLSurface* texture, int stage) {
     }
     d3d->texture_ = texture;
   }
+}
+
+// 0x41c8e0 (out of line where first used: fn_game.cpp)
+inline void HL3D::DrawTexels(D3DPRIMITIVETYPE type, const Transform* transform,
+                             const D3DVECTOR* points, const POINTS* texels,
+                             D3DCOLOR color, int count) {
+  if (texture_ == NULL) {
+    return;
+  }
+  if (vertex_count_ + count > kMaxVertices) {
+    vertex_count_ = 0;
+  }
+  float scale_u = 1.0f / (texture_->scale_x_ * texture_->width_);
+  float scale_v = 1.0f / (texture_->scale_y_ * texture_->height_);
+  D3DTLVERTEX* vertex = &vertices_[vertex_count_];
+  for (int i = 0; i < count; ++i) {
+    g_vector_work[24] = transform->m[0][0] * points->x +
+                        transform->m[1][0] * points->y + transform->m[2][0];
+    g_vector_work[25] = transform->m[0][1] * points->x +
+                        transform->m[1][1] * points->y + transform->m[2][1];
+    vertex->sx = g_vector_work[24];
+    vertex->sy = g_vector_work[25];
+    vertex->sz = points->z;
+    vertex->tu = (texels->x + 0.45f) * scale_u;
+    vertex->tv = (texels->y + 0.45f) * scale_v;
+    vertex->color = color;
+    ++points;
+    ++texels;
+    ++vertex;
+  }
+  device_->DrawPrimitive(type, D3DFVF_TLVERTEX, &vertices_[vertex_count_],
+                         count, 0);
+  vertex_count_ += count;
+}
+
+// 0x415040 (out of line where first used: line_sprites.cpp)
+inline void HL3D::DrawPoints(D3DPRIMITIVETYPE type, const Transform* transform,
+                             const D3DVECTOR* points, D3DCOLOR color,
+                             int count) {
+  if (vertex_count_ + count > kMaxVertices) {
+    vertex_count_ = 0;
+  }
+  D3DTLVERTEX* vertex = &vertices_[vertex_count_];
+  for (int i = 0; i < count; ++i) {
+    g_vector_work[24] = transform->m[0][0] * points->x +
+                        transform->m[1][0] * points->y + transform->m[2][0];
+    g_vector_work[25] = transform->m[0][1] * points->x +
+                        transform->m[1][1] * points->y + transform->m[2][1];
+    vertex->sx = g_vector_work[24];
+    vertex->sy = g_vector_work[25];
+    vertex->sz = points->z;
+    vertex->color = color;
+    ++points;
+    ++vertex;
+  }
+  device_->DrawPrimitive(type, D3DFVF_TLVERTEX, &vertices_[vertex_count_],
+                         count, 0);
+  vertex_count_ += count;
 }
 
 #endif  // WF_HL_3D_H_
