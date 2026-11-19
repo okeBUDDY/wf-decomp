@@ -246,6 +246,11 @@ Flags: the game uses `/O2` with its default `/Ob2`. `Object()` is inlined into
 Tools for decompiling:
 * `tools/disasm.py <addr|name|unit>`: disassembly with symbol, string and float annotations.
 * `tools/fdiff.py <addr|name>`: side-by-side diff of the compiled and the original function.
+* `tools/try_variants.py <src> <addr>`: applies listed source edits one at a time and reports
+  each result; `tools/perm_lines.py <src> <addr>` tries every single-line move inside a block.
+* `tools/permuter/`: runs [decomp-permuter](https://github.com/simonlindholm/decomp-permuter) on
+  one C++ function through a C rendering that is turned back into C++ and compiled in its real
+  TU for every candidate (see `tools/permuter/README.md`).
 
 Code style: explicit braces everywhere and the repo `.clang-format` (Google, left pointer
 alignment). Use structs and named fields instead of raw offsets, and recover classes with
