@@ -275,8 +275,10 @@ int CEnmParam::Load(File* file) {
 }
 
 // 0x41a820
-// TODO: nonmatching (register choice: the original keeps `this` in ebp and
-// `code` in ecx).
+// TODO: nonmatching (register choice: the original loads `code` into ecx
+// after moving `this` to ebp, and pushes edi in the prologue). Reading the
+// side from `code` instead of `base` put `this` in ebp (85 -> 68 differing
+// instructions).
 void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   EnmSlot* slot = FindSlot(code);
   if (slot == NULL) {
@@ -310,7 +312,7 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
       Grow(slot, base | i, 0);
     }
     int index = count;
-    int mode = state_.sides[(base & kSideMask) == 0x80000000].mode;
+    int mode = state_.sides[(code & kSideMask) == 0x80000000].mode;
     if ((mode & 1) && (slot->kind & 0x10000)) {
       int n = slot->part->option_count;
       for (int i = 0; i < n; ++i) {
