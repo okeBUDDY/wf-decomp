@@ -162,7 +162,7 @@ class Actor {
   unsigned short hit_age;       // 0x14, the age when first hit
   short debris;                 // 0x16, control of the debris actor
   short angle;                  // 0x18
-  unsigned short start_angle;   // 0x1a
+  short start_angle;            // 0x1a
   float speed;                  // 0x1c, along start_angle
   float acceleration;           // 0x20
   const FloatRect* bounds;      // 0x24, keeps it inside (or it dies outside

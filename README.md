@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-652 of 678 game functions match (85.17% of the 128586 game code bytes; `tools/compare.py`),
+653 of 678 game functions match (85.53% of the 128586 game code bytes; `tools/compare.py`),
 and 150 of the 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -253,7 +253,7 @@ emitted in several files, such as header inlines, count in each):
 | HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 12/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 156/158 |
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 36/37, `hls_txt.cpp` 15/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 77/81 |
 | Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 35/36 | 144/146 |
-| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 67/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 14/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 7/10, `background.cpp` 7/8 | 185/193 |
+| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 14/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 7/10, `background.cpp` 7/8 | 186/193 |
 | Enemy generator (boss design) | `enm_param.cpp` 25/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 69/72 |
 | Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 3/5 | 42/44 |
 
@@ -305,8 +305,14 @@ Known compiler behaviour worth remembering:
 * A store that comes before the vtable store in a constructor was done by an inline base
   constructor: `CSndBuf`'s list link (`id_ = -1`, `next_`, `prev_`) is the base
   `CSndBufLink`, whose own vtable store VC drops as dead.
-* `mov eax, ecx` instead of `mov ax, cx` for a returned `unsigned short`: the value was
-  already an `unsigned short` local, returned through a ternary (`Actor::AngleTo`).
+* `mov eax, ecx` instead of `mov ax, cx` for a returned 16-bit angle: the value was
+  already an `unsigned short` local, returned through a ternary (`Actor::AngleTo`, which
+  returns `short`).
+* `Actor::angle`, `start_angle` and `matrix_angle` are `short`, and `AngleTo()` returns
+  `short`: the original reads them with `movsx` and compares two angles as words
+  (`cmp word ptr [eax+0x18], di`). With the `unsigned short` types `Control01::Fire` was 98
+  instructions off; now 2. Every matching function kept matching once `MovePart`'s
+  `old_angle` local became a `short` too.
 * Two null-checked returns with a shared tail (`test`/`jmp` into the other's `jne`) are two
   `p ? p : ""` returns, one of them an inlined base-class call (`CSndStrm::GetPath`).
 * An `if` whose only effect is a missing `break` (a fall-through into a case with the same
@@ -383,10 +389,13 @@ Known compiler behaviour worth remembering:
   one `return 1` epilogue) where VC duplicates it here; early-return and explicit-store forms
   and `/Os` do not change it. `BackgroundGrid::Run` keeps the tile's x and y on the x87 stack and
   computes `-x_ + x` with `fchs`/`fadd st(2)`; `HLSTxtSys::Measure` is 26 bytes off (esi/edi).
-  `PartControl::OnDestroy` (11 bytes): the original does not rotate the loop over the ancestors
-  (`mov eax, esi`, then the parent load and both exits at the top, `jmp` back); `for (;;)`,
-  `while`, `do`, `goto`, `while ((a = a->parent) != NULL)` with a `goto` out, and if/else
-  forms are all rotated here. `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
+  `Control01::Fire` stores `offset` with `fstp` and reloads it for the negation (here `fst`).
+  `Control32::Dash` (12 bytes short) keeps the squared distance in its own local and spills
+  the acceleration into the dead `actor` slot. `Control32::RunProgram9c` and `RunProgramB0`
+  keep `actor`/`program` in other registers, and the original uses memory operands
+  (`inc dword ptr [edi+8]`, `or dword ptr [g], 2`) where this loads, modifies and stores,
+  with the epilogue pops interleaved; `/G5`, `/G7`, `/GB`, `/Og` do not change it.
+  `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
   setter's operand order, `count + 1`, a separate `++count` and a bitfield do not change it;
   the permuter's fix takes `&count`, so `count` may have gone through a by-reference helper.
   `CEnmParam::Plan` is the original size; it spills `rate` in the prologue and keeps 0x20000
@@ -414,6 +423,19 @@ Known compiler behaviour worth remembering:
   only with at least one checked (named) relocation. In `HLSPatFile::Load` a `max_id` local
   that drives `count_` gave the original frame size, and with it the `PackFile` funclet
   (0x4502a0).
+* VC7.1 rotates `for (;;)`, `while` and `do ... while (true)` loops (the test moves to the
+  bottom, with a jump into it and alignment padding). A `do { ... } while (p != NULL);` whose
+  condition repeats a test of the body keeps the loop as written: test and exits at the top,
+  `jmp` back from the bottom (`PartControl::OnDestroy`).
+* `mov al, [esi+0x34]; mov ecx, 1; test cl, al` is a flag test stored in a `bool` local
+  (`bool dashing = (flags & kDashing) != 0; if (dashing)`); the plain `if (flags & 1)` gives
+  `test al, 1` (`Control32::RunProgram9c`).
+* VC does not unroll loops: four calls in a row in the original are four calls in the source
+  (`SendEvent()` to the arms in `Control32::Dash`). A `return 0` placed after all the other
+  code is `if (ok) { ...; return 1; } return 0;` rather than an early `if (!ok) return 0;`.
+* A negation computed once before an `if` whose two branches use it (`fld; fchs` above the
+  `je`) is a local (`float left = -offset;` in `Control01::Fire`); written in both branches,
+  VC turns `-offset + x` into `x - offset`.
 * `build/obj/src/` keeps objects of deleted or merged sources (`fn_option.obj`, ...);
   `fdiff.py` may read such a stale object, so delete them after renaming a file.
 
