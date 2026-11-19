@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-669 of 678 game functions match (94.42% of the 128586 game code bytes; `tools/compare.py`),
+671 of 678 game functions match (95.25% of the 128586 game code bytes; `tools/compare.py`),
 and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -250,8 +250,8 @@ emitted in several files, such as header inlines, count in each):
 |---|---|---|
 | Core objects | `object.cpp` 13/13, `task.cpp` 9/9, `task_list_delete.cpp` 1/1, `thread.cpp` 2/2, `file.cpp` 6/6, `pack.cpp` 8/8, `path_util.cpp` 2/2, `profile.cpp` 2/2 | 43/43 |
 | Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 34/35 (with FnOption), `fn_title.cpp` 11/11, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 13/13, `game_hud_name_entry.cpp` 9/9, `game_hud_result.cpp` 5/5, `graphics.cpp` 13/13 | 161/162 |
-| HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 12/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 156/158 |
-| HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 17/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 80/81 |
+| HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 13/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 157/158 |
+| HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 18/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 81/81 |
 | Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 145/146 |
 | Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 16/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 10/10, `background.cpp` 10/10 | 194/195 |
 | Enemy generator (boss design) | `enm_param.cpp` 25/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 69/72 |
@@ -275,10 +275,14 @@ Known compiler behaviour worth remembering:
 * Header inlines can blow the inline budget of a big function; a small helper that the
   original inlines in every case may need `__forceinline` (`CSndFileSEQ::Play`).
 * A ternary (`x = c > 0 ? c : -1`) and an `if`/`else` with two stores compile differently;
-  try both. The branch order of `if (a <= 0) ... else ...` decides which side falls through.
+  try both. So do "assign, then reassign under a test" and an `if`/`else` that assigns in
+  both arms: the forms leave the same instructions but shift the scratch registers or swap
+  esi/edi (step 38: `HLSurface::InitTextureFormats` and `HLSTxtSys::Measure` matched this
+  way). When a draft differs only in register names, rewrite every conditional assignment
+  in it the other way. The branch order of `if (a <= 0) ... else ...` decides which side falls through.
 * A value the original keeps in a register across a test (for example a constant used by a
   later ternary's other arm) shows the source: `mov eax, 2` before a test was the `: 2`
-  arm of `HLSurface::InitTextureFormats`' kind choice.
+  arm of `HLSurface::InitTextureFormats`' kind choice (which matched as an `if`/`else`).
 * `tools/compare.py -v` lists the offsets of the first differing bytes.
 * Several classes sit in one original object: obj66 holds both FnGame and FnOption (and
   the out-of-line copy of the header inline `HL3D::DrawTexels`), obj04 holds WinMain with
@@ -376,8 +380,8 @@ Known compiler behaviour worth remembering:
   it at the end here. Per-branch `SetRating()` calls (with or without `return`), a `goto`
   into the first case, `title = 0` as the initializer, a wrapping `if (mode != 0 || ...)`
   and `/Os` do not move it, and the permuter found nothing in 25 minutes.
-  `HLSTxtSys::Measure` is 26 bytes off
-  (esi/edi; a `char` local for the switch and a 40-minute permuter run do not help).
+  (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
+  in step 38.)
   `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
   setter's operand order, `count + 1`, a separate `++count`, `count++` in the test, a
   function-scope `count`, a `const unsigned int&` to the flags, `&=`/`|=` statements in the
@@ -388,12 +392,7 @@ Known compiler behaviour worth remembering:
   this picks eax; the parameter type of `set_time_stop_mask`, a `bool` or `unsigned` flag, an
   `input` local, an inverted test, a `mode` local, a `default:` case and moving the flag read
   do not change it (the permuter found nothing either).
-  `HLSurface::InitTextureFormats` (25 bytes): the slots of the saved `width_`/`height_`
-  follow the order of the restore statements, not the declarations: in every combination of
-  declaration, initialization and restore order tried, the variable restored first gets the
-  higher slot (0x14), while the original restores `height_` first from the lower one (0xc).
-  Local names and the types of the three locals (short/unsigned short, int/unsigned/BOOL) do
-  not matter. `Control32::RunProgramB0` (15 instructions): only case 0x20004 is left. The
+  `Control32::RunProgramB0` (15 instructions): only case 0x20004 is left. The
   original adds the turn into `from`'s register (`add ebx, eax; push ebx`), so the push of
   case 0x20001 stays its own; here it is `add eax, ebx; push eax` and the two pushes are
   cross-jumped. An `int from` gives the right add but loads `from` with `movsx` instead of
@@ -401,11 +400,7 @@ Known compiler behaviour worth remembering:
   `off + from`, a `short`/`int` result local, a `WrapAngle()` inline, function-scope
   `from`/`off` and an `unsigned short` StartTurn parameter all give `add eax, ebx` (a probe
   TU shows VC canonicalizes all of them the same). A 45-minute permuter run found nothing.
-  `HLSurface::InitTextureFormats`: a `/FAs` probe shows the rule. Of the two saved
-  locals, the one whose last use comes later gets the lower slot (restoring `width_` first
-  gives the original's slots, but the restores in the wrong order). Making the HLSurface
-  statics (`max_texture_*`, `texture_caps_`, `format_codes_`, `graphics_`) file-static is
-  worse. `CEnmParam::Plan`: the original
+  `CEnmParam::Plan`: the original
   computes `rate` between the travel average and its conversion (and so spills it); every
   order of the `count`, `add` and `rate` lines and a float `travel` local compute `rate`
   either before or after the `_ftol`. `CEnmParam::Grow`: `code` reused as `base`, `index` as
@@ -550,7 +545,9 @@ Known compiler behaviour worth remembering:
   of before `height` took the draft from 172 to 70 differing instructions (the 888 case
   matches now; 12 after step 36, 9 after step 37), and one `int pad;` shared by all cases from 184 to 172. In
   `CEnmParam::Grow`, reading the side from `code` instead of `base`
-  (`(code & kSideMask) == 0x80000000`, the same value) moved `this` into ebp (85 -> 68).
+  (`(code & kSideMask) == 0x80000000`) moved `this` into ebp (85 -> 68), but that value
+  differs from the original's when bits 27-28 of `code` are set, so step 38 went back to
+  `base`.
   When a draft's registers are permuted, try moving each computation to its first use and
   try reading an equal value from another variable.
 * **Callee visibility, checked for every remaining draft (step 35), changed none:**
@@ -570,6 +567,137 @@ Known compiler behaviour worth remembering:
   comes before `and edx, 0xffff0000` the or goes into edi, when it comes after, into
   edx; the original has the inc first and the or into edx. Twenty forms of the
   increment, setter, list access and loop declarations all keep that coupling.
+* **Step 38 (2 new matches: `HLSurface::InitTextureFormats`, `HLSTxtSys::Measure`).**
+  * **Conditional assignment form moves registers.** `InitTextureFormats` matched with the
+    opaque kind chosen by `if (depth == 16) { width_ = format_codes_[0] != k555; } else {
+    width_ = 2; }` instead of the ternary: the ternary allocated one more scratch register,
+    which shifted the vtable loads of both `EnumTextureFormats` calls (eax/ecx for ecx/edx)
+    and the `Log()` arguments by one. With that, restoring `width_` before `height_` gives
+    the original's slots. `Measure` matched by building the double-byte code in an
+    `if`/`else` (`code = (text[0] << 8) + text[1]` in one arm, `code = *text` in the other)
+    instead of assigning the first byte before the test, which had swapped esi/edi
+    (`text` and `first_char_`) and eax/edx.
+  * **`CEnmParam::Grow` behaviour fix.** The draft read the side from `code`, which differs
+    from the original's `(base & kSideMask) == 0x80000000` when bits 27-28 of `code` are set.
+    It reads `base` again (87 differing instructions, was 55), with a `char weapon` local
+    for the totals. Findings: removing any one of the three option blocks puts `this` in ebp,
+    so this is a balance of use weights. Computing `count` and `base` at the top of the
+    else block, before the hits check, gives the original's allocation exactly (`this`
+    ebp, `code` ecx, `base` ebx, `count`/`index` edi) but moves those instructions before
+    the hits check (113). The original's tail keeps the weapon total in edi, so edi is
+    pushed in the prologue. Reusing the `kind` parameter or a `kind`/`hits`/`flags` local
+    for the hits check, an if/else chain or a ternary for `limit`, the three orders of the
+    `slot == NULL`/`flags & 2` chain, `ChildBase()`, a function-scope `base`, an `EnmSideStats&`
+    or an `int side` local, and a `short` mode leave it at 87. A 60-minute permuter run found
+    only an unnatural `code << 3` temporary before the hits check and semantic changes.
+  * Ruled out this round: in `SoundSystem::Pause`, `count + 1` at the declaration with an
+    `== 1` test, a flags local, reference or pointer, a named `next`, a `short`/`int` count,
+    a buffer local, a `while` loop and a function-scope channel. In `HLSurface::Load`, a
+    `BytesPerPixel()`/`RowBytes()`/`RowSkip()` inline helper (every form), a `bits` local and
+    `scale_y_ * x - x`: all keep the product order, and every named raw width still flips the
+    allocation (191). In `Control32::RunProgramB0`, if/else forms of `off`, of the case
+    0x20001 turn and of the final angle. In `CEnmParam::Plan`, if/else forms of the
+    `AddStep()` cost index and of the travel clamp, `rate` split into two statements or
+    declared at the top, and `/Op` (69). In `FnGame::Initialize`, removing any one case,
+    `SetState()` or the HUD add keeps eax for the input pointer. In `FnGame::RateGame`, an
+    early `SetRating(0, 0); return;` puts the first case first but with its own tail (28),
+    and wrapping the other cases in `if (sides[0].mode != 0 || sides[1].mode != 0)` (the first case as its `else`) changes nothing.
+* **Step 39 (drafts only, no new matches).** Mostly probe work; `tools/fas_variants.py`
+  runs edit sets on a probe TU in 0.3 s each.
+  * **Product operand order is fragile in VC.** VC reassociates `a * b * c` through named
+    locals (`int row_bytes = w * bytes; ... (sy - 1) * row_bytes` is also reordered). The
+    order it picks depends on the leaf kinds and even on the field offsets: in a
+    probe with `image.bits() / 8` written inline, shifting the image's fields by 4 bytes
+    flips the order. A narrow local (`short bits = image.bits();` with `(bits / 8)`
+    inline, or a `short`/`char` `bytes`) gives the original's `((scale_y_ - 1) * bytes) *
+    width` with `sar` scheduled first. That works in a reduced copy of `HLSurface::Load`
+    and in the full function with any one 16-bit case removed, but not in the full function
+    (9). A `short`/`char` `bytes` gives the order with a `movsx`/`movzx` (22). Ruled out
+    together with `short bits`: `bits == 24` tests, every order of the setup lines, a `pad`
+    per case (46), and `*out++` in the 24-bit loops (13). So the order is decided by the
+    allocator's pressure, as in `Pause`.
+  * `CEnmParam::Grow`: the declaration order of `count`, `base`, `index` and `mode` (all 26
+    orders, C-style at the top of the else block) changes nothing (87). `base` before
+    `count` gives 85, with the same allocation. Also ruled out: a `__forceinline` helper for
+    the whole else block (87; inlining is transparent), an inline `GrowOptions()` for the
+    three option loops (124/135), an inline totals helper (87), the base expression written
+    into each loop for LICM (110), `base` initialized at the function top (122/132), and all
+    combinations of six earlier toggles (85 at best). The structural hint is still the
+    tail: the original keeps the weapon total in edi, so edi is pushed in the prologue,
+    while ebx (`base`) is pushed only in the else block.
+  * `FnGame::Initialize`: VC sinks a load into the `if` that uses it (an `input` local
+    after the switch gives the same code). A probe of the tail reproduces eax for every
+    form tried: a `bool`/`short`/`char` pause, a direct store, an accessor, an
+    `Application` member setter, `pause ? 0x8000 : 0` inside the `if` (VC folds it),
+    `goto`/`do while (0)`, and a result local. An `input` local before the switch hoists
+    the load (edx). A 45-minute permuter run found nothing.
+  * `SoundSystem::Pause`: an `unsigned short` getter or setter, `int` in both, an unsigned
+    mask enum and a literal `0xffff0000` mask: none fixes it (2 bytes or worse).
+  * `Control32::RunProgramB0`: a probe shows VC canonicalizes every expression form of `from
+    + off` (casts, `off += from`, a `to` local, a ternary for `off`). Only an int-typed
+    `from` adds into from's register. A 45-minute permuter run found only `unsigned int
+    from`, which is the known int case (12, with `movsx`).
+  * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
+    `AddClampedRate(short*, float)`) leave it at 64.
+* **Step 40 (drafts only, no new matches).** Probes with `tools/fas_variants.py` and
+  `tools/multi_variants.py` (and a 1-hour permuter run on `HLSurface::Load` from the
+  `short bits` form, which found nothing).
+  * **`CEnmParam::Grow`: the `this`/`base` swap is pressure across the hits check.** Any
+    value live across the hits block puts `this` in ebp and `base` in ebx, as in the
+    original: `int i = 0;` declared at the top of the else block (with `for (; i < count;
+    ++i)`), a `const EnmPlanPart* part = slot->part;` there, or `code & kSideMask` /
+    `code << 3` computed there. All of them also move that instruction above the hits check
+    (99-118). `code` then still sits in edx (the original loads it into ecx right after
+    `mov ebp, ecx`), and edi is still pushed only in the else block. `base | (index + i)`
+    with `index += n` after each option loop flips it as well but changes the loops (113).
+    The tail with `power_total_ +=` before `++part_total_` puts the weapon total in edi
+    like the original (81) but reverses the two stores. Ruled out: `int`/`char`/no weapon
+    local, `int&`/`int*` to the weapon total, a `weapon_parts_[w] = ... + 1` form, an
+    `AddTotals()` inline (slot or weapon/power parameters), reusing `count` or `index` for
+    the hits or the limit, a `flags` local, an uninitialized `i`, `base`, or `mode` at the top of the else block, a
+    copy of `code`, the three `slot != NULL && (flags & 2)` / `else if (flags & 2)` / nested
+    orders of the if chain (126-146), and five option-loop forms (`for (n = ...; n > 0; --n)`,
+    `while (n-- > 0)`, `for (i = n; i > 0; --i)`, `while (--n >= 0)`, `++i, ++index`).
+  * **`HLSurface::Load`:** rewrites of the 16-bit pixel expressions that compile to the
+    same code (operand and `|` orders, groupings, shift/mask forms, alone and in all 31
+    combinations of five of them) never flip the product order, even those that renumber
+    the compiler temporaries. Only real code changes in a 16-bit case flip it (for example
+    the 565 or 4444/5551 32-bit expression replaced by `src[0]`). `int` getters for
+    `bits()`, `width()`, `height()` (with and without `short bits`), function-scope `x`/`y`
+    loop counters and counting `y` down change nothing (or are much worse).
+  * **`SoundSystem::Pause`:** the two-state coupling holds in 34 more combinations: `list`
+    local, none, C-style declarations at the top, the buffer pointer set before the channel
+    loop; `Suspend()` inline, written out, through a `Thread*` local; `++count`,
+    `count++` in the test, `count + 1`, a separate `++count`, a nested `if`, `count + 1` at
+    the declaration with `== 1`; the setter written out in six forms (`&=`/`|=`, a
+    `flags` local, `0xffff0000`, operand orders, `count += 1`); a `CSndBufList::SuspendAll()`
+    inline (like `ReleaseAll()`). It is always inc-first with `or edi, edx`, or
+    and-first with `or edx, edi`. `Resume` shows the original's operand choice when the
+    count changes in an earlier block (`--count` in the condition). A 20-minute permuter
+    run from the and-first form (no `list` local) found nothing.
+  * **`CEnmParam::Plan`:** VC never stores `rate` to the stack. It keeps it on the x87
+    stack, before or after the `_ftol` (every order of `count`, a float `travel`, `rate`
+    and `add`). Ruled out: double-precision forms (`static_cast<double>` on either
+    quotient, `* 1.0`, a `double rate`), `rate * 100` at the declaration, a ternary clamp,
+    a `Percent(const float&)` helper, `*&rate`, a block around the `add`/`rate` lines,
+    `kinds` declared at the top, and `rate` in a one-element array.
+  * **`FnGame::RateGame`:** a `do { ... break; } while (0)`, an inline `Grade()` with
+    returns (title through a pointer or chosen from the grade), a `goto` from the first
+    case, and the grade-1 case as the final `else` (also nested, and with `title = 0`
+    hoisted) all keep the shared tail at the end.
+  * **`FnGame::Initialize`:** deleting any one statement of the function (19 variants,
+    including the `break`s and `MuteGroup()`) keeps eax for the input pointer. `tools/fas.py`
+    hangs on `fn_game.cpp`, so use `multi_variants.py` or a clone's `compare.py` with
+    `fdiff.py` for it.
+  * **`Control32::RunProgramB0`:** a `Wrap(short&)` helper, a `Turn(const unsigned
+    short&, const short&)` helper, and `*&from`/`*&off` all canonicalize to `add eax, ebx`.
+  * **Leads.** `Grow`: look for a value that is live from the function entry or the top
+    of the else block in the original without code there (it would also explain `code` in
+    ecx). Start from `int i = 0;` at the top of the else block, which gives the right
+    `this`/`base` registers, and look for a form that keeps the zero store after the count
+    test. `Pause`/`RunProgramB0`: in both, the original's `or`/`add` destination is the
+    left operand. `Resume` gets that when the right operand changed in an earlier block,
+    so look for a form where the increment (or `off`) is computed before the merge.
 * **Step 37 (drafts only, no new matches).**
   * **Variable sharing changes another case's allocation.** In `HLSurface::Load` the 565 case
     takes the original's `(((src[2] & 0xf8) << 5 | (src[1] & 0xfc)) << 3) | src[0] >> 3` form
@@ -695,7 +823,9 @@ Tools for decompiling:
   (it still includes `src/` headers), and `--print` prints just the PROC bodies; `tools/fas_slots.py <src> <func> < variants` prints that table for
   each try_variants-style variant; `tools/multi_variants.py <src> <addr,...> <variants.py>` applies
   several edits per variant (`V = [[(old, new), ...], ...]`, or `(path, old, new)` for a header)
-  and scores several functions.
+  and scores several functions; `tools/fas_variants.py <probe.cpp> <variants.py> [--grep RE]`
+  applies edit sets (`V = [(label, [(old, new), ...]), ...]`) to a probe TU and prints the
+  matching instructions of each variant on one line, for ablation.
 * `tools/permuter/`: runs [decomp-permuter](https://github.com/simonlindholm/decomp-permuter) on
   one C++ function through a C rendering that is turned back into C++ and compiled in its real
   TU for every candidate (see `tools/permuter/README.md`).

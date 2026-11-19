@@ -80,9 +80,9 @@ HLSTxt* HLSTxtSys::Create(int size, char* text) {
 }
 
 // 0x40ab20
-// TODO: nonmatching (close): `text` and the character swap esi/edi and
-// eax/edx. Declaring `line` first keeps the height in memory as in the
-// original.
+// The double-byte code is built in an if/else (assigning the first byte
+// before the test swaps esi/edi and eax/edx). Declaring `line` first keeps
+// the height in memory as in the original.
 void HLSTxtSys::Measure(SIZE* size, const char* text) {
   float line = 0.0f;
   float width = 0.0f;
@@ -116,10 +116,13 @@ void HLSTxtSys::Measure(SIZE* size, const char* text) {
         // Fall through.
       default:
         if (widths_ != NULL) {
-          unsigned short code = static_cast<unsigned char>(*text);
+          unsigned short code;
           if (first_char_ > 0xff) {
-            code = (code << 8) + static_cast<unsigned char>(text[1]);
+            code = (static_cast<unsigned char>(text[0]) << 8) +
+                   static_cast<unsigned char>(text[1]);
             ++text;
+          } else {
+            code = static_cast<unsigned char>(*text);
           }
           for (const Mapping* mapping = mappings_; mapping <= last; ++mapping) {
             if (code == mapping->code) {
