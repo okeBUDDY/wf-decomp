@@ -343,7 +343,8 @@ int HLSurface::Create(int width, int height, unsigned short mode) {
 // 0x40bff0
 // TODO: nonmatching: the pixel conversions match, but the original keeps
 // `file` in ebx and `this` in edi (spilled), and keeps the loop counters on
-// the stack differently (0x33 bytes longer).
+// the stack differently (0x33 bytes longer). One `pad` shared by all cases
+// (184 -> 172 differing instructions); shared x/y/out locals do not help.
 int HLSurface::Load(const char* file, unsigned short mode) {
   int result = 0;
   HLImage image;
@@ -369,9 +370,10 @@ int HLSurface::Load(const char* file, unsigned short mode) {
         int width = image.width() / scale_x_;
         int height = image.height() / scale_y_;
         const unsigned char* src = image.pixels();
+        int pad;
         switch (format_codes_[format_]) {
           case k888: {
-            int pad = pitch_ - width * 3;
+            pad = pitch_ - width * 3;
             for (int y = 0; y < height; ++y) {
               for (int x = 0; x < width; ++x) {
                 dest[0] = src[0];
@@ -387,7 +389,7 @@ int HLSurface::Load(const char* file, unsigned short mode) {
           }
           case k565: {
             unsigned short* out = reinterpret_cast<unsigned short*>(dest);
-            int pad = pitch_ / 2 - width;
+            pad = pitch_ / 2 - width;
             for (int y = 0; y < height; ++y) {
               for (int x = 0; x < width; ++x) {
                 *out++ = (((src[2] & 0xf8) << 5 | (src[1] & 0xfc)) << 3) |
@@ -401,7 +403,7 @@ int HLSurface::Load(const char* file, unsigned short mode) {
           }
           case k555: {
             unsigned short* out = reinterpret_cast<unsigned short*>(dest);
-            int pad = pitch_ / 2 - width;
+            pad = pitch_ / 2 - width;
             for (int y = 0; y < height; ++y) {
               for (int x = 0; x < width; ++x) {
                 *out++ = (((src[2] & 0xf8) << 5 | (src[1] & 0xf8)) << 2) |
@@ -415,7 +417,7 @@ int HLSurface::Load(const char* file, unsigned short mode) {
           }
           case k4444: {
             unsigned short* out = reinterpret_cast<unsigned short*>(dest);
-            int pad = pitch_ / 2 - width;
+            pad = pitch_ / 2 - width;
             if (image.bits() == 24) {
               for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
@@ -441,7 +443,7 @@ int HLSurface::Load(const char* file, unsigned short mode) {
           }
           case k5551: {
             unsigned short* out = reinterpret_cast<unsigned short*>(dest);
-            int pad = pitch_ / 2 - width;
+            pad = pitch_ / 2 - width;
             if (image.bits() == 24) {
               for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
@@ -469,7 +471,7 @@ int HLSurface::Load(const char* file, unsigned short mode) {
             break;
           }
           case k8888: {
-            int pad = pitch_ - width * 4;
+            pad = pitch_ - width * 4;
             if (image.bits() == 24) {
               for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
@@ -500,7 +502,7 @@ int HLSurface::Load(const char* file, unsigned short mode) {
             break;
           }
           case k8880: {
-            int pad = pitch_ - width * 4;
+            pad = pitch_ - width * 4;
             for (int y = 0; y < height; ++y) {
               for (int x = 0; x < width; ++x) {
                 dest[0] = src[0];
