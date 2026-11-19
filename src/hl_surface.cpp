@@ -343,8 +343,9 @@ int HLSurface::Create(int width, int height, unsigned short mode) {
 // 0x40bff0
 // TODO: nonmatching: the pixel conversions match, but the original keeps
 // `file` in ebx and `this` in edi (spilled), and keeps the loop counters on
-// the stack differently (0x33 bytes longer). One `pad` shared by all cases
-// (184 -> 172 differing instructions); shared x/y/out locals do not help.
+// the stack differently. One `pad` shared by all cases (184 -> 172
+// differing instructions) and `width` computed after `src` (-> 70; the 888
+// case now matches); shared x/y/out locals do not help.
 int HLSurface::Load(const char* file, unsigned short mode) {
   int result = 0;
   HLImage image;
@@ -367,9 +368,9 @@ int HLSurface::Load(const char* file, unsigned short mode) {
         // Every scale_x_-th pixel of every scale_y_-th row.
         int row_skip = (scale_y_ - 1) * bytes * image.width();
         int step = scale_x_ * bytes;
-        int width = image.width() / scale_x_;
         int height = image.height() / scale_y_;
         const unsigned char* src = image.pixels();
+        int width = image.width() / scale_x_;
         int pad;
         switch (format_codes_[format_]) {
           case k888: {

@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-668 of 678 game functions match (94.16% of the 128586 game code bytes; `tools/compare.py`),
+669 of 678 game functions match (94.42% of the 128586 game code bytes; `tools/compare.py`),
 and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -249,7 +249,7 @@ emitted in several files, such as header inlines, count in each):
 | Area | Files | Matched |
 |---|---|---|
 | Core objects | `object.cpp` 13/13, `task.cpp` 9/9, `task_list_delete.cpp` 1/1, `thread.cpp` 2/2, `file.cpp` 6/6, `pack.cpp` 8/8, `path_util.cpp` 2/2, `profile.cpp` 2/2 | 43/43 |
-| Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 34/35 (with FnOption), `fn_title.cpp` 11/11, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 12/13, `game_hud_name_entry.cpp` 9/9, `game_hud_result.cpp` 5/5, `graphics.cpp` 13/13 | 160/162 |
+| Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 34/35 (with FnOption), `fn_title.cpp` 11/11, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 13/13, `game_hud_name_entry.cpp` 9/9, `game_hud_result.cpp` 5/5, `graphics.cpp` 13/13 | 161/162 |
 | HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 12/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 156/158 |
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 17/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 80/81 |
 | Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 145/146 |
@@ -378,16 +378,6 @@ Known compiler behaviour worth remembering:
   and `/Os` do not move it, and the permuter found nothing in 25 minutes.
   `HLSTxtSys::Measure` is 26 bytes off
   (esi/edi; a `char` local for the switch and a 40-minute permuter run do not help).
-  `GameHud::UpdateChart` is the six corners written out (0x14d bytes, no loop), each
-  scale computed and stored before the next corner's load; the loop, the written-out
-  corners (one `scale` or one per block) and an inline `ScaleCorner()` helper all let VC
-  move the next loads above the stores (0x111-0x114 bytes). Step 34: VC fully unrolls the
-  six-pass loop itself; a `D3DVECTOR& corner = chart_[i]` (or `D3DVECTOR*`) per pass, or an
-  inline `Corner(i)` member called six times, gives the original's order (next load after
-  the stores) in a probe, but VC still rebases the stores (`lea eax, [ecx+0xb8]`,
-  `add ecx, 0x100`, short displacements) where the original addresses everything as
-  `[ecx+disp32]` (187 bytes either way). `/Os`, `/Og-`, `/Oy-`, `/Ow`, `/Oa`, `/G5` and `/Op`
-  keep or worsen the rebasing.
   `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
   setter's operand order, `count + 1`, a separate `++count`, `count++` in the test, a
   function-scope `count`, a `const unsigned int&` to the flags, `&=`/`|=` statements in the
@@ -449,7 +439,8 @@ Known compiler behaviour worth remembering:
 * `mov al, [esi+0x34]; mov ecx, 1; test cl, al` is a flag test stored in a `bool` local
   (`bool dashing = (flags & kDashing) != 0; if (dashing)`); the plain `if (flags & 1)` gives
   `test al, 1` (`Control32::RunProgram9c`).
-* VC does not unroll loops: four calls in a row in the original are four calls in the source
+* VC does not unroll loops with calls in them (it does fully unroll the six-pass arithmetic
+  loop of `GameHud::UpdateChart`): four calls in a row in the original are four calls in the source
   (`SendEvent()` to the arms in `Control32::Dash`). A `return 0` placed after all the other
   code is `if (ok) { ...; return 1; } return 0;` rather than an early `if (!ok) return 0;`.
 * Dead parameter slots: VC7.1 puts spilled locals and temporaries into the slots of
@@ -546,6 +537,39 @@ Known compiler behaviour worth remembering:
   `input->pad(0)` as the same value as the earlier `g_application.input->pad(0)`. Reading
   `pressed()` through `input`, a `pad` local, or the global everywhere makes VC keep the pad
   (and moves the 0 constant into ebp). The same local does not fix `FnGame::Initialize`.
+* **Struct assignment pins base registers (step 35).** `chart_[6] = chart_[0]` (a
+  `D3DVECTOR` copy) made VC keep `&chart_[0]` and `&chart_[6]` in registers and address
+  every corner store off them (`lea eax, [ecx+0xb8]`, `add ecx, 0x100`, short
+  displacements). Copying the three fields one by one, plus a `D3DVECTOR& corner =
+  chart_[i]` per pass (which keeps each corner's loads after the previous stores), gave
+  the original's `[ecx+disp32]` code: `GameHud::UpdateChart` matched. Look for this
+  whenever the original addresses a member array with plain displacements and the draft
+  rebases.
+* **Where a value is computed changes the whole allocation (step 35).** In
+  `HLSurface::Load`, declaring `int width = image.width() / scale_x_;` after `src` instead
+  of before `height` took the draft from 172 to 70 differing instructions (the 888 case
+  matches now), and one `int pad;` shared by all cases from 184 to 172. In
+  `CEnmParam::Grow`, reading the side from `code` instead of `base`
+  (`(code & kSideMask) == 0x80000000`, the same value) moved `this` into ebp (85 -> 68).
+  When a draft's registers are permuted, try moving each computation to its first use and
+  try reading an equal value from another variable.
+* **Callee visibility, checked for every remaining draft (step 35), changed none:**
+  `HLSurface::Lock` and `HL3D::SetTexture` (0x407820/0x407880, in obj19 after
+  `HLSHitImage`) are not header inlines (their callers come later in link order, so a
+  COMDAT would sit in a later object); the `HLImage` constructor, `Load` and `Release`
+  live in `hl_image.cpp`'s objects; `Object::Log` is out of line in `object.cpp` (obj09). Moving `Grow`
+  above `AllocSlot`/`ChooseWeapon`, and `inline`/`__forceinline`/an `unsigned` id on
+  `AddStep`, leave `Grow` and `Plan` unchanged; `SetRating` as a plain `static` or
+  external function leaves `RateGame` unchanged; a `Channel::Suspend()` inline (body in
+  the header or in the TU) leaves `Pause` unchanged.
+* **`SoundSystem::Pause` in a probe TU (step 35).** `tools/fas.py --print` on a copy of
+  `Pause` that includes `snd_sys.h` reproduces the draft in a second. Removing any one
+  other statement (the list loop, the critical section, `thread_.Suspend()`, the state
+  test) turns `or edi, edx` into the original's `or edx, edi`, so the operand choice is
+  register pressure, not the setter. VC couples it with the schedule: when `inc edi`
+  comes before `and edx, 0xffff0000` the or goes into edi, when it comes after, into
+  edx; the original has the inc first and the or into edx. Twenty forms of the
+  increment, setter, list access and loop declarations all keep that coupling.
 * `build/obj/src/` keeps objects of deleted or merged sources (`fn_option.obj`, ...);
   `fdiff.py` may read such a stale object, so delete them after renaming a file.
 
@@ -568,10 +592,12 @@ Tools for decompiling:
   than differing bytes, which a shifted block inflates).
 * `tools/try_variants.py <src> <addr> [--compile <cpp>]`: applies listed source edits one at a
   time and reports each result (`--compile` tests a header edit through a .cpp); `tools/perm_lines.py <src> <addr>` tries every single-line move inside a block.
-* `tools/fas.py <src>` compiles one file with `/FAs` into `build/fas/<name>.asm` (the stack-slot
-  table sits above each PROC); `tools/fas_slots.py <src> <func> < variants` prints that table for
+* `tools/fas.py [--print] <src>` compiles one file with `/FAs` into `build/fas/<name>.asm` (the
+  stack-slot table sits above each PROC); the file may be a standalone probe TU outside `src/`
+  (it still includes `src/` headers), and `--print` prints just the PROC bodies; `tools/fas_slots.py <src> <func> < variants` prints that table for
   each try_variants-style variant; `tools/multi_variants.py <src> <addr,...> <variants.py>` applies
-  several edits per variant (`V = [[(old, new), ...], ...]`) and scores several functions.
+  several edits per variant (`V = [[(old, new), ...], ...]`, or `(path, old, new)` for a header)
+  and scores several functions.
 * `tools/permuter/`: runs [decomp-permuter](https://github.com/simonlindholm/decomp-permuter) on
   one C++ function through a C rendering that is turned back into C++ and compiled in its real
   TU for every candidate (see `tools/permuter/README.md`).
