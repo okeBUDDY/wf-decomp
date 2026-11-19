@@ -275,14 +275,14 @@ int CEnmParam::Load(File* file) {
 }
 
 // 0x41a820
-// TODO: nonmatching (6 differing instructions: the original computes the
-// child codes of the option loops as `mov ecx, edi; or ecx, ebx`, the count
-// copied first; VC here copies `base` and ors the count in). The two early
-// returns, each counting the part, give the original's registers for `this`
-// (ebp), `code` (ecx), the slot flags (edx) and the totals (edi), and its
-// shared ChooseWeapon() call; `short` option counts (the type of the fields)
-// put `mode` in ecx and the counts in eax; `++count` after each call (not
-// `index++` in the argument) keeps the push of the kind first.
+// The two early returns, each counting the part, give the original's
+// registers for `this` (ebp), `code` (ecx), the slot flags (edx) and the
+// totals (edi), and its shared ChooseWeapon() call; `short` option counts
+// (the type of the fields) put `mode` in ecx and the counts in eax; `++count`
+// after each call keeps the push of the kind first. The child codes are built
+// in `code` itself: VC copies the later-defined operand of `|`, so with the
+// parameter as the base the count is copied first (`mov ecx, edi; or ecx,
+// ebx`), as in the original.
 void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   EnmSlot* slot = FindSlot(code);
   if (slot == NULL) {
@@ -316,15 +316,16 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
     }
   }
   int count = slot->part->extra_child_count + slot->part->child_count;
-  unsigned int base = (code & kSideMask) | (code << 3);
+  // The base code of the children: the side bits and the code shifted up.
+  code = (code & kSideMask) | (code << 3);
   for (int i = 0; i < count; ++i) {
-    Grow(slot, base | i, 0);
+    Grow(slot, code | i, 0);
   }
-  int mode = state_.sides[(base & kSideMask) == 0x80000000].mode;
+  int mode = state_.sides[(code & kSideMask) == 0x80000000].mode;
   if ((mode & 1) && (slot->kind & 0x10000)) {
     short n = slot->part->option_count;
     for (int i = 0; i < n; ++i) {
-      Grow(slot, base | count, 0x4010001);
+      Grow(slot, code | count, 0x4010001);
       ++count;
     }
     slot->flags |= 0x1000;
@@ -332,7 +333,7 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   if ((mode & 2) && (slot->kind & 0x20000)) {
     short n = slot->part->option_count;
     for (int i = 0; i < n; ++i) {
-      Grow(slot, base | count, 0x4020001);
+      Grow(slot, code | count, 0x4020001);
       ++count;
     }
     slot->flags |= 0x2000;
@@ -341,7 +342,7 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
     count += slot->part->option_count;
     short n = slot->part->option4_count;
     for (int i = 0; i < n; ++i) {
-      Grow(slot, base | count, 0x4040001);
+      Grow(slot, code | count, 0x4040001);
       ++count;
     }
     slot->flags |= 0x4000;

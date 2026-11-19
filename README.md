@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-673 of 678 game functions match (95.78% of the 128586 game code bytes; `tools/compare.py`),
+674 of 678 game functions match (96.22% of the 128586 game code bytes; `tools/compare.py`),
 and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -254,11 +254,20 @@ emitted in several files, such as header inlines, count in each):
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 18/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 81/81 |
 | Sound | `snd_sys.cpp` 29/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 146/146 |
 | Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 17/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 10/10, `background.cpp` 10/10 | 195/195 |
-| Enemy generator (boss design) | `enm_param.cpp` 25/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 69/72 |
+| Enemy generator (boss design) | `enm_param.cpp` 26/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 70/72 |
 | Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 4/5 | 43/44 |
 
 Known compiler behaviour worth remembering:
 
+* **`|` copies the later-defined operand; a parameter counts as defined first (step 44).**
+  For `a | b` VC copies the value defined later into the result register and ors the other
+  in, whatever the spelling. `CEnmParam::Grow` built its child codes as `base | count`
+  with `base` a local computed after `count`; the original copies the count. Reassigning
+  the `code` parameter in place (`code = (code & kSideMask) | (code << 3);`, then `code |
+  count`) matched: the parameter's web counts as defined before every local, while a local
+  `base` defined before `count` changed the rest of the allocation. When an operand order
+  is reversed, try reusing a parameter (or the earliest variable) for the operand that
+  should be defined first.
 * **Single-use locals are forward-substituted (step 41).** VC moves a local that is used once
   to its use, which reorders x87 work: in `CEnmParam::Plan` a `float travel` read once was
   computed after `rate`; used twice (`__min(static_cast<int>(travel), 50)`) it is computed in
@@ -653,6 +662,10 @@ Known compiler behaviour worth remembering:
     from`, which is the known int case (12, with `movsx`).
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
+* **Step 44 (1 new match: `CEnmParam::Grow`).**
+  * `Grow` matched by building the child codes in the `code` parameter instead of a `base`
+    local (see the compiler note above); step 38 had tried `code` reused as `base` before
+    the early-return/`short`/`++count` forms existed, when it did not help.
 * **Step 43 (drafts only, no new matches; `CEnmParam::Grow` 87 -> 6).**
   * **A shared tail written once after an if/else chain and the same tail written in each
     branch with an early return allocate differently, even when cross-jumping merges the
