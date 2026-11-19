@@ -275,16 +275,14 @@ void Control42::Setup(Actor* actor, int rank) {
 }
 
 // 0x414040
-// TODO: nonmatching (the original keeps the pattern in eax and schedules
-// the -1 color stores apart).
 int Control42::Initialize() {
   memset(&Control43::beam_desc_, 0, sizeof(Control43::beam_desc_));
-  memset(&Control43::glow_desc_, 0, sizeof(Control43::glow_desc_));
   Control43::beam_desc_.color = 0xffffffff;
   Control43::beam_desc_.flags = Actor::kFaceStart | Actor::kAdditive;
   Control43::beam_desc_.team = 0x21;
   Control43::beam_desc_.hit_points = 1;
   Control43::beam_desc_.layer = 12;
+  memset(&Control43::glow_desc_, 0, sizeof(Control43::glow_desc_));
   Control43::glow_desc_.color = 0xffffffff;
   HLSObject* sprite = g_pats.add[0].Get(16);
   Control43::glow_desc_.sprite = sprite;

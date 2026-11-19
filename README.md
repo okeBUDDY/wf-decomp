@@ -210,6 +210,27 @@ Known compiler behaviour worth remembering:
 * Several classes sit in one original object: obj66 holds both FnGame and FnOption (and
   `HL3D::DrawTexels`), obj04 holds WinMain with the definitions of `g_application` and
   `g_pat_sys`.
+* Store scheduling follows the source order more than it seems: constant stores keep their
+  order, but a register constant (0, 1.0f, `true`) is loaded early and its stores move up
+  when its first store comes early in the source. Moving one assignment (`SetScale()` right
+  after the rotation in `Node::Node`, `unknown_18_ = 0` after the scale in `HLSurface()`,
+  `team` before `angle` in `Control23::OnCreate`) fixed register and vtable-store order.
+  Trying every single-line move of a block is cheap and often finds it.
+* A `memset` of a struct sits right before that struct's field stores; hoisting all the
+  memsets to the top changes the constant CSE (`Control42::Initialize`). A getter result
+  stored after the null-check merge (one store, not one per branch) went through a local
+  (`HLSObject* sprite = ...Get(8)` in `Control16::Initialize`).
+* Copying two floats through the FPU (`fld` early, `fstp` late) instead of integer moves is
+  an inline setter with float parameters (`Actor::SetPosition` in `Control01::Load`).
+* `i / 48` compiled as a signed divide (`imul`/`sar`) rather than `mul`/`shr`: the loop
+  counted `i` from 0 to 48 and divided `i * 0x400 / 48` (`Control16::OnCreate`).
+* A store that comes before the vtable store in a constructor was done by an inline base
+  constructor: `CSndBuf`'s list link (`id_ = -1`, `next_`, `prev_`) is the base
+  `CSndBufLink`, whose own vtable store VC drops as dead.
+* `mov eax, ecx` instead of `mov ax, cx` for a returned `unsigned short`: the value was
+  already an `unsigned short` local, returned through a ternary (`Actor::AngleTo`).
+* Two null-checked returns with a shared tail (`test`/`jmp` into the other's `jne`) are two
+  `p ? p : ""` returns, one of them an inlined base-class call (`CSndStrm::GetPath`).
 * An `if` whose only effect is a missing `break` (a fall-through into a case with the same
   test) shows up as a jump into the next case's test (`HLDevice::DialogProc`).
 

@@ -126,16 +126,14 @@ void HLSurface::Print(int x, int y, const char* text, COLORREF color,
 }
 
 // 0x40b920
-// TODO: nonmatching: the original keeps eax = 0 and loads the `true` into
-// cl before the first store; the stores are the same.
 HLSurface::HLSurface() {
   surface_ = NULL;
   locked_bits_ = NULL;
   width_ = height_ = pitch_ = format_ = mode_ = 0;
   file_name_ = NULL;
-  unknown_18_ = 0;
   name_ = "  HLSurface";
   scale_x_ = scale_y_ = 1;
+  unknown_18_ = 0;
   id_ = -1;
 }
 

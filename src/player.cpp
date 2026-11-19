@@ -188,16 +188,12 @@ void Control01::Fire(Actor* actor) {
 }
 
 // 0x413440
-// TODO: nonmatching (the original copies record.y to the transform through the
-// FPU)
 int Control01::Load(Actor* actor, File* file) {
   PlayerRecord record;
   if (!file->ReadExact(&record, sizeof(record))) {
     return 0;
   }
-  actor->transform->m[2][0] = record.x;
-  actor->transform->m[2][1] = record.y;
-  actor->flags |= Actor::kMoved;
+  actor->SetPosition(record.x, record.y);
   SelectWeapon(actor, record.weapon, record.x, record.y);
   g_laser.tip_x_ = record.tip_x;
   g_laser.tip_y_ = record.tip_y;

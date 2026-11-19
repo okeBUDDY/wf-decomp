@@ -29,21 +29,20 @@ extern AnmData g_explosion_anim;   // 0x45d37c
 extern AnmData g_fragment_anim;    // 0x45d3a4
 
 // 0x410540
-// TODO: nonmatching (store order of the desc fields; depth counter load
-// scheduled differently)
 int Control16::Initialize() {
   memset(&g_fragment_desc, 0, sizeof(g_fragment_desc));
-  memset(&g_spark_desc, 0, sizeof(g_spark_desc));
   g_fragment_desc.color = 0xffffffff;
   g_fragment_desc.team = 0;
   g_fragment_desc.age = 36;
   g_fragment_desc.flags = Actor::kStopDies;
   g_fragment_desc.hit_points = 1;
+  memset(&g_spark_desc, 0, sizeof(g_spark_desc));
   g_spark_desc.color = 0xffffffff;
   g_spark_desc.team = 0;
   g_spark_desc.flags = Actor::kFaceStart;
   g_spark_desc.hit_points = 1;
-  g_spark_desc.sprite = g_pats.sys[0].Get(8);
+  HLSObject* sprite = g_pats.sys[0].Get(8);
+  g_spark_desc.sprite = sprite;
   memset(&g_shockwave_desc, 0, sizeof(g_shockwave_desc));
   g_spark_desc.layer = 0;
   g_spark_desc.speed = 8.0f;
@@ -60,16 +59,16 @@ int Control16::Initialize() {
 // 0x410640
 // TODO: nonmatching (global depth counter load scheduled differently)
 int Control16::OnCreate(Actor* actor, void* param) {
+  ++g_explosion_depth;
   actor->hit_points = 1;
   actor->team = 0;
-  ++g_explosion_depth;
   g_actor_system.Create(18, NULL, actor->transform->m[2][0],
                         actor->transform->m[2][1], 8, 0, NULL);
   --g_explosion_depth;
   g_spark_desc.x = actor->transform->m[2][0];
   g_spark_desc.y = actor->transform->m[2][1];
-  for (int i = 0; i < 48 * 0x400; i += 0x400) {
-    g_spark_desc.start_angle = i / 48;
+  for (int i = 0; i < 48; ++i) {
+    g_spark_desc.start_angle = i * 0x400 / 48;
     g_actor_system.Spawn(&g_spark_desc);
   }
   if (g_explosion_depth == 0) {
@@ -103,10 +102,9 @@ int Control18::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
   actor->SetLayer(8);
-  Transform* transform = actor->transform;
   ++g_explosion_depth;
-  g_actor_system.Create(17, NULL, transform->m[2][0], transform->m[2][1], 9, 0,
-                        NULL);
+  g_actor_system.Create(17, NULL, actor->transform->m[2][0],
+                        actor->transform->m[2][1], 9, 0, NULL);
   if (--g_explosion_depth == 0) {
     g_application.sound->channel(1)->Assign(&g_sounds[kSndBomb2], 0, 1.0f);
   }
