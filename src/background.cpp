@@ -110,8 +110,9 @@ void RotateTransform(Transform* transform, int angle) {
 }
 
 // 0x416030
-// TODO: nonmatching (the original loads the tile's x and y onto the FPU
-// stack before it negates x_ and y_)
+// TODO: nonmatching (4 instructions: the stores of the +320/+240 translation
+// come after the pushes of DrawPoints()' color and transform arguments in the
+// original; single-line moves of DrawTile() do not fix it)
 void BackgroundGrid::Run() {
   app_->d3d->ClearTexture();
   app_->d3d->SetAlphaBlend(D3DBLEND_INVSRCALPHA);

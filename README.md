@@ -387,14 +387,19 @@ Known compiler behaviour worth remembering:
   short with only this left). `RateGame` and `NextReplay` (`record.cpp`) both differ by tail
   duplication: the original keeps one shared tail (stores of `g_rating` from int registers;
   one `return 1` epilogue) where VC duplicates it here; early-return and explicit-store forms
-  and `/Os` do not change it. `BackgroundGrid::Run` keeps the tile's x and y on the x87 stack and
-  computes `-x_ + x` with `fchs`/`fadd st(2)`; `HLSTxtSys::Measure` is 26 bytes off (esi/edi).
+  and `/Os` do not change it. `BackgroundGrid::Run` (4 instructions) sets the tile's x and y in the
+  matrix and then calls `TranslateTransform(&transform, -x_, -y_)`, which keeps
+  `fchs`/`fadd st(2)`; only the scheduling of the +320/+240 stores is left; `HLSTxtSys::Measure` is 26 bytes off (esi/edi).
   `Control01::Fire` stores `offset` with `fstp` and reloads it for the negation (here `fst`).
   `Control32::Dash` (12 bytes short) keeps the squared distance in its own local and spills
   the acceleration into the dead `actor` slot. `Control32::RunProgram9c` and `RunProgramB0`
   keep `actor`/`program` in other registers, and the original uses memory operands
   (`inc dword ptr [edi+8]`, `or dword ptr [g], 2`) where this loads, modifies and stores,
   with the epilogue pops interleaved; `/G5`, `/G7`, `/GB`, `/Og` do not change it.
+  `GameHud::UpdateChart` is the six corners written out (0x14d bytes, no loop), each
+  scale computed and stored before the next corner's load; the loop, the written-out
+  corners (one `scale` or one per block) and an inline `ScaleCorner()` helper all let VC
+  move the next loads above the stores (0x111-0x114 bytes).
   `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
   setter's operand order, `count + 1`, a separate `++count` and a bitfield do not change it;
   the permuter's fix takes `&count`, so `count` may have gone through a by-reference helper.

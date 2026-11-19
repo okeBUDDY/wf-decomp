@@ -42,13 +42,14 @@ class BackgroundGrid : public Task {
     Transform transform;
     transform.m[2][2] = 1;
     transform.m[1][1] = 1;
-    transform.m[2][0] = -x_ + x;
+    transform.m[2][0] = x;
     transform.m[0][0] = 1;
     transform.m[1][2] = 0;
     transform.m[1][0] = 0;
     transform.m[0][2] = 0;
     transform.m[0][1] = 0;
-    transform.m[2][1] = -y_ + y;
+    transform.m[2][1] = y;
+    TranslateTransform(&transform, -x_, -y_);
     RotateTransform(&transform, -angle_);
     transform.m[2][0] += 320;
     transform.m[2][1] += 240;
