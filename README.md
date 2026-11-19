@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-663 of 678 game functions match (91.28% of the 128586 game code bytes; `tools/compare.py`),
+668 of 678 game functions match (94.16% of the 128586 game code bytes; `tools/compare.py`),
 and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -249,11 +249,11 @@ emitted in several files, such as header inlines, count in each):
 | Area | Files | Matched |
 |---|---|---|
 | Core objects | `object.cpp` 13/13, `task.cpp` 9/9, `task_list_delete.cpp` 1/1, `thread.cpp` 2/2, `file.cpp` 6/6, `pack.cpp` 8/8, `path_util.cpp` 2/2, `profile.cpp` 2/2 | 43/43 |
-| Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 29/32 (with FnOption), `fn_title.cpp` 8/8, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 8/9, `game_hud_name_entry.cpp` 4/5, `game_hud_result.cpp` 3/4, `graphics.cpp` 13/13 | 141/147 |
+| Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 34/35 (with FnOption), `fn_title.cpp` 11/11, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 12/13, `game_hud_name_entry.cpp` 9/9, `game_hud_result.cpp` 5/5, `graphics.cpp` 13/13 | 160/162 |
 | HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 12/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 156/158 |
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 17/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 80/81 |
 | Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 145/146 |
-| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 16/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 10/10, `background.cpp` 7/8 | 191/193 |
+| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 16/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 10/10, `background.cpp` 10/10 | 194/195 |
 | Enemy generator (boss design) | `enm_param.cpp` 25/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 69/72 |
 | Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 4/5 | 43/44 |
 
@@ -281,8 +281,8 @@ Known compiler behaviour worth remembering:
   arm of `HLSurface::InitTextureFormats`' kind choice.
 * `tools/compare.py -v` lists the offsets of the first differing bytes.
 * Several classes sit in one original object: obj66 holds both FnGame and FnOption (and
-  `HL3D::DrawTexels`), obj04 holds WinMain with the definitions of `g_application` and
-  `g_pat_sys`.
+  the out-of-line copy of the header inline `HL3D::DrawTexels`), obj04 holds WinMain with
+  the definitions of `g_application` and `g_pat_sys`.
 * Store scheduling follows the source order more than it seems: constant stores keep their
   order, but a register constant (0, 1.0f, `true`) is loaded early and its stores move up
   when its first store comes early in the source. Moving one assignment (`SetScale()` right
@@ -371,30 +371,23 @@ Known compiler behaviour worth remembering:
 * A member pointer kept as `add edi, 0xc` (the address of `device_`) and reloaded after the
   call is an inline member using `this->device_` twice: `HL3D::SetPointFilter()` in
   `DrawResult`/`DrawNameEntry`, where an explicit `d3d->device_->...` pair keeps `d3d` instead.
-* Unresolved leads: `FnOption::Move` (see below; `PlayEffect()` is `__forceinline` now). The
-  three inlined
-  `SetTexture(..., &g_fonts.textures[2], 0)` calls (`DrawResult`, `DrawNameEntry`,
-  `FnOption::Draw`) load `texture_` before the last transform stores, while the calls with a
-  variable texture match. The original loads `texture_` into a register right after
-  `d3d` and schedules it above the transform stores (in `DrawNameEntry` too for the NULL
-  check), as if the stores could not alias it; member, free-function, `const&`, reversed-test,
-  local-copy, accessor/setter and early-return forms of the helper, `/G5`-`/G7`, and direct
-  transform stores instead of `ScaleTransform` all leave it in place (DrawResult is 1 byte
-  short with only this left; see the block-scope bullet below for what does move it). `RateGame` (`record.cpp`) keeps the shared `g_rating` tail
+* Unresolved leads: `RateGame` (`record.cpp`) keeps the shared `g_rating` tail
   right after the first case (both modes 0) and the other cases jump back into it; VC puts
   it at the end here. Per-branch `SetRating()` calls (with or without `return`), a `goto`
   into the first case, `title = 0` as the initializer, a wrapping `if (mode != 0 || ...)`
   and `/Os` do not move it, and the permuter found nothing in 25 minutes.
-  `BackgroundGrid::Run` (4 instructions) sets the tile's x and y in the
-  matrix and then calls `TranslateTransform(&transform, -x_, -y_)`, which keeps
-  `fchs`/`fadd st(2)`; only the scheduling of the +320/+240 stores is left (a color local,
-  a pointer to the matrix, `TranslateTransform(&transform, 320, 240)`, screen-position
-  locals and the reversed order do not change it); `HLSTxtSys::Measure` is 26 bytes off
+  `HLSTxtSys::Measure` is 26 bytes off
   (esi/edi; a `char` local for the switch and a 40-minute permuter run do not help).
   `GameHud::UpdateChart` is the six corners written out (0x14d bytes, no loop), each
   scale computed and stored before the next corner's load; the loop, the written-out
   corners (one `scale` or one per block) and an inline `ScaleCorner()` helper all let VC
-  move the next loads above the stores (0x111-0x114 bytes).
+  move the next loads above the stores (0x111-0x114 bytes). Step 34: VC fully unrolls the
+  six-pass loop itself; a `D3DVECTOR& corner = chart_[i]` (or `D3DVECTOR*`) per pass, or an
+  inline `Corner(i)` member called six times, gives the original's order (next load after
+  the stores) in a probe, but VC still rebases the stores (`lea eax, [ecx+0xb8]`,
+  `add ecx, 0x100`, short displacements) where the original addresses everything as
+  `[ecx+disp32]` (187 bytes either way). `/Os`, `/Og-`, `/Oy-`, `/Ow`, `/Oa`, `/G5` and `/Op`
+  keep or worsen the rebasing.
   `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
   setter's operand order, `count + 1`, a separate `++count`, `count++` in the test, a
   function-scope `count`, a `const unsigned int&` to the flags, `&=`/`|=` statements in the
@@ -422,16 +415,7 @@ Known compiler behaviour worth remembering:
   locals, the one whose last use comes later gets the lower slot (restoring `width_` first
   gives the original's slots, but the restores in the wrong order). Making the HLSurface
   statics (`max_texture_*`, `texture_caps_`, `format_codes_`, `graphics_`) file-static is
-  worse. `FnOption::Move` (66 differing instructions, from 150, same size): `__forceinline` on
-  `PlayEffect()`, a row pointer for the preset copy (`int* preset = presets_[values_[kGameMode]];`
-  before the loop), an `int cursor = cursor_;` local read before the kind switch and used by
-  the switch and the `cursor == kExit` test (the original compares the int, `cmp eax, 0x11`),
-  and the button case as `if (code >= 0) { ... } else { flags_ &= ~kFlagHeld; }` (that puts the
-  `code < 0` block at the end) with a `HLInpDev* pad` local. Only the input register is left:
-  the original keeps `g_application.input` in edi and reloads `pad(0)` from it for
-  `GetPressed()` (and both for `set_trigger`); here edi holds the pad. Without the pad local,
-  or with an `HLInput* input` local (with or without the pad), VC moves the 0 constant from
-  edx to ebp (113-159 instructions). `CEnmParam::Plan`: the original
+  worse. `CEnmParam::Plan`: the original
   computes `rate` between the travel average and its conversion (and so spills it); every
   order of the `count`, `add` and `rate` lines and a float `travel` local compute `rate`
   either before or after the `_ftol`. `CEnmParam::Grow`: `code` reused as `base`, `index` as
@@ -532,22 +516,36 @@ Known compiler behaviour worth remembering:
   is a local declared in each branch (`float left = -offset;` in `Control01::Fire`): VC
   hoists the two negations and stores `offset` with `fstp`/`fld`; one local before the `if`
   keeps it with `fst`, and `-offset + x` written in both branches becomes `x - offset`.
-* **Hoisting a load above stores to a local (block scope).** A `/FAs` probe shows when VC
-  schedules a load through a pointer above stores to a local whose address is passed to a call
-  later: only when the pointer was defined *before the local's block* (a local or parameter set
-  outside a `{ }` block that declares the transform) or is a parameter of the function. A pointer
-  loaded inside the same scope, a local pointer declared before the transform in the same
-  scope, `/Oa`, union/array/non-POD matrix types, `const&`/array/member-call forms of the
-  escaping call, and escaping only after the load all keep the load below the stores. This is
-  the `SetTexture()` difference of `DrawResult`, `DrawNameEntry` and `FnOption::Draw` and the
-  `app_->d3d` load of `BackgroundGrid::Run`. Wrapping DrawResult's transform part in a block
-  after `HL3D* d3d = g_application.d3d;` (and `SetTexture(d3d, ...)`) gives the original size
-  and hoists the texture load (190 -> 77 differing bytes), but loads `d3d` at the top where
-  the original loads it after the frame-count conversion; in DrawNameEntry the same block
-  fixes the first (NULL) texture test but not the second, whose `g_application.d3d` is reloaded
-  after a call and still hoisted in the original. Not committed (an extra block is not natural
-  without more evidence); the original's form probably comes from an inline helper or a
-  block whose pointer is defined outside it.
+* **Same-TU escape analysis; the draw helpers are header inlines (step 34).** VC7.1 lets a
+  load through a pointer pass stores to an address-taken local only when it can prove the
+  pointer does not hold the local's address. It can when every function that receives the
+  local's address has its body in the TU and lets the pointer go nowhere unknown (a probe
+  with `Draw(const T*)` defined in the TU hoists the texture test above the transform stores;
+  with `Draw` only declared, it stays below). The original's `HL3D::DrawTexels`,
+  `HL3D::DrawPoints`, `MultiplyTransform` and `RotateTransform` were inline functions in
+  headers, too big to inline, so every TU that calls them compiles a COMDAT copy and LINK
+  keeps the first object's: each sits in the object of its first caller in link order
+  (DrawTexels before `FnOption::Draw` in obj66, DrawPoints before `ShockwaveSprite::Draw`,
+  RotateTransform before `BackgroundGrid`, MultiplyTransform before `RotateTransformX`).
+  With them in `hl_3d.h`/`background.h`, `DrawResult`, `DrawNameEntry`, `FnOption::Draw`
+  and `BackgroundGrid::Run` match as written, and the helpers still match from their first
+  objects. Other probe results: a load through a file-`static` pointer whose address is never
+  taken is also hoisted (VC knows every value stored to it), while a pointer read from an
+  extern global or member, the same pointer read again (CSE), a `do { } while (0)` macro, a
+  reference, a `const` pointer, `register`, `__assume` and `/Oa` are not. A pointer
+  *parameter*, or a named local set before the `{ }` block that declares the local, is
+  hoisted too (the step-33 finding), but no natural source form needed that. So when the
+  original moves a load across stores to a local that a callee only reads, look for that
+  callee's body being visible in the original TU (a header inline, or a shared TU).
+* **A named copy of a global pointer blocks CSE through it.** `FnOption::Move` keeps
+  `g_application.input` in edi and reads `pad(0)` again for `GetPressed()`: the source
+  declares `HLInput* input = g_application.input;` right before
+  `g_application.input->pad(0)->pressed()` (which still reads the global), uses
+  `input->pad(0)->GetPressed()` in the button case and the global again for `set_trigger()`.
+  VC then shares the `g_application.input` load with `input` but does not treat
+  `input->pad(0)` as the same value as the earlier `g_application.input->pad(0)`. Reading
+  `pressed()` through `input`, a `pad` local, or the global everywhere makes VC keep the pad
+  (and moves the 0 constant into ebp). The same local does not fix `FnGame::Initialize`.
 * `build/obj/src/` keeps objects of deleted or merged sources (`fn_option.obj`, ...);
   `fdiff.py` may read such a stale object, so delete them after renaming a file.
 

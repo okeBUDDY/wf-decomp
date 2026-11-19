@@ -596,11 +596,6 @@ void FnOption::UpdateChoiceText(int item) {
 }
 
 // 0x41d4d0
-// TODO: nonmatching (66 instructions): the original keeps
-// g_application.input (not the pad) in edi, reloads pad(0) from it for
-// GetPressed() and reloads both for set_trigger(); with a plain
-// g_application.input->pad(0) in the button case VC moves the 0 constant
-// from edx to ebp instead.
 void FnOption::Move() {
   blink_ -= 4;
   if (blink_ <= 0) {
@@ -613,6 +608,7 @@ void FnOption::Move() {
     g_application.user_func->Finish(&g_fn_title);
     return;
   }
+  HLInput* input = g_application.input;
   unsigned short pressed = g_application.input->pad(0)->pressed();
   if (pressed & (HLInpDev::kUp | HLInpDev::kDown)) {
     if (pressed & HLInpDev::kUp) {
@@ -698,8 +694,7 @@ void FnOption::Move() {
       }
       break;
     case kKindButton: {
-      HLInpDev* pad = g_application.input->pad(0);
-      int code = pad->GetPressed();
+      int code = input->pad(0)->GetPressed();
       if (code >= 0) {
         if (flags_ & kFlagHeld) {
           break;
@@ -707,7 +702,8 @@ void FnOption::Move() {
         flags_ |= kFlagHeld;
         PlayEffect(kSndSwitch);
         if (code != values_[cursor_]) {
-          pad->set_trigger(kOptionItems[cursor_].param, code);
+          g_application.input->pad(0)->set_trigger(kOptionItems[cursor_].param,
+                                                   code);
           values_[cursor_] = code;
           UpdateButtonText(cursor_);
         }
