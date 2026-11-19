@@ -72,8 +72,6 @@ void LaserSprite::Reset(float x, float y) {
 }
 
 // 0x415250
-// TODO: nonmatching (the original computes the cosine index of the left edge
-// before the right edge's angle; register choice of the last stores)
 void LaserSprite::Move(float x, float y, int hold, float push_x, float push_y) {
   if (hold) {
     tip_x_ = x + tip_x_ - x_;
@@ -93,16 +91,12 @@ void LaserSprite::Move(float x, float y, int hold, float push_x, float push_y) {
     angle_ = static_cast<short>(angle * 162.97466f);
     spread_ = 160 - static_cast<short>(length * 1.0285715f);
   }
-  points_[0].x =
-      g_sin_table[static_cast<short>(angle_ + spread_) & 0x3ff] * 2048.0f;
-  points_[0].y =
-      g_sin_table[(static_cast<short>(angle_ + spread_) + 0x100) & 0x3ff] *
-      -2048.0f;
-  points_[2].x =
-      g_sin_table[static_cast<short>(angle_ - spread_) & 0x3ff] * 2048.0f;
-  points_[2].y =
-      g_sin_table[(static_cast<short>(angle_ - spread_) + 0x100) & 0x3ff] *
-      -2048.0f;
+  short left = angle_ + spread_;
+  points_[0].x = g_sin_table[left & 0x3ff] * 2048.0f;
+  points_[0].y = g_sin_table[(left + 0x100) & 0x3ff] * -2048.0f;
+  short right = angle_ - spread_;
+  points_[2].x = g_sin_table[right & 0x3ff] * 2048.0f;
+  points_[2].y = g_sin_table[(right + 0x100) & 0x3ff] * -2048.0f;
   x_ = x;
   y_ = y;
 }

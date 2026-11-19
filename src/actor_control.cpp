@@ -672,7 +672,6 @@ void PartControl::OnDamage(Actor* actor, int how) {
 }
 
 // 0x419a70
-// TODO: nonmatching (close: register choice where the turret arrives).
 int PartControl::MovePart(Actor* actor) {
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
   Actor* turret = work->turret;
@@ -704,8 +703,7 @@ int PartControl::MovePart(Actor* actor) {
             offset -= 0x400;
           }
           if (abs(offset) < g_enm_param.turn_speed_) {
-            now += offset;
-            turret->angle = now;
+            turret->angle += offset;
             StopTrans(work, 1);
             ++work->state_time;
           } else {
@@ -743,13 +741,13 @@ int PartControl::MovePart(Actor* actor) {
             offset -= 0x400;
           }
           if (abs(offset) < g_enm_param.turn_speed_) {
-            turret->angle = now + offset;
+            turret->angle += offset;
             StopTrans(work, 1);
             OnDamage(actor, 0);
           } else if (offset < 0) {
-            turret->angle = now - g_enm_param.turn_speed_;
+            turret->angle -= g_enm_param.turn_speed_;
           } else {
-            turret->angle = now + g_enm_param.turn_speed_;
+            turret->angle += g_enm_param.turn_speed_;
           }
           break;
         }

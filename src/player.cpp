@@ -102,22 +102,22 @@ int Control01::Save(Actor* actor, File* file) {
 }
 
 // 0x4130f0
-// TODO: nonmatching (the original keeps 0 in a register and -1 as immediates)
 void Control01::OnEvent(Actor* actor, int event, int value) {
-  PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
   switch (event) {
-    case kEventInvincible:
+    case kEventInvincible: {
+      PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
       work->invincible = value;
-      if (value != 0) {
-        actor->team = 0;
-        if (value <= 0) {
-          work->invincible = -1;
-        }
-      } else {
+      if (value == 0) {
         actor->team = 0x60;
+      } else if (value > 0) {
+        actor->team = 0;
+      } else {
+        actor->team = 0;
+        work->invincible = -1;
       }
       actor->color = 0xffffffff;
       break;
+    }
   }
 }
 
