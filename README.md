@@ -160,7 +160,7 @@ sections 0.
 | headers | Rich header entry order: `Implib710 2067` is first seen after `Utc13_C 9466` instead of right after the dxguid entry | (in the 124) | Not examined; probably the newer dxguid.lib too |
 | headers | TimeDateStamp | 4 | Only by the post-link stamp |
 
-The `CheckSum` is 0 in both files. No difference comes from the 22 unmatched game functions:
+The `CheckSum` is 0 in both files. No difference comes from the 20 unmatched game functions:
 they link from the original bytes. The Rich `Import` (173) and `Implib` counts equal the
 original's since step 27 (from the import fix).
 
@@ -233,8 +233,8 @@ matches.
 
 ## Decompiled code
 
-656 of 678 game functions match (86.94% of the 128586 game code bytes; `tools/compare.py`),
-and 150 of the 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
+658 of 678 game functions match (88.59% of the 128586 game code bytes; `tools/compare.py`),
+and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
 counted apart from the game functions; `build/progress.json` has both. A `.text$x` funclet is
@@ -251,7 +251,7 @@ emitted in several files, such as header inlines, count in each):
 | Core objects | `object.cpp` 13/13, `task.cpp` 9/9, `task_list_delete.cpp` 1/1, `thread.cpp` 2/2, `file.cpp` 6/6, `pack.cpp` 8/8, `path_util.cpp` 2/2, `profile.cpp` 2/2 | 43/43 |
 | Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 29/32 (with FnOption), `fn_title.cpp` 8/8, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 8/9, `game_hud_name_entry.cpp` 4/5, `game_hud_result.cpp` 3/4, `graphics.cpp` 13/13 | 141/147 |
 | HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 12/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 156/158 |
-| HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 36/37, `hls_txt.cpp` 15/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 77/81 |
+| HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 16/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 79/81 |
 | Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 145/146 |
 | Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 14/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 8/10, `background.cpp` 7/8 | 187/193 |
 | Enemy generator (boss design) | `enm_param.cpp` 25/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 69/72 |
@@ -417,18 +417,22 @@ Known compiler behaviour worth remembering:
   `Control01::OnCreate` and `OnMove` differ in the inlined `SelectWeapon()`: the original
   loads the laser into edx (the flame was in ecx) and the weapon's x and y into ecx/edx;
   `Load` matches with the same inline. Loading `work->laser` earlier breaks `Load`.
-  `HLSTxtSys::Initialize` (30 bytes) and `HLSPatFile::Load` (26 bytes) now differ in stack
-  slots only. In `Initialize` the original spills into the dead parameter slots in another
-  order (the `space_width` temporary, the `new` result and the glyph offset share `app`'s
-  slot, the glyph index takes `texture`'s, the int-to-float temporary `txt_count`'s and
-  `u + width` `char_count`'s; here the order is rotated by one). That slot is also what the
-  last EH stub (0x4502e0, the `new HLSTxt[]` funclet, `delete [ebp+4]`) reads, so it matches
-  with the function. Statement order of the member stores (random search), the loop index
-  type, a function-scope index and the cell order do not change it. In `Load` the original's
-  highest id and the loop's id share one slot (0x24), `this` sits at 0x28, and the frame
-  still has the original size, so one more 4-byte local exists; a block-scoped `max_id` or
-  one `id` for both gives the sharing but a frame 4 bytes smaller, and declaration order
-  inside the loop changes nothing.
+  `HLSurface::InitTextureFormats` (25 bytes): the slots of the saved `width_`/`height_`
+  follow the order of the restore statements, not the declarations: in every combination of
+  declaration, initialization and restore order tried, the variable restored first gets the
+  higher slot (0x14), while the original restores `height_` first from the lower one (0xc).
+  Local names and the types of the three locals (short/unsigned short, int/unsigned/BOOL) do
+  not matter. `Control32::StartTurn`/`RunProgramB0`: the caller computes each case's angle in
+  16 bits and pushes it in the case itself (garbage upper bits in two cases), so the original
+  parameter is 16 bits wide and each case had its own `StartTurn()` call (cross-jumped into one
+  call site: written per case, `if (!StartTurn(actor, program, ...)) { program->op = 0; } break;`
+  reproduces the per-case pushes). With a `short` or `unsigned short` parameter, `StartTurn`
+  itself is 2 bytes off: its `sqrt()` int temporary goes into the dead `angle` slot instead of
+  `actor`'s (see the parameter-slot note below), and reassigning `angle`, a `turn` or `area`
+  local, an int `size` and a function-scope `size` do not move it. In `Control32::Dash`
+  computing `acceleration` before `distance2` (`float acceleration = power * 0.005f;` one line
+  up) puts the acceleration into the dead `actor` slot as in the original, but `distance2`
+  then stays on the FPU instead of in its own local (2 bytes short, more bytes differ).
 * An empty user-declared destructor changes the code of the implicit destructor that contains
   the class: `~HLSTxtSys() {}` made the inlined member destruction in `~Fonts` (0x401f80)
   match.
@@ -459,6 +463,17 @@ Known compiler behaviour worth remembering:
 * VC does not unroll loops: four calls in a row in the original are four calls in the source
   (`SendEvent()` to the arms in `Control32::Dash`). A `return 0` placed after all the other
   code is `if (ok) { ...; return 1; } return 0;` rather than an early `if (!ok) return 0;`.
+* Dead parameter slots: VC7.1 puts spilled locals and temporaries into the slots of
+  parameters that are dead, and a dead `short` parameter's slot is taken first, before the int
+  and pointer ones (which go in address order). `HLSTxtSys::Initialize` matched once
+  `char_count` became an int (its member stays `short`): with the short parameter the whole
+  assignment was rotated by one slot. The same rule makes a 16-bit `StartTurn` angle take the
+  `sqrt()` temporary. Parameter and local names do not matter.
+* C-style declarations at the top of the function share stack slots differently from block
+  locals: `HLSPatFile::Load` matched with the pattern record's locals declared at function
+  scope and the header's highest id read into the same `id` local. Scope does not change
+  register choice (`HLSurface::Load`, `CEnmParam::Grow`, `HLSTxtSys::Measure`,
+  `Control32::Dash` and `SoundSystem::Pause` were tried).
 * The mangled names are made up, so parameter types are free as long as the callee still
   matches. A short local passed to a short parameter is pushed with a dword load; the
   original's `movsx` before the push means the parameter was an int (`HLSPatSys::Create`'s

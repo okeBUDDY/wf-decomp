@@ -189,9 +189,6 @@ int HLSPatSys::Initialize(Application* app) {
 }
 
 // 0x40a320
-// TODO: nonmatching: the frame size matches now (the highest id and the id
-// of each pattern are separate locals), but `this` and the pattern's fields
-// sit in other stack slots, and the function is 2 bytes short.
 int HLSPatFile::Load(const char* name, int min_count) {
   if (pats_ == NULL) {
     Release();
@@ -215,11 +212,20 @@ int HLSPatFile::Load(const char* name, int min_count) {
     return 0;
   }
   int pat_count;
-  int max_id;
+  int id;
+  short u;
+  short v;
+  short width;
+  short height;
+  int x;
+  int y;
+  short hit_width;
+  short hit_height;
   file.Read(&pat_count, sizeof(pat_count));
-  file.Read(&max_id, sizeof(max_id));
-  ++max_id;
-  count_ = min_count > max_id ? min_count : max_id;
+  // The header's highest pattern id; the patterns need one more slot.
+  file.Read(&id, sizeof(id));
+  ++id;
+  count_ = min_count > id ? min_count : id;
   pats_ = static_cast<HLSPat**>(malloc(count_ * sizeof(HLSPat*)));
   if (pats_ == NULL) {
     file.Close();
@@ -230,15 +236,6 @@ int HLSPatFile::Load(const char* name, int min_count) {
     pats_[i] = NULL;
   }
   for (int i = 0; i < pat_count; ++i) {
-    int id;
-    short u;
-    short v;
-    short width;
-    short height;
-    int x;
-    int y;
-    short hit_width;
-    short hit_height;
     file.Read(&id, sizeof(id));
     file.Read(&u, sizeof(u));
     file.Read(&v, sizeof(v));
