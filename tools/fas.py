@@ -1,6 +1,10 @@
 """Compile one source file with /FAs and write build/fas/<name>.asm (and .obj).
 
-usage: python3 tools/fas.py src/file.cpp
+usage: python3 tools/fas.py [--print] <file.cpp>
+
+The file may be a source in src/ or a standalone probe TU anywhere (it is compiled from
+build/src-sjis/_probe/, so `#include "hl_3d.h"` and the like resolve against src/).
+`--print` prints the code of every PROC ... ENDP without comment lines.
 
 The listing shows each function's stack slots (`_x$ = 16`, `tvNNN = -4`) above its PROC
 line, which answers slot questions without a link or compare run.
@@ -20,6 +24,8 @@ OUT = os.path.join(BUILD, 'fas')
 def compile_fas(src):
     src = os.path.abspath(src)
     rel = os.path.relpath(src, os.path.join(ROOT, 'src'))
+    if rel.startswith('..'):
+        rel = os.path.join('_probe', os.path.basename(src))
     sjis = os.path.join(BUILD, 'src-sjis', rel)
     os.makedirs(os.path.dirname(sjis), exist_ok=True)
     os.makedirs(OUT, exist_ok=True)
@@ -37,7 +43,28 @@ def compile_fas(src):
     return rc, o, out + '.asm'
 
 
+def proc_text(asm):
+    """The PROC ... ENDP blocks of a listing, without comment and blank lines."""
+    out, inside = [], False
+    with open(asm, encoding='cp932', errors='replace') as f:
+        for line in f:
+            s = line.rstrip()
+            if ' PROC' in s:
+                inside = True
+            if inside and s.strip() and not s.lstrip().startswith(';'):
+                out.append(s)
+            if ' ENDP' in s:
+                inside = False
+    return '\n'.join(out)
+
+
 if __name__ == '__main__':
-    rc, o, asm = compile_fas(sys.argv[1])
-    print(o[-2000:] if rc else asm)
+    args = sys.argv[1:]
+    show = '--print' in args
+    args = [a for a in args if a != '--print']
+    rc, o, asm = compile_fas(args[0])
+    if rc:
+        print(o[-2000:])
+    else:
+        print(proc_text(asm) if show else asm)
     sys.exit(1 if rc else 0)
