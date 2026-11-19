@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-671 of 678 game functions match (95.25% of the 128586 game code bytes; `tools/compare.py`),
+673 of 678 game functions match (95.78% of the 128586 game code bytes; `tools/compare.py`),
 and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -252,8 +252,8 @@ emitted in several files, such as header inlines, count in each):
 | Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 34/35 (with FnOption), `fn_title.cpp` 11/11, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 13/13, `game_hud_name_entry.cpp` 9/9, `game_hud_result.cpp` 5/5, `graphics.cpp` 13/13 | 161/162 |
 | HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 13/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 157/158 |
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 18/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 81/81 |
-| Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 145/146 |
-| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 16/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 10/10, `background.cpp` 10/10 | 194/195 |
+| Sound | `snd_sys.cpp` 29/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 146/146 |
+| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 17/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 10/10, `background.cpp` 10/10 | 195/195 |
 | Enemy generator (boss design) | `enm_param.cpp` 25/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 69/72 |
 | Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 4/5 | 43/44 |
 
@@ -382,6 +382,7 @@ Known compiler behaviour worth remembering:
   and `/Os` do not move it, and the permuter found nothing in 25 minutes.
   (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
   in step 38.)
+  (`SoundSystem::Pause` and `Control32::RunProgramB0` matched in step 41, see there.)
   `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
   setter's operand order, `count + 1`, a separate `++count`, `count++` in the test, a
   function-scope `count`, a `const unsigned int&` to the flags, `&=`/`|=` statements in the
@@ -639,6 +640,17 @@ Known compiler behaviour worth remembering:
     from`, which is the known int case (12, with `movsx`).
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
+* **Step 41 (2 new matches: `SoundSystem::Pause`, `Control32::RunProgramB0`).**
+  * **A local reference changes the destination of a commutative operation.** Both drafts
+    had VC write `a op b` into the right operand's register where the original used the
+    left one. `Pause` matched with `const unsigned int& new_count = ++count;
+    channel->set_pause_count(new_count);` (a non-const `unsigned int& c = count;`, or a
+    pointer to `count`, gives the same code; an inline helper taking `unsigned int&` does
+    not). `RunProgramB0` matched with `const short& from = actor->angle;` in case 0x20004
+    instead of an `unsigned short` copy (`const unsigned short& to = from += off;` and
+    `unsigned short& to = from; to += off;` also give `add ebx, eax`). `StartTurn` takes a
+    `short` and `off` is masked, so neither change alters behaviour. References to locals
+    that are only read (`const int& p = pause;`) are pure aliases and change nothing.
 * **Step 40 (drafts only, no new matches).** Probes with `tools/fas_variants.py` and
   `tools/multi_variants.py` (and a 1-hour permuter run on `HLSurface::Load` from the
   `short bits` form, which found nothing).

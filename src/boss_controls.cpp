@@ -410,10 +410,8 @@ void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
 }
 
 // 0x412530
-// TODO: nonmatching (one register: the original adds the new angle of case
-// 0x20004 into `from`'s register (add ebx, eax; push ebx), and the push of
-// case 0x20001 then stays apart; here it is add eax, ebx and the two pushes
-// are cross-jumped. An int `from` gives the add but loads it with movsx.)
+// Case 0x20004 reads the start angle through a reference: a plain copy makes
+// VC add into `off`'s register and cross-jump the push of case 0x20001.
 void Control32::RunProgramB0(Actor* actor, EnmList* program) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
   PartWork* part = reinterpret_cast<PartWork*>(actor->work);
@@ -481,7 +479,7 @@ void Control32::RunProgramB0(Actor* actor, EnmList* program) {
         break;
       }
       case 0x20004: {
-        unsigned short from = actor->angle;
+        const short& from = actor->angle;
         short off =
             (AngleToPlayer(actor) - 0x200 - program->arg - from) & 0x3ff;
         if (off >= 0x200) {

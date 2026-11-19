@@ -320,10 +320,8 @@ void SoundSystem::Finalize() {
 }
 
 // 0x4098e0
-// TODO: nonmatching (2 bytes: `or edx, edi` here is `or edi, edx`). The
-// `list` local moves the increment before the masking as in the original;
-// taking the address of `count` (permuter) fixes the rest, so count may have
-// gone through a by-reference helper.
+// The `list` local moves the increment before the masking, and binding the
+// new count to a local reference gives the original's `or edx, edi`.
 void SoundSystem::Pause() {
   if (state_ & kPaused) {
     return;
@@ -336,7 +334,8 @@ void SoundSystem::Pause() {
     if (count == 0 && channel->buffer_ != NULL) {
       channel->buffer_->Stop();
     }
-    channel->set_pause_count(++count);
+    const unsigned int& new_count = ++count;
+    channel->set_pause_count(new_count);
   }
   for (CSndBuf* buffer = list->tail_; buffer != NULL;
        buffer = buffer->prev_) {
