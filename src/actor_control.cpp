@@ -504,8 +504,6 @@ void PartControl::StopTrans(PartWork* work, int next) {
 }
 
 // 0x4195f0
-// TODO: nonmatching (the original does not rotate the loop over the
-// ancestors).
 void PartControl::OnDestroy(Actor* actor) {
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
   work->slot->lerp_at = actor->angle;
@@ -513,7 +511,7 @@ void PartControl::OnDestroy(Actor* actor) {
   int chain = 1;
   int rapid = 1;
   Actor* ancestor = actor;
-  for (;;) {
+  do {
     ancestor = ancestor->parent;
     if (ancestor == NULL) {
       chain >>= 1;
@@ -523,7 +521,7 @@ void PartControl::OnDestroy(Actor* actor) {
       break;
     }
     chain <<= 1;
-  }
+  } while (ancestor != NULL);
   if (chain > 32) {
     chain = 32;
   } else if (chain == 1) {
