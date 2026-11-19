@@ -209,12 +209,15 @@ static __forceinline float DashPower(const EnmList* program) {
 }
 
 // 0x4120d0
-// TODO: nonmatching (register choice; the original merges the Dash() calls of
-// the cases into one call site)
+// TODO: nonmatching (the original keeps `actor` in esi and `program` in edi,
+// merges three of the Dash() calls into one call site, increments
+// program->time in memory and loads actor->angle with movsx). The `dashing`
+// bool gives the original's `mov al, [esi+0x34]; mov ecx, 1; test cl, al`.
 void Control32::RunProgram9c(Actor* actor, EnmList* program) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
-  if (reinterpret_cast<PartWork*>(actor->work)->flags &
-      Control32Work::kDashing) {
+  bool dashing = (reinterpret_cast<PartWork*>(actor->work)->flags &
+                  Control32Work::kDashing) != 0;
+  if (dashing) {
     if (work->brake_time != 0 && program->time >= work->brake_time) {
       actor->acceleration = -work->deceleration;
       work->brake_time = 0;
