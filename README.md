@@ -555,6 +555,10 @@ Tools for decompiling:
   than differing bytes, which a shifted block inflates).
 * `tools/try_variants.py <src> <addr> [--compile <cpp>]`: applies listed source edits one at a
   time and reports each result (`--compile` tests a header edit through a .cpp); `tools/perm_lines.py <src> <addr>` tries every single-line move inside a block.
+* `tools/fas.py <src>` compiles one file with `/FAs` into `build/fas/<name>.asm` (the stack-slot
+  table sits above each PROC); `tools/fas_slots.py <src> <func> < variants` prints that table for
+  each try_variants-style variant; `tools/multi_variants.py <src> <addr,...> <variants.py>` applies
+  several edits per variant (`V = [[(old, new), ...], ...]`) and scores several functions.
 * `tools/permuter/`: runs [decomp-permuter](https://github.com/simonlindholm/decomp-permuter) on
   one C++ function through a C rendering that is turned back into C++ and compiled in its real
   TU for every candidate (see `tools/permuter/README.md`).
