@@ -321,8 +321,6 @@ void ActorSystem::DrawAll() {
 }
 
 // 0x4082b0
-// TODO: nonmatching (the debris of a dead parent: the original loads y and
-// the layer before x; x and y as locals got it from 98 to 34 bytes).
 void Actor::Destroy(int debris, int notify) {
   if (notify && parent->control != NULL) {
     parent->control->OnChildDestroyed(parent, this);
@@ -357,8 +355,9 @@ void Actor::Destroy(int debris, int notify) {
       system_->Create(this->debris, NULL, screen.m[2][0], screen.m[2][1], layer,
                       0, NULL);
     } else if (parent->flags == kDead) {
-      float x = screen.m[2][0];
+      unsigned short layer = this->layer;
       float y = screen.m[2][1];
+      float x = screen.m[2][0];
       Actor* actor =
           system_->Create(-this->debris, NULL, x, y, layer, 0, NULL);
       if (actor != NULL) {

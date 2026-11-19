@@ -110,10 +110,6 @@ int Replay::Open(int mode, const char* path) {
 }
 
 // 0x415790
-// TODO: nonmatching. Closer in shape (but more bytes off): copy
-// header.rules field by field, and read header.stage/score/timer into
-// locals before g_game.Start() (the original keeps them in edi/ebx/ebp across
-// the calls); ebx/ebp are then still pushed later than in the original.
 int Replay::LoadHeader() {
   if (mode_ != kPlay) {
     return 1;
@@ -131,6 +127,9 @@ int Replay::LoadHeader() {
   Header header;
   int lives;
   int extend_count;
+  int stage;
+  int score;
+  int timer;
   switch (version) {
     case kOldVersion:
       if (!file_.ReadExact(&header, 0x10)) {
@@ -138,6 +137,9 @@ int Replay::LoadHeader() {
         return 0;
       }
       seed_ = header.seed;
+      stage = header.stage;
+      score = header.score;
+      timer = header.timer;
       lives = -1;
       extend_count = -1;
       break;
@@ -147,20 +149,27 @@ int Replay::LoadHeader() {
         return 0;
       }
       seed_ = header.seed;
+      stage = header.stage;
+      score = header.score;
+      timer = header.timer;
       lives = header.lives;
       extend_count = header.extend_count;
-      rules = header.rules;
+      rules.mode = header.rules.mode;
+      rules.time_limit = header.rules.time_limit;
+      rules.stock = header.rules.stock;
+      rules.extend = header.rules.extend;
       break;
     default:
       file_.Close();
       return 0;
   }
   g_game.Start(&rules);
-  g_game.timer_ = header.timer;
+  g_game.timer_ = timer;
   g_game.bonus_ = 0;
   g_game.SetLives(lives + 1, extend_count);
-  g_global.entry.score = header.score;
-  g_global.stage = header.stage - 1;
+  g_global.entry.score = score;
+  g_global.stage = stage - 1;
+
   if (!g_enm_param.Load(&file_)) {
     file_.Close();
     return 0;
