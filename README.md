@@ -548,7 +548,7 @@ Known compiler behaviour worth remembering:
 * **Where a value is computed changes the whole allocation (step 35).** In
   `HLSurface::Load`, declaring `int width = image.width() / scale_x_;` after `src` instead
   of before `height` took the draft from 172 to 70 differing instructions (the 888 case
-  matches now), and one `int pad;` shared by all cases from 184 to 172. In
+  matches now; 12 after step 36), and one `int pad;` shared by all cases from 184 to 172. In
   `CEnmParam::Grow`, reading the side from `code` instead of `base`
   (`(code & kSideMask) == 0x80000000`, the same value) moved `this` into ebp (85 -> 68).
   When a draft's registers are permuted, try moving each computation to its first use and
@@ -570,6 +570,36 @@ Known compiler behaviour worth remembering:
   comes before `and edx, 0xffff0000` the or goes into edi, when it comes after, into
   edx; the original has the inc first and the or into edx. Twenty forms of the
   increment, setter, list access and loop declarations all keep that coupling.
+* **Step 36 (drafts only, no new matches).**
+  * `HLSurface::Load` 70 -> 12 differing instructions: the declaration order `src`, `bytes`,
+    `row_skip`, `step`, `width`, `height` (all 120 orders tried), `result = 1` before `Log()`,
+    and `*out = ...; src += step; ++out;` (the increment after the source step) in the 24-bit
+    4444 and 5551 loops. Left: the original multiplies `row_skip` as
+    `((scale_y_ - 1) * bytes) * width`, VC as `((scale_y_ - 1) * width) * bytes` for every
+    operand order, grouping, split statement, local copy and type of `bytes`/the width (a probe
+    TU gives the same); and the 565 green channel is `src[1] & 0xfc` in the original. That
+    form gives the original's code in a probe TU with just the loop, but in the full function
+    VC loads `src[2]` first and needs a third temporary (49 instructions), so the draft keeps
+    the equivalent `((src[2] >> 3) << 6 | src[1] >> 2) << 5` form. VC canonicalizes every `|`
+    order and grouping, `<<`/`*`/`&`-after-shift forms and masks like `~3`/`0xfffc`.
+  * `CEnmParam::Grow` 68 -> 55: an `int weapon = slot->weapon;` local for the closing totals
+    (the original then pushes edi in the prologue), and `count` declared before `base`. Left:
+    `code` in edx instead of ecx (so the flags take ecx and the ChooseWeapon calls are not
+    fully tail-merged); the side read from `base` and a signed `base` are worse, `ChildBase()`,
+    parameter types, `FindSlot` loop forms and `if` shapes change nothing.
+  * `SoundSystem::Pause` probes: a reference to the flags (`unsigned int& flags =
+    channel->flags_;`) or a copy of the channel pointer gives the original's `or edx, edi`, but
+    then the `inc` moves after the `and`. The coupling also holds under `/G5` and `/G7`.
+  * `CEnmParam::Plan`: VC keeps `rate` on the x87 stack across `_ftol` (in st1) where the
+    original spills it; `1 << 17`, `1u << id`, a `bit` local in `AddStep`, a flags local, `!= 0`
+    and the operand order of the `0x20000` test do not put the constant in a register.
+  * `HLSTxtSys::Measure`: Print's forms (function-scope `code`, `code -= first_char_`), a
+    `first` local, `*++text`, and a separate iteration pointer change nothing.
+    `FnGame::Initialize`: no `pause` local, a `bool`/`unsigned` one, an early return and an
+    `input` local inside the `if` change nothing.
+  * The permuter's `base.c` can get `int const;` stub members from words in comments, which
+    pycparser rejects; rename them by hand. The permuter compiles candidates spliced into the
+    live source file, so do not edit that file (or run `multi_variants.py` on it) while it runs.
 * `build/obj/src/` keeps objects of deleted or merged sources (`fn_option.obj`, ...);
   `fdiff.py` may read such a stale object, so delete them after renaming a file.
 

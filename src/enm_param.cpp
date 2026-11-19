@@ -275,10 +275,13 @@ int CEnmParam::Load(File* file) {
 }
 
 // 0x41a820
-// TODO: nonmatching (register choice: the original loads `code` into ecx
-// after moving `this` to ebp, and pushes edi in the prologue). Reading the
-// side from `code` instead of `base` put `this` in ebp (85 -> 68 differing
-// instructions).
+// TODO: nonmatching (55 differing instructions; register choice: the
+// original loads `code` into ecx after moving `this` to ebp, keeps the slot
+// flags in edx, and reads the side from `base` without spilling
+// `code & kSideMask`). Reading the side from `code` instead of `base` put
+// `this` in ebp (85 -> 68); a `weapon` local for the closing totals pushes
+// edi in the prologue as the original does (-> 57), and `count` before
+// `base` gives 55. A signed `base` and the side from `base` are worse.
 void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   EnmSlot* slot = FindSlot(code);
   if (slot == NULL) {
@@ -306,8 +309,8 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
         slot->flags |= 8;
       }
     }
-    unsigned int base = (code & kSideMask) | (code << 3);
     int count = slot->part->extra_child_count + slot->part->child_count;
+    unsigned int base = (code & kSideMask) | (code << 3);
     for (int i = 0; i < count; ++i) {
       Grow(slot, base | i, 0);
     }
@@ -337,7 +340,8 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
     }
     return;
   }
-  ++weapon_parts_[slot->weapon];
+  int weapon = slot->weapon;
+  ++weapon_parts_[weapon];
   ++part_total_;
   power_total_ += slot->power;
 }

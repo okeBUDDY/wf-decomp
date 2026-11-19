@@ -341,11 +341,14 @@ int HLSurface::Create(int width, int height, unsigned short mode) {
 }
 
 // 0x40bff0
-// TODO: nonmatching: the pixel conversions match, but the original keeps
-// `file` in ebx and `this` in edi (spilled), and keeps the loop counters on
-// the stack differently. One `pad` shared by all cases (184 -> 172
-// differing instructions) and `width` computed after `src` (-> 70; the 888
-// case now matches); shared x/y/out locals do not help.
+// TODO: nonmatching (12 differing instructions): the original multiplies
+// row_skip as ((scale_y_ - 1) * bytes) * width, VC here as
+// ((scale_y_ - 1) * width) * bytes (every operand order and grouping gives
+// the same), and the 565 case's green channel is `src[1] & 0xfc` there: that
+// form is right in a probe TU but here costs a register (49 instructions), so
+// the draft keeps the equivalent shift form. Declaration order (all 120
+// orders tried), `result = 1` before Log() and a separate `++out` in the
+// 24-bit 4444/5551 loops took the draft from 70 to 12.
 int HLSurface::Load(const char* file, unsigned short mode) {
   int result = 0;
   HLImage image;
@@ -364,13 +367,13 @@ int HLSurface::Load(const char* file, unsigned short mode) {
     if (surface_ != NULL || Create(image.width(), image.height(), mode)) {
       unsigned char* dest = static_cast<unsigned char*>(Lock());
       if (dest != NULL) {
+        const unsigned char* src = image.pixels();
         int bytes = image.bits() / 8;
         // Every scale_x_-th pixel of every scale_y_-th row.
         int row_skip = (scale_y_ - 1) * bytes * image.width();
         int step = scale_x_ * bytes;
-        int height = image.height() / scale_y_;
-        const unsigned char* src = image.pixels();
         int width = image.width() / scale_x_;
+        int height = image.height() / scale_y_;
         int pad;
         switch (format_codes_[format_]) {
           case k888: {
@@ -393,8 +396,8 @@ int HLSurface::Load(const char* file, unsigned short mode) {
             pad = pitch_ / 2 - width;
             for (int y = 0; y < height; ++y) {
               for (int x = 0; x < width; ++x) {
-                *out++ = (((src[2] & 0xf8) << 5 | (src[1] & 0xfc)) << 3) |
-                         src[0] >> 3;
+                *out++ =
+                    (((src[2] >> 3) << 6 | (src[1] >> 2)) << 5) | src[0] >> 3;
                 src += step;
               }
               src += row_skip;
@@ -422,9 +425,10 @@ int HLSurface::Load(const char* file, unsigned short mode) {
             if (image.bits() == 24) {
               for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
-                  *out++ = ((0xff00 | (src[2] & 0xf0)) << 4) |
-                           ((src[1] & 0xf0) | src[0] >> 4);
+                  *out = ((0xff00 | (src[2] & 0xf0)) << 4) |
+                         ((src[1] & 0xf0) | src[0] >> 4);
                   src += step;
+                  ++out;
                 }
                 src += row_skip;
                 out += pad;
@@ -448,10 +452,11 @@ int HLSurface::Load(const char* file, unsigned short mode) {
             if (image.bits() == 24) {
               for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
-                  *out++ = (((0xff00 | (src[2] & 0xf8)) << 5 | (src[1] & 0xf8))
-                            << 2) |
-                           src[0] >> 3;
+                  *out = (((0xff00 | (src[2] & 0xf8)) << 5 | (src[1] & 0xf8))
+                          << 2) |
+                         src[0] >> 3;
                   src += step;
+                  ++out;
                 }
                 src += row_skip;
                 out += pad;
@@ -526,9 +531,9 @@ int HLSurface::Load(const char* file, unsigned short mode) {
           }
           strcpy(file_name_, file);
         }
+        result = 1;
         Log("[%d]ﾌｧｲﾙﾛｰﾄﾞ:%s (%dx%d %dbit)", id_, file, image.width(),
             image.height(), image.bits());
-        result = 1;
       }
     }
   }
