@@ -519,29 +519,30 @@ void CEnmParam::Plan(int score) {
       }
     }
   }
-  for (int i = 0; i < 2; ++i) {
-    if (state_.sides[i].mode == 0) {
-      if (state_.sides[i].unknown_08_ >= plan_.kind_counts_[2]) {
-        state_.sides[i].mode = 4;
-        state_.sides[i].unknown_08_ = 0;
+  EnmSideStats* side = state_.sides;
+  for (int i = 0; i < 2; ++i, ++side) {
+    if (side->mode == 0) {
+      if (side->unknown_08_ >= plan_.kind_counts_[2]) {
+        side->mode = 4;
+        side->unknown_08_ = 0;
       } else {
         switch (kinds[i] & 0xff0000) {
           case 0x10000:
-            if (state_.sides[i].unknown_02_ >= plan_.kind_counts_[0]) {
-              state_.sides[i].mode = 1;
-              state_.sides[i].unknown_08_ = 0;
-            } else if (state_.sides[i].unknown_04_ >= plan_.kind_counts_[1]) {
-              state_.sides[i].mode = 2;
-              state_.sides[i].unknown_08_ = 0;
+            if (side->unknown_02_ >= plan_.kind_counts_[0]) {
+              side->mode = 1;
+              side->unknown_08_ = 0;
+            } else if (side->unknown_04_ >= plan_.kind_counts_[1]) {
+              side->mode = 2;
+              side->unknown_08_ = 0;
             }
             break;
           case 0x20000:
-            if (state_.sides[i].unknown_04_ >= plan_.kind_counts_[1]) {
-              state_.sides[i].mode = 2;
-              state_.sides[i].unknown_08_ = 0;
-            } else if (state_.sides[i].unknown_02_ >= plan_.kind_counts_[0]) {
-              state_.sides[i].mode = 1;
-              state_.sides[i].unknown_08_ = 0;
+            if (side->unknown_04_ >= plan_.kind_counts_[1]) {
+              side->mode = 2;
+              side->unknown_08_ = 0;
+            } else if (side->unknown_02_ >= plan_.kind_counts_[0]) {
+              side->mode = 1;
+              side->unknown_08_ = 0;
             }
             break;
         }
@@ -556,7 +557,7 @@ void CEnmParam::Plan(int score) {
       }
     }
   }
-  EnmSideStats* side = state_.sides;
+  side = state_.sides;
   for (int i = 0; i < 2; ++i, ++side) {
     switch (side->mode) {
       case 1:
