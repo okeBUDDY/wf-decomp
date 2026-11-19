@@ -258,18 +258,17 @@ void GameHud::DrawGameOver() {
 }
 
 // 0x420bd0
-// TODO: nonmatching: the original pushes Create()'s arguments before it
-// picks the title font (and stores mode_texts_[2] before the NULL checks);
-// the rest matches.
 int GameHud::MoveGameOver() {
   int step = step_;
   switch (step) {
     case 0: {
       mode_texts_[0] = g_fonts.text.Create(16, NULL);
       mode_texts_[1] = g_fonts.text.Create(16, NULL);
-      mode_texts_[2] = (g_global.flags & cGlobal::kFlagEnglish ? g_fonts.title
-                                                               : g_fonts.kana)
-                           .Create(0x80, NULL);
+      if (g_global.flags & cGlobal::kFlagEnglish) {
+        mode_texts_[2] = g_fonts.title.Create(0x80, NULL);
+      } else {
+        mode_texts_[2] = g_fonts.kana.Create(0x80, NULL);
+      }
       if (mode_texts_[0] == NULL || mode_texts_[1] == NULL ||
           mode_texts_[2] == NULL) {
         return 1;
