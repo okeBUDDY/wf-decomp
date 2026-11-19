@@ -452,9 +452,10 @@ void CEnmParam::AddStep(int id) {
 
 // 0x41abc0
 // TODO: nonmatching (same size; the original spills rate to the stack in
-// the prologue, stores kinds[1] before kinds[0] and reads the first side's
-// progress off `this`). The `first` reference keeps &state_.sides[0] in ebp
-// up to the mode reads, which frees ebp for 0x20000 as in the original.
+// the prologue and reads the first side's progress off `this`). The `first`
+// reference keeps &state_.sides[0] in ebp up to the mode reads, which frees
+// ebp for 0x20000 as in the original; the chained `kinds` assignment stores
+// kinds[1] first, as the original does.
 void CEnmParam::Plan(int score) {
   if (player_samples_ < 1) {
     player_samples_ = 1;
@@ -475,7 +476,8 @@ void CEnmParam::Plan(int score) {
     state_.unknown_24_ = 1200;
   }
 
-  unsigned int kinds[2] = {0, 0};
+  unsigned int kinds[2];
+  kinds[0] = kinds[1] = 0;
   int left = CountDestroyed(count, kinds, 1, 0);
   new_weapon_ = -1;
   if (state_.weapon_count < 6 &&

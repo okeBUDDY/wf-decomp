@@ -651,17 +651,19 @@ Known compiler behaviour worth remembering:
     `unsigned short& to = from; to += off;` also give `add ebx, eax`). `StartTurn` takes a
     `short` and `off` is masked, so neither change alters behaviour. References to locals
     that are only read (`const int& p = pause;`) are pure aliases and change nothing.
-  * **`CEnmParam::Plan` 64 -> 51** (permuter hint, 835 from 1770): `const EnmSideStats& first
+  * **`CEnmParam::Plan` 64 -> 49** (permuter hint, 835 from 1770): `const EnmSideStats& first
     = state_.sides[0];` before the `state_.flags & 0x10000` test, with `mode0 = first.mode`
     and `first.progress < 65`, keeps `&state_.sides[0]` in ebp up to the mode reads as in the
     original, which frees ebp for the 0x20000 constant shared by the flags test and
     `AddStep(17)`. Reading only the mode through `first` (and the progress off `state_`,
     as the original's `[esi + 0x12]` suggests) loses it again (64), and so does declaring it
-    anywhere earlier. Left: `rate` is not spilled, `kinds[1]` is stored before `kinds[0]` in
-    the original (`unsigned int kinds[2]; kinds[1] = 0; kinds[0] = 0;` gives that, 51, but is
-    not committed), the first progress read is `[ebp + 6]` instead of `[esi + 0x12]`. The
+    anywhere earlier. `kinds[0] = kinds[1] = 0;` stores `kinds[1]` first like the original
+    (`= {0, 0}`, `= {}`, `memset` and a loop do not). Left: `rate` is not spilled and the
+    first progress read is `[ebp + 6]` instead of `[esi + 0x12]`. The
     `kinds` loop now steps a `side` pointer like the progress loop (one `side` variable
-    for both), which puts `mov eax, ebp` before `xor edx, edx` as in the original (53 -> 51). The rate spill: VC orders independent x87
+    for both), which puts `mov eax, ebp` before `xor edx, edx` as in the original (53 -> 51,
+    then 49 with the `kinds` stores). What is left is the rate spill and its knock-on
+    alignment padding, and the one progress read. The rate spill: VC orders independent x87
     work so that the later-used value sits deeper (every statement order of `travel`/`rate`
     in a probe computes `rate` first and keeps it in st1 across `__ftol2`); the original
     computes the travel quotient first and so has to spill `rate`. References to `rate`,
