@@ -23,6 +23,11 @@ const int kIcon = 103;
 
 }  // namespace
 
+Application g_application;   // 0x467328
+HLSPatSys g_pat_sys;         // 0x4674a0
+HLSAnmSys g_anm_sys;         // 0x4674b4
+ActorSystem g_actor_system;  // 0x4674c8
+
 // 0x401fc0
 int WINAPI WinMain(HINSTANCE instance, HINSTANCE previous, LPSTR command_line,
                    int show) {

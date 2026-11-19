@@ -33,6 +33,7 @@ void HL3D::DrawPoints(D3DPRIMITIVETYPE type, const Transform* transform,
 
 // The triangle of the ring.
 ShockwaveSprite g_shockwave;  // 0x46904c
+LaserSprite g_laser;          // 0x4690f0
 
 static D3DVECTOR g_shockwave_points[3] = {
     {-18.0f, -960.0f, 0.5f},

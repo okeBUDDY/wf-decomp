@@ -348,6 +348,7 @@ def main():
     }
     json.dump(cfg, open(os.path.join(ROOT, "objdiff.json"), "w"), indent=2)
     json.dump(sorted(matched), open(os.path.join(BUILD, "matched.json"), "w"))
+    json.dump(sorted(matched_stubs), open(os.path.join(BUILD, "matched_stubs.json"), "w"))
     # A function emitted by several sources (an inline or implicit member)
     # may match in only one of them; mkblobs takes that copy.
     json.dump({str(a): o for a, o in sorted(matched_obj.items())},

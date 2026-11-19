@@ -9,10 +9,12 @@
 #include "file.h"
 #include "fn_game.h"
 #include "fn_option.h"
+#include "fn_title.h"
 #include "fonts.h"
 #include "game.h"
 #include "game_data.h"
 #include "hl_3d.h"
+#include "replay.h"
 #include "score_table.h"
 #include "snd_sys.h"
 #include "sounds.h"
@@ -22,11 +24,17 @@ cGlobal g_global;          // 0x467538
 Game g_game;               // 0x4675fc
 ScoreTable g_score_table;  // 0x467620
 CEnmParam g_enm_param;     // 0x4677b0
+Replay g_replay;           // 0x467b10
+FnTitle g_fn_title;        // 0x467c40
+FnGame g_fn_game;          // 0x467c98
+FnOption g_fn_option;      // 0x467cd0
 
 // Implicit ctor 0x401bf0, dtor 0x401e00.
 PatFiles g_pats;  // 0x467d70
 // Implicit ctor 0x401e90, dtor 0x401f80.
-Fonts g_fonts;  // 0x467ec0
+Fonts g_fonts;              // 0x467ec0
+CSndBuf g_sounds[kSounds];  // 0x4681f0
+CSndStrm g_bgm;             // 0x4686f0
 
 // 0x4010a0
 cGlobal::cGlobal() {

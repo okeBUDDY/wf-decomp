@@ -3,9 +3,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "actor.h"
 #include "application.h"
 #include "file.h"
 #include "hls_hit_image.h"
+
+HL3D* HLSPat::d3d_;          // 0x468efc
+HLSPatSys* HLSPat::system_;  // 0x468f00
+// Constructed and destroyed, but nothing uses it.
+HLSNullObject g_unused_null_sprite;  // 0x468f04
 
 // 0x40a0e0
 HLSPatSys::HLSPatSys() {
