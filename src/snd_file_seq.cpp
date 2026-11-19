@@ -212,24 +212,24 @@ void CSndFileSEQ::Seek(int position) {
 }
 
 // 0x40f0c0
-// TODO: nonmatching: `this` and `left` swap esi/edi.
 int CSndFileSEQ::Read(void* buffer, int size) {
   if (piece_ == NULL) {
     return 0;
   }
   char* out = static_cast<char*>(buffer);
   int left = size;
-  int read = piece_->Read(out, left);
-  left -= read;
-  while (left > 0) {
+  for (;;) {
+    int read = piece_->Read(out, left);
+    left -= read;
+    if (left <= 0) {
+      break;
+    }
     out += read;
     ClosePiece();
     piece_ = OpenPiece(Next(), NULL);
     if (piece_ == NULL) {
       break;
     }
-    read = piece_->Read(out, left);
-    left -= read;
   }
   return size - left;
 }

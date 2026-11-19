@@ -359,43 +359,47 @@ void CEnmParam::OnActorDestroyed(Actor* source, Actor* actor) {
 }
 
 // 0x41a730
-// TODO: nonmatching (the original returns early when nothing is logged).
+// The loop's own return keeps the empty-log return out of line.
 int CEnmParam::CountDestroyed(int count, unsigned int* kinds, int unique,
                               int all) {
   EnmDestroyRecord* record = records_;
-  for (int i = record_count_; i > 0; --i, ++record) {
-    if ((record->slot->flags & 3) == 1 && (all || record->chain <= 2)) {
-      int side;
-      switch (record->slot->code & kSideMask) {
-        case 0x40000000:
-          side = 0;
-          break;
-        case 0x80000000:
-          side = 1;
-          break;
-        default:
-          continue;
-      }
-      if (unique) {
-        if (kinds[side] == 0) {
-          Count(record->slot, side);
-          kinds[side] = record->slot->kind;
-          --count;
-          if (kinds[0] != 0 && kinds[1] != 0) {
-            return count;
+  int i = record_count_;
+  if (i > 0) {
+    for (; i > 0; --i, ++record) {
+      if ((record->slot->flags & 3) == 1 && (all || record->chain <= 2)) {
+        int side;
+        switch (record->slot->code & kSideMask) {
+          case 0x40000000:
+            side = 0;
+            break;
+          case 0x80000000:
+            side = 1;
+            break;
+          default:
+            continue;
+        }
+        if (unique) {
+          if (kinds[side] == 0) {
+            Count(record->slot, side);
+            kinds[side] = record->slot->kind;
+            --count;
+            if (kinds[0] != 0 && kinds[1] != 0) {
+              return count;
+            }
           }
+        } else {
+          Count(record->slot, side);
+          if (kinds[side] == 0) {
+            kinds[side] = record->slot->kind;
+          }
+          --count;
         }
-      } else {
-        Count(record->slot, side);
-        if (kinds[side] == 0) {
-          kinds[side] = record->slot->kind;
+        if (count <= 0) {
+          return count;
         }
-        --count;
-      }
-      if (count <= 0) {
-        return count;
       }
     }
+    return count;
   }
   return count;
 }
