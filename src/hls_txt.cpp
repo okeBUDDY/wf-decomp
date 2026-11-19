@@ -142,7 +142,7 @@ void HLSTxtSys::Measure(SIZE* size, const char* text) {
 // 0x40ad20
 // TODO: nonmatching: the cell corners live in an 8-byte local in the
 // original (with the left edge in a register); stack slots differ.
-int HLSTxtSys::Initialize(Application* app, HLSurface* texture, short txt_count,
+int HLSTxtSys::Initialize(Application* app, HLSurface* texture, int txt_count,
                           const char* first, short char_count, int u, int v,
                           int width, int height, int columns, int space_width,
                           float* widths) {
@@ -161,7 +161,7 @@ int HLSTxtSys::Initialize(Application* app, HLSurface* texture, short txt_count,
     first_char_ = (static_cast<unsigned char>(first[0]) << 8) +
                   static_cast<unsigned char>(first[1]);
   }
-  txts_ = new HLSTxt[txt_count];
+  txts_ = new HLSTxt[txt_count_];
   if (txts_ == NULL) {
     goto failed;
   }
@@ -184,15 +184,8 @@ int HLSTxtSys::Initialize(Application* app, HLSurface* texture, short txt_count,
     cell.Bottom = v + height;
     int column = 0;
     for (int j = 0; j < char_count_; ++j) {
-      Glyph* glyph = &glyphs_[j];
-      glyph->top_left.u =
-          (cell.Left + 0.45f) / (texture_->scale_x_ * texture_->width_);
-      glyph->top_left.v =
-          (cell.Top + 0.45f) / (texture_->scale_y_ * texture_->height_);
-      glyph->bottom_right.u =
-          (cell.Right + 0.45f) / (texture_->scale_x_ * texture_->width_);
-      glyph->bottom_right.v =
-          (cell.Bottom + 0.45f) / (texture_->scale_y_ * texture_->height_);
+      GetTexCoord(texture_, &glyphs_[j].top_left, cell.Left, cell.Top);
+      GetTexCoord(texture_, &glyphs_[j].bottom_right, cell.Right, cell.Bottom);
       if (++column >= columns) {
         cell.Top += height;
         cell.Bottom += height;
@@ -207,7 +200,7 @@ int HLSTxtSys::Initialize(Application* app, HLSurface* texture, short txt_count,
   }
   // "%d kinds of %d-byte characters (%dx%d) can be shown. Buffer=%d"
   Log("%d種の%dﾊﾞｲﾄ文字(%dx%d)を表示可能. Buffer=%d", char_count_,
-      (first_char_ > 0xff) + 1, width, height, txt_count_);
+      first_char_ > 0xff ? 2 : 1, width, height, txt_count_);
   return 1;
 }
 

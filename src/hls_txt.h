@@ -72,7 +72,7 @@ class HLSTxtSys : public Object {
   // (`u`, `v`) of `texture`; a space is `space_width` wide (`width` when
   // not positive) and `widths` has the width of each character (all
   // `width` when NULL). Makes `txt_count` text objects.
-  int Initialize(Application* app, HLSurface* texture, short txt_count,
+  int Initialize(Application* app, HLSurface* texture, int txt_count,
                  const char* first, short char_count, int u, int v, int width,
                  int height, int columns, int space_width,
                  float* widths);  // 0x40ad20
@@ -101,6 +101,12 @@ class HLSTxtSys : public Object {
   };
 
   void ReleaseTexts();  // 0x40aa60
+  // The texture coordinates of texel (`x`, `y`) of `texture` (as
+  // HL3D::GetTexCoord(), inlined).
+  static void GetTexCoord(HLSurface* texture, TexCoord* out, int x, int y) {
+    out->u = (x + 0.45f) / (texture->scale_x_ * texture->width_);
+    out->v = (y + 0.45f) / (texture->scale_y_ * texture->height_);
+  }
   // Draws `glyph` at (`x`, `y`).
   void DrawGlyph(float x, float y, const Glyph* glyph,
                  D3DCOLOR color);  // 0x40b0d0
