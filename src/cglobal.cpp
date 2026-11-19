@@ -18,6 +18,11 @@
 #include "sounds.h"
 #include "sprite.h"
 
+cGlobal g_global;          // 0x467538
+Game g_game;               // 0x4675fc
+ScoreTable g_score_table;  // 0x467620
+CEnmParam g_enm_param;     // 0x4677b0
+
 // Implicit ctor 0x401bf0, dtor 0x401e00.
 PatFiles g_pats;  // 0x467d70
 // Implicit ctor 0x401e90, dtor 0x401f80.

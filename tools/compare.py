@@ -281,6 +281,7 @@ def main():
     os.makedirs(TARGETDIR, exist_ok=True)
     units = []
     seen, matched = set(), set()
+    matched_obj = {}  # address -> object holding a matching copy
     splits = load_splits()
     in_text = lambda a: any(sec == ".text" and lo <= a < hi
                             for u in splits.units for sec, lo, hi in u.ranges)
@@ -304,6 +305,7 @@ def main():
             seen.add(addr)
             if ok:
                 matched.add(addr)
+                matched_obj.setdefault(addr, os.path.basename(obj))
             status = "OK" if ok else "DIFF"
             if ok and unchecked:
                 status += f" ({unchecked} relocs unchecked)"
@@ -338,6 +340,10 @@ def main():
     }
     json.dump(cfg, open(os.path.join(ROOT, "objdiff.json"), "w"), indent=2)
     json.dump(sorted(matched), open(os.path.join(BUILD, "matched.json"), "w"))
+    # A function emitted by several sources (an inline or implicit member)
+    # may match in only one of them; mkblobs takes that copy.
+    json.dump({str(a): o for a, o in sorted(matched_obj.items())},
+              open(os.path.join(BUILD, "matched_obj.json"), "w"), indent=0)
     open(os.path.join(BUILD, "progress.json"), "w").write(json.dumps(dict(
         functions_matched=total_match, functions_total=len(game_funcs),
         bytes_matched=matched_bytes, bytes_total=game_bytes,

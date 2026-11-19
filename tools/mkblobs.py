@@ -172,6 +172,9 @@ def load_compiled(syms, lib_names):
     by_name = {s["name"]: a for a, s in syms.items() if s["type"] == "func"}
     mpath = os.path.join(BUILD, "matched.json")
     matched = set(json.load(open(mpath))) if os.path.exists(mpath) else set()
+    opath = os.path.join(BUILD, "matched_obj.json")
+    matched_obj = ({int(a): o for a, o in json.load(open(opath)).items()}
+                   if os.path.exists(opath) else {})
     out = {}
     for path in sorted(glob.glob(os.path.join(BUILD, "obj", "src", "*.obj"))):
         coff = Coff(open(path, "rb").read(), path)
@@ -182,7 +185,8 @@ def load_compiled(syms, lib_names):
             for y in sec["syms"]:
                 if y["type"] & 0x20 and y["value"] == 0 and y["cls"] == 2 and y["name"] in by_name:
                     a = by_name[y["name"]]
-                    if a in matched and a not in out:
+                    if (a in matched and a not in out and
+                            matched_obj.get(a, os.path.basename(path)) == os.path.basename(path)):
                         out[a] = CompiledFunction(path, coff, sec, y["name"])
                     break
     return out
