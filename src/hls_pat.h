@@ -73,7 +73,7 @@ class HLSPatSys : public System {
   virtual void Resume() {}
 
   // Sets up a free pattern (see HLSPat::Setup()); NULL when none is left.
-  HLSPat* Create(int width, int height, HLSurface* texture, short u, short v,
+  HLSPat* Create(int width, int height, HLSurface* texture, int u, int v,
                  int x, int y, int hit_width, int hit_height);  // 0x409f80
   // The number of patterns (before Initialize()).
   void set_count(int count) { count_ = count; }
