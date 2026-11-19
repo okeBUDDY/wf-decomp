@@ -23,6 +23,23 @@ BOOL CALLBACK SoundSystem::EnumDeviceProc(GUID* guid, LPCSTR description,
   return TRUE;
 }
 
+// 0x408f10
+void Channel::SetVolume(float volume) {
+  if (volume < 0.0f) {
+    volume = volume_;
+  } else {
+    volume_ = volume;
+  }
+  if (buffer_ != NULL) {
+    float level = volume * system_->group_volume_[sound_->group()];
+    if (level <= 0.0f) {
+      buffer_->SetVolume(DSBVOLUME_MIN);
+    } else {
+      buffer_->SetVolume(-5000 - static_cast<long>(level * -5000.0f));
+    }
+  }
+}
+
 // 0x408f90
 SoundSystem::SoundSystem() {
   device_ = NULL;
@@ -146,6 +163,32 @@ int CSndBufList::Clear() {
   return 1;
 }
 
+// 0x409370
+void Channel::Release() {
+  if (buffer_ != NULL) {
+    buffer_->Stop();
+    sound_->ReleaseBuffer(buffer_);
+    buffer_ = NULL;
+  }
+  sound_ = NULL;
+  SoundSystem* system = system_;
+  if (prev_ != NULL) {
+    prev_->next_ = next_;
+  }
+  if (next_ != NULL) {
+    next_->prev_ = prev_;
+  }
+  if (this == system->head_) {
+    system->head_ = next_;
+  }
+  if (this == system->tail_) {
+    system->tail_ = prev_;
+  }
+  next_ = NULL;
+  prev_ = NULL;
+  flags_ = 0;
+}
+
 // 0x409420
 void SoundSystem::Stop(CSndBuf* buffer, int group) {
   EnterCriticalSection(&lock_);
@@ -174,6 +217,26 @@ void SoundSystem::Stop(CSndBuf* buffer, int group) {
     }
   }
   LeaveCriticalSection(&lock_);
+}
+
+// 0x409500
+int Channel::Play() {
+  if (buffer_ == NULL || (system_->muted_groups_ & (1 << sound_->group()))) {
+    return 1;
+  }
+  DWORD flags = (flags_ & kLoop) ? DSBPLAY_LOOPING : 0;
+  switch (buffer_->Play(0, 0, flags)) {
+    case DS_OK:
+      break;
+    case DSERR_BUFFERLOST:
+      sound_->Restore();
+      buffer_->Play(0, 0, flags);
+      break;
+    default:
+      Release();
+      return 0;
+  }
+  return 1;
 }
 
 // 0x409580

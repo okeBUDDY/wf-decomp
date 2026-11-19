@@ -45,9 +45,9 @@ void CEnmParam::Finalize() {
 // TODO: nonmatching (register choice).
 int CEnmParam::GetParams(short* out) {
   int count = state_.weapon_count + 6;
+  const EnmSideStats* side = state_.sides;
   int total =
       plan_.kind_counts_[5] + plan_.kind_counts_[1] + plan_.kind_counts_[0];
-  const EnmSideStats* side = state_.sides;
   int side0 = side->Score() * 800 / total;
   ++side;
   out[0] = side->Score() * 800 / total;
