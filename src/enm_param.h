@@ -163,7 +163,10 @@ inline void AddClamped(short* value, int delta) {
 // Destructions counted for one side of the boss (10 bytes).
 struct EnmSideStats {
   int Score() const {
-    return (mode == 0 ? unknown_04_ : unknown_08_ + unknown_04_) + unknown_02_;
+    if (mode == 0) {
+      return unknown_04_ + unknown_02_;
+    }
+    return unknown_08_ + unknown_04_ + unknown_02_;
   }
 
   short mode;         // 0x00, bits 1, 2 and 4 pick the optional children

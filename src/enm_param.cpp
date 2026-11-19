@@ -42,7 +42,6 @@ void CEnmParam::Finalize() {
 }
 
 // 0x419fa0
-// TODO: nonmatching (register choice).
 int CEnmParam::GetParams(short* out) {
   int count = state_.weapon_count + 6;
   const EnmSideStats* side = state_.sides;
@@ -342,7 +341,8 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
 }
 
 // 0x41aa60
-// TODO: nonmatching (the original loads slot->flags before adding to power).
+// The slot's power is clamped in place, not with AddClamped(): the original
+// loads slot->flags before adding to the power.
 void CEnmParam::OnActorDestroyed(Actor* source, Actor* actor) {
   if (actor->id != 1) {
     return;
@@ -350,7 +350,12 @@ void CEnmParam::OnActorDestroyed(Actor* source, Actor* actor) {
   EnmSlot* slot = reinterpret_cast<EnmSlot*>(source->work[0]);
   if (slot != NULL) {
     slot->flags |= 4;
-    AddClamped(&slot->power, 50);
+    slot->power += 50;
+    if (slot->power > 0x400) {
+      slot->power = 0x400;
+    } else if (slot->power < 0) {
+      slot->power = 0;
+    }
     if (slot->power > g_enm_param.state_.weapon_levels[slot->weapon]) {
       g_enm_param.state_.weapon_levels[slot->weapon] = slot->power;
     }

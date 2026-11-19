@@ -41,8 +41,6 @@ int Application::AddSystem(System* system, bool owns) {
 }
 
 // 0x406980
-// TODO: nonmatching: the shared `return 0` block is placed at the end and
-// the later failures do not reuse eax.
 int Application::Initialize(const char* title, const char* name) {
   if (options & kLog) {
     strcpy(g_text_buffer, name);
@@ -57,16 +55,14 @@ int Application::Initialize(const char* title, const char* name) {
   strcat(this->title, "  ver 0.00");
   tasks.RemoveFrom(0);
   overlays.RemoveFrom(0);
-  if (!AddSystem(device, true)) {
-    goto failed;
-  }
-  window_system->set_title(title);
-  if (!AddSystem(window_system, true)) {
-    goto failed;
+  // The device and the window fail through one condition: the original
+  // shares their `return 0` with the later failures.
+  if (!AddSystem(device, true) ||
+      (window_system->set_title(title), !AddSystem(window_system, true))) {
+    return 0;
   }
   if (graphics_flags & kInput) {
     if (!AddSystem(input, true)) {
-    failed:
       return 0;
     }
   } else if (input != NULL) {
@@ -74,7 +70,7 @@ int Application::Initialize(const char* title, const char* name) {
   }
   if (graphics_flags & kDirectDraw) {
     if (!AddSystem(graphics, true)) {
-      goto failed;
+      return 0;
     }
     screen = graphics->back();
   } else if (graphics != NULL) {
