@@ -183,7 +183,8 @@ def load_compiled(syms, lib_names):
             if not sec["flags"] & 0x20:
                 continue
             for y in sec["syms"]:
-                if y["type"] & 0x20 and y["value"] == 0 and y["cls"] == 2 and y["name"] in by_name:
+                if (y["type"] & 0x20 and y["value"] == 0 and y["cls"] in (2, 3)
+                        and y["name"] in by_name):
                     a = by_name[y["name"]]
                     if (a in matched and a not in out and
                             matched_obj.get(a, os.path.basename(path)) == os.path.basename(path)):
