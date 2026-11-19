@@ -548,7 +548,7 @@ Known compiler behaviour worth remembering:
 * **Where a value is computed changes the whole allocation (step 35).** In
   `HLSurface::Load`, declaring `int width = image.width() / scale_x_;` after `src` instead
   of before `height` took the draft from 172 to 70 differing instructions (the 888 case
-  matches now; 12 after step 36), and one `int pad;` shared by all cases from 184 to 172. In
+  matches now; 12 after step 36, 9 after step 37), and one `int pad;` shared by all cases from 184 to 172. In
   `CEnmParam::Grow`, reading the side from `code` instead of `base`
   (`(code & kSideMask) == 0x80000000`, the same value) moved `this` into ebp (85 -> 68).
   When a draft's registers are permuted, try moving each computation to its first use and
@@ -570,6 +570,74 @@ Known compiler behaviour worth remembering:
   comes before `and edx, 0xffff0000` the or goes into edi, when it comes after, into
   edx; the original has the inc first and the or into edx. Twenty forms of the
   increment, setter, list access and loop declarations all keep that coupling.
+* **Step 37 (drafts only, no new matches).**
+  * **Variable sharing changes another case's allocation.** In `HLSurface::Load` the 565 case
+    takes the original's `(((src[2] & 0xf8) << 5 | (src[1] & 0xfc)) << 3) | src[0] >> 3` form
+    once the four 16-bit cases share one `unsigned short* out` declared next to `pad` (one per
+    case made VC load `src[2]` first and spill the width inside the loop): 12 -> 9 differing
+    instructions, only the `row_skip` product is left. It was found by ablation: deleting
+    whole cases from a copy of the function (compiled with `tools/fas.py`) showed that the 565
+    loop compiles right without the 4444 or the 5551 case, so the cases' combined use counts
+    decide it. When one case of a switch is off, try cutting the others to find which one
+    pushes it.
+  * **Operand order of a product.** VC sorts the leaves of `a * b * c` (every grouping and
+    order is the same to it): of two named locals, the one assigned later is multiplied first,
+    and a CSE'd member read (`image.width()` used twice) counts as the newest. A probe with a
+    local `HLImage` reproduces the draft's `((scale_y_ - 1) * width) * bytes`; the original's
+    `((scale_y_ - 1) * bytes) * width` needs a named width assigned before `bytes`
+    (`int width = image.width();` ... `width /= scale_x_;`, or a separate `src_width`).
+    In the full function that gives the right product, but then either the height is divided
+    before the width (height computed first in the source, 17 instructions) or, with the width
+    divided first, the whole function's allocation flips (`this` to ebp, the result to ebx,
+    `scale_x_` read twice; 191). All 294 dependency-respecting orders of the seven setup lines,
+    184 orders with a named raw height too, 720 C-style declaration orders, the positions of
+    `pad`/`out`, a switch-value local, a `scale_x` copy and `short`/`const`/`unsigned` widths
+    keep one of the two (a `short` width loses the product order). Inline `image.bits() / 8`
+    instead of `bytes` fixes the product in a probe with a reference parameter but not with a
+    local image. Permuter runs from the 20-, 17- and 191-instruction variants (about 45, 70 and 50
+    minutes) found only unnatural temporaries (`result = format_;`, the height computed into
+    `result`, a copy of `scale_x_` read before `Create()`) and `bytes` computed before `Lock()`,
+    which is worse when ported (48).
+  * `CEnmParam::Grow`: the original computes the side as `mov eax, ebx; and eax, 0xc0000000;
+    sub eax, 0x80000000; neg; sbb; inc` from `base` (ebx), which is what VC emits for
+    `(base & kSideMask) == 0x80000000` (the `code` form gives `cmp`/`sete` from a spilled
+    `code & kSideMask`), so the original does read the side from `base`. With it `this` goes to
+    ebx and `base` to ebp (82 instructions, 0x19 bytes short); a `char weapon` local gives the
+    original's load/`inc`/store for `++weapon_parts_[weapon]` (the int local gives `inc dword
+    ptr`) but not its edi. Count/base order, `ChildBase()`, operand order and a written-out
+    `FindSlot()` (a `NULL` result or a `goto`) do not move `this` back to ebp. A 50-minute
+    permuter run on the `base` form found only semantic changes.
+  * `SoundSystem::Pause`: the `or` destination follows liveness. In a probe, a use of `count`
+    after `set_pause_count(++count)` (a store to a global) gives exactly the original's
+    `inc edi; and edx, 0xffff0000; or edx, edi`: VC overwrites the operand that dies, so in the
+    original `count` was still live after the store (the permuter's `&count` does the same).
+    The original has no later use of it, so look for a construct that keeps it live without
+    code: a variable that outlives the loop body, or one the optimizer drops only after
+    register allocation. A function-scope `count` (with or without `= 0`), `count + 1` or
+    `count += 1` as the argument, a `const unsigned int&` setter parameter, a reference to the
+    flags at the top of the loop (flips both), a buffer local and a nested `if` do not; a
+    20-minute permuter run found nothing.
+  * `CEnmParam::Plan`: a `float travel` local makes VC compute `rate` first and keep it on the
+    x87 stack (same 64 instructions). Note that `rate` shares its stack slot with `kinds[0]` in
+    the original (the frame is only the 8 bytes of `kinds`).
+  * `HLSurface::InitTextureFormats` has two more differences besides the slots: the vtable of
+    the two `EnumTextureFormats` calls is loaded into ecx/edx (eax/ecx here) and the `Log()`
+    arguments use the registers shifted by one, as if one more temporary had been allocated
+    before them. A `kind` local, an `HRESULT` local, `SUCCEEDED()`, `!hr` and the store order
+    of `width_`/`height_` do not change it; neither does any order of the two saved locals and
+    `result`. A 30-minute permuter run (after hand-fixing the `D3DDEVICEDESC7`/`DDCAPS`
+    stubs in `base.c`) found nothing.
+  * `Control32::RunProgramB0` and `Pause` look alike: in both, the original puts the result of
+    a commutative operation (`from + off`, `(flags & ~mask) | count`) into the left operand's
+    register where VC, with both operands dying, reuses the right one's. In `Pause` a later use
+    of the right operand flips VC to the left; in `RunProgramB0` a test store of `off` after the
+    call rearranges the whole case, so it says nothing there.
+  * `RateGame`: an `else if (both modes != 0) { ... } else { grade = 1; }` chain, `grade = 0,
+    title = 0` initializers and the stores written out keep the shared tail at the end.
+  * The probe setups are cheap: `tools/fas.py --print` on a probe TU takes 0.3 s. Do not run it
+    (or any compile) while a `compare.py` in the same tree rewrites `build/src-sjis`: cl then
+    hung at 100% CPU twice. A second clone of the repo (with `orig/wf.exe` linked and
+    `build/analysis.json`/`build/lib` copied) runs compare and the permuter independently.
 * **Step 36 (drafts only, no new matches).**
   * `HLSurface::Load` 70 -> 12 differing instructions: the declaration order `src`, `bytes`,
     `row_skip`, `step`, `width`, `height` (all 120 orders tried), `result = 1` before `Log()`,

@@ -341,14 +341,16 @@ int HLSurface::Create(int width, int height, unsigned short mode) {
 }
 
 // 0x40bff0
-// TODO: nonmatching (12 differing instructions): the original multiplies
+// TODO: nonmatching (9 differing instructions): the original multiplies
 // row_skip as ((scale_y_ - 1) * bytes) * width, VC here as
-// ((scale_y_ - 1) * width) * bytes (every operand order and grouping gives
-// the same), and the 565 case's green channel is `src[1] & 0xfc` there: that
-// form is right in a probe TU but here costs a register (49 instructions), so
-// the draft keeps the equivalent shift form. Declaration order (all 120
-// orders tried), `result = 1` before Log() and a separate `++out` in the
-// 24-bit 4444/5551 loops took the draft from 70 to 12.
+// ((scale_y_ - 1) * width) * bytes. A named width assigned before `bytes`
+// (`int width = image.width();` ... `width /= scale_x_;`) gives the
+// original's product (VC multiplies the later-assigned variable first), but
+// then the width and height divisions are swapped or, with the width divided
+// first, the whole allocation changes. One `out` for all 16-bit cases
+// (declared with `pad`) made the 565 case's `src[1] & 0xfc` form match.
+// Declaration order (all 120 orders tried), `result = 1` before Log() and a
+// separate `++out` in the 24-bit 4444/5551 loops took the draft from 70 to 12.
 int HLSurface::Load(const char* file, unsigned short mode) {
   int result = 0;
   HLImage image;
@@ -375,6 +377,7 @@ int HLSurface::Load(const char* file, unsigned short mode) {
         int width = image.width() / scale_x_;
         int height = image.height() / scale_y_;
         int pad;
+        unsigned short* out = reinterpret_cast<unsigned short*>(dest);
         switch (format_codes_[format_]) {
           case k888: {
             pad = pitch_ - width * 3;
@@ -392,12 +395,11 @@ int HLSurface::Load(const char* file, unsigned short mode) {
             break;
           }
           case k565: {
-            unsigned short* out = reinterpret_cast<unsigned short*>(dest);
             pad = pitch_ / 2 - width;
             for (int y = 0; y < height; ++y) {
               for (int x = 0; x < width; ++x) {
-                *out++ =
-                    (((src[2] >> 3) << 6 | (src[1] >> 2)) << 5) | src[0] >> 3;
+                *out++ = (((src[2] & 0xf8) << 5 | (src[1] & 0xfc)) << 3) |
+                         src[0] >> 3;
                 src += step;
               }
               src += row_skip;
@@ -406,7 +408,6 @@ int HLSurface::Load(const char* file, unsigned short mode) {
             break;
           }
           case k555: {
-            unsigned short* out = reinterpret_cast<unsigned short*>(dest);
             pad = pitch_ / 2 - width;
             for (int y = 0; y < height; ++y) {
               for (int x = 0; x < width; ++x) {
@@ -420,7 +421,6 @@ int HLSurface::Load(const char* file, unsigned short mode) {
             break;
           }
           case k4444: {
-            unsigned short* out = reinterpret_cast<unsigned short*>(dest);
             pad = pitch_ / 2 - width;
             if (image.bits() == 24) {
               for (int y = 0; y < height; ++y) {
@@ -447,7 +447,6 @@ int HLSurface::Load(const char* file, unsigned short mode) {
             break;
           }
           case k5551: {
-            unsigned short* out = reinterpret_cast<unsigned short*>(dest);
             pad = pitch_ / 2 - width;
             if (image.bits() == 24) {
               for (int y = 0; y < height; ++y) {
