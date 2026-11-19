@@ -141,8 +141,11 @@ void Control32::OnDestroy(Actor* actor) {
 }
 
 // 0x411e20
-// TODO: nonmatching (the original keeps the squared distance on the FPU stack
-// for the test and spills the acceleration)
+// TODO: nonmatching (12 bytes short: the original keeps the squared distance
+// in a 4-byte local and on the FPU stack for the test, and spills the
+// acceleration into the dead `actor` slot; here the acceleration stays on the
+// FPU stack. Declaration order, chained assignments and an inline helper for
+// the brake time do not change it.)
 int Control32::Dash(Actor* actor, EnmList* program, float x, float y,
                     float power, int boost) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
@@ -168,35 +171,36 @@ int Control32::Dash(Actor* actor, EnmList* program, float x, float y,
   float distance2 = dy * dy + dx * dx;
   float acceleration = power * 0.005f;
   work->deceleration = acceleration;
-  if (!(distance2 > 0.0f)) {
-    return 0;
-  }
-  float speed = sqrt(sqrt(distance2) * acceleration * 2.0f /
-                     ((acceleration + acceleration) * acceleration));
-  work->brake_time = static_cast<short>(speed / acceleration * acceleration);
-  if (work->brake_time <= 0) {
-    work->brake_time = 1;
-  }
-  actor->acceleration = acceleration;
-  actor->speed = 0.0f;
-  actor->start_angle = actor->AngleTo(x, y);
-  program->time = 0;
-  reinterpret_cast<PartWork*>(actor->work)->flags |= Control32Work::kDashing;
-  if (boost) {
-    g_enm_param.unknown_164_ = 0;
-    g_enm_param.unknown_158_ = actor->start_angle;
-    g_enm_param.flare_time_ = work->brake_time;
-    g_enm_param.flare_size_ = power;
-    for (int i = 0; i < 4; ++i) {
-      SendEvent(work->arms[i], 9, 0x110a);
+  if (distance2 > 0.0f) {
+    float speed = sqrt(sqrt(distance2) * acceleration * 2.0f /
+                       ((acceleration + acceleration) * acceleration));
+    work->brake_time = static_cast<short>(speed / acceleration * acceleration);
+    if (work->brake_time <= 0) {
+      work->brake_time = 1;
     }
-    if (power > 1.0f && work->brake_time > 90) {
-      g_application.sound->channel(26)->Assign(&g_sounds[kSndBoost2], 0, 1.0f);
-      return 1;
+    actor->acceleration = acceleration;
+    actor->speed = 0.0f;
+    actor->start_angle = actor->AngleTo(x, y);
+    program->time = 0;
+    reinterpret_cast<PartWork*>(actor->work)->flags |= Control32Work::kDashing;
+    if (boost) {
+      g_enm_param.unknown_164_ = 0;
+      g_enm_param.unknown_158_ = actor->start_angle;
+      g_enm_param.flare_time_ = work->brake_time;
+      g_enm_param.flare_size_ = power;
+      SendEvent(work->arms[0], 9, 0x110a);
+      SendEvent(work->arms[1], 9, 0x110a);
+      SendEvent(work->arms[2], 9, 0x110a);
+      SendEvent(work->arms[3], 9, 0x110a);
+      if (power > 1.0f && work->brake_time > 90) {
+        g_application.sound->channel(26)->Assign(&g_sounds[kSndBoost2], 0, 1.0f);
+        return 1;
+      }
+      g_application.sound->channel(25)->Assign(&g_sounds[kSndBoost1], 0, 1.0f);
     }
-    g_application.sound->channel(25)->Assign(&g_sounds[kSndBoost1], 0, 1.0f);
+    return 1;
   }
-  return 1;
+  return 0;
 }
 
 // The power of the dash of `program`: its argument in percent.
