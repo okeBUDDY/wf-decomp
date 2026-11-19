@@ -235,8 +235,6 @@ int CSndFileSEQ::Read(void* buffer, int size) {
 }
 
 // 0x40f1b0
-// TODO: nonmatching: register allocation (the original keeps `path` in ebp
-// and reloads `from_disk` from the stack).
 int CSndFileSEQ::Open(const char* path, WAVEFORMATEX* format, int from_disk) {
   int version;
   SeqHeader header;
@@ -245,13 +243,14 @@ int CSndFileSEQ::Open(const char* path, WAVEFORMATEX* format, int from_disk) {
       file_->ReadExact(&version, 4) && version == kSeqVersion &&
       file_->ReadExact(&header, sizeof(header))) {
     command_count_ = header.command_count;
+    int names_size = header.names_size;
     dir_length_ = static_cast<unsigned short>(GetFileName(path) - path);
     commands_ = new Command[command_count_];
-    names_ = new char[header.names_size];
+    names_ = new char[names_size];
     path_ = new char[header.max_name_length + dir_length_ + 1];
     if (commands_ != NULL && path_ != NULL && names_ != NULL &&
         file_->ReadExact(commands_, command_count_ * sizeof(Command)) &&
-        file_->ReadExact(names_, header.names_size)) {
+        file_->ReadExact(names_, names_size)) {
       strcpy(path_, path);
       file_->Close();
       delete file_;

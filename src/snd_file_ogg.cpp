@@ -70,11 +70,12 @@ void CSndFileOGG::Close() {
 }
 
 // 0x40e8f0
-// TODO: nonmatching: the original places the shared "return 0" block right
-// after the ov_info() check instead of at the end (same instructions).
 int CSndFileOGG::Open(const char* path, WAVEFORMATEX* format, int from_disk) {
   file_ = from_disk ? new File : new PackFile;
-  if (file_ == NULL || !file_->Open(path, File::kRead)) {
+  if (file_ == NULL) {
+    return 0;
+  }
+  if (!file_->Open(path, File::kRead)) {
     return 0;
   }
   if (ov_open_callbacks(file_, &vorbis_, NULL, 0, kCallbacks) != 0) {

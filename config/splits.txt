@@ -230,17 +230,20 @@ unit obj39_40de80   # eh cut=0
     .data     0x45d338 0x45d344
 
 unit obj40_40e2a0   # eh cut=5
-    .text     0x40e2a0 0x40e910
+    .text     0x40e2a0 0x40ea20
     .text$x   0x450380 0x4503a0
     .rdata    0x4522a8 0x452314
     .xdata$x  0x45b810 0x45b834
+    .data     0x45d344 0x45d354
 
-unit obj41_40e910   # eh cut=1
-    .text     0x40e910 0x40f390
+# Hand-corrected: the generated cut at 0x40e910 fell inside
+# CSndFileOGG::Open (0x40e8f0-0x40ea15), whose kCallbacks (0x45d344) is the
+# .data that went with the next unit. snd_file_seq.cpp starts at 0x40ea20.
+unit obj41_40ea20   # eh cut=1
+    .text     0x40ea20 0x40f390
     .text$x   0x4503a0 0x4503c0
     .rdata    0x452314 0x452338
     .xdata$x  0x45b834 0x45b858
-    .data     0x45d344 0x45d354
 
 unit obj42_40f390   # eh cut=0
     .text     0x40f390 0x40f4c0
