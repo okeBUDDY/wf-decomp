@@ -1,5 +1,13 @@
 # LINK 7.10 command line used to rebuild wf.exe (see tools/link.py).
 # {OBJS} expands to the game unit objects in split order (decompiled or blob).
+# {VC71} expands to the VS.NET 2003 Vc7 directory (WF_VC71).
+#
+# Library order (README, "IAT order"): comctl32 comes first (its only import,
+# InitCommonControls, is discarded by /OPT:REF; LINK warns LNK4089, but the
+# DLL name string stays at the start of the hint/name table). kernel32 is
+# searched twice: Vc7/lib/kernel32.lib for the game's imports before user32,
+# and the PlatformSDK's Kernel32.Lib (a different file, so LINK does not drop
+# it as a repeat) for the CRT's imports after libcmt.
 /NOLOGO
 /SUBSYSTEM:WINDOWS
 /MACHINE:X86
@@ -8,6 +16,7 @@
 /INCREMENTAL:NO
 {OBJS}
 wf.res
+comctl32.lib
 winmm.lib
 ddraw.lib
 dsound.lib
@@ -16,9 +25,10 @@ dxguid.lib
 uuid.lib
 png.lib
 vorbisfile.lib
-libcmt.lib
 kernel32.lib
 user32.lib
 gdi32.lib
+libcmt.lib
+{VC71}/PlatformSDK/Lib/Kernel32.Lib
 ogg.lib
 vorbis.lib

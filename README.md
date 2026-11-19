@@ -45,6 +45,7 @@ python3 tools/tusplit.py           # (re)generate config/splits.txt (73 units)
 python3 tools/compare.py           # compile src/, per-function match report
 python3 tools/mkblobs.py           # one object per unit -> build/blobs/ (uses compiled src/)
 python3 tools/iatorder.py && python3 tools/mkblobs.py   # import order (config/imports.txt)
+python3 tools/iatorder.py --check  # predicted IAT vs the original
 python3 tools/build_res.py         # res/wf.rc -> build/wf.res with rc.exe (link.py runs it too)
 python3 tools/link.py              # link build/wf.exe and run verify
 python3 tools/verify.py [-v]       # SHA-1, header and per-section diffs
@@ -71,6 +72,7 @@ mangled with warning C4129.
 | `config/library-symbols.csv` | The 720 identified library functions |
 | `config/comdats*.txt` | COMDAT constants that the game shares with the libraries |
 | `config/imports.txt` | Import reference order (generated, reproduces the IAT) |
+| `config/imports-discarded.txt` | Imports of discarded game code (placement found by search, names guessed) |
 | `config/link.txt` | LINK command line |
 | `res/` | Resource script (`wf.rc`, `resource.h`); the icon is extracted at build time |
 | `config/libs.json` | Library sources, flags and archives |
@@ -106,9 +108,26 @@ mangled with warning C4129.
   Several names at one address each get their own copy, and `/OPT:ICF` folds them back
   together. With a single copy, ICF would fold it into a later library copy.
 * **IAT order.** LINK collects one entry per pulled import member, plus one per import
-  descriptor, and sorts them by DLL name with the CRT's unstable `qsort`. The tiny test links
-  behind this model all reproduce exactly. `iatorder.py` inverts that permutation and
-  orders the blob's import references to match. The IAT now matches.
+  descriptor, and sorts them by DLL name with the CRT's unstable `qsort`; the hint/name
+  table (`.idata$6`) stays in pull order. The tiny test links behind this model all
+  reproduce exactly. Three things reproduce the original:
+  * `comctl32.lib` comes first on the command line. Its only import, `InitCommonControls`,
+    is discarded by `/OPT:REF` (LINK warns LNK4089), but the `COMCTL32.dll` name string
+    stays at the start of `.idata$6`, and its descriptor objects count in the Rich header.
+  * kernel32 is searched twice: `Vc7/lib/kernel32.lib` before user32 for the game's
+    imports, and `{VC71}/PlatformSDK/Lib/Kernel32.Lib` after libcmt for the CRT's (the
+    `_RtlUnwind@16` thunk sits between libcmt and ogg in `.text`). LINK only drops a
+    repeated library when it is the same file. `link.py` and `linksim.py` expand `{VC71}`.
+  * `config/imports.txt` (written by `iatorder.py`) lists the game's imports in the
+    original `.idata$6` order, plus 12 imports of game code that `/OPT:REF` discarded
+    (`config/imports-discarded.txt`). They are not in the exe, but LINK pulled their members
+    before the sort, so they change the qsort's input (Rich `Import` 173). An exhaustive
+    search over their placement (labels only: the qsort compares DLL names) leaves exactly
+    two solutions: 10 USER32 imports (a run of 7 anywhere in the game's USER32 group and
+    3 at its end) plus one more KERNEL32 or COMCTL32 import. The names are free; the ones
+    used are guesses (an about dialog for the unused dialog 102, a system menu item, a
+    debug trace) and are documented as such. `iatorder.py --check` simulates the link
+    of the current blobs and compares the predicted IAT per DLL with the original.
 * **Group starts.** The start of a section group is aligned to the largest contribution
   alignment. The game ranges start at 0x451270 (`.rdata`), 0x45d0a0 (`.data`) and
   0x467320 (`.bss`).
@@ -127,42 +146,19 @@ compares each resource that `rc` writes with the original's data. The symbolic n
 
 ## Remaining differences of build/wf.exe
 
-Baseline (differing bytes): headers 130, `.text` 0, `.rdata` 2987, `.data` 0, `.rsrc` 0.
+Baseline (differing bytes): headers 128, `.text` 0, `.rdata` 0, `.data` 0, `.rsrc` 0.
 
 | Section | Cause | Bytes | Fixable |
 |---|---|---|---|
-| `.rdata` | Hint/name table (`.idata$6`) order and a 14-byte `COMCTL32.dll` name at its start; every IAT/ILT value follows from it | 2987 | Yes, worked out but not applied (see below) |
-| headers | Rich header: `Import` 161 vs 173, `Implib710 2179` 7 vs 6, `Implib700 9210` 6 vs 9 (the import part, see below) | part of 130 | Yes, with the import fix |
-| headers | Rich header: `Utc1310_C 3077` 150 vs 151 (one more C object, likely a libcmt member pulled by discarded game code) | part of 130 | Unknown object; not tried |
-| headers | Rich header: `Utc13_CPP 9178` (PSDK `dxguid.lib`) vs `Utc1310_CPP 4035` (a newer DirectX SDK's `dxguid.lib`, built with cl 13.10.4035) | part of 130 | No: that SDK is not in the toolchain; the data it adds already matches |
-| headers | TimeDateStamp, CheckSum | 4 + 2 | Only by a documented post-link patch (not done) |
+| headers | Rich header: `Utc1310_C 3077` 150 vs 151 (one more C object, likely a libcmt member pulled by discarded game code) | part of 128 | Under investigation |
+| headers | Rich header: `Utc13_CPP 9178` (PSDK `dxguid.lib`) vs `Utc1310_CPP 4035` (a newer DirectX SDK's `dxguid.lib`, built with cl 13.10.4035) | part of 128 | No: that SDK is not in the toolchain; the data it adds already matches |
+| headers | TimeDateStamp | 4 | Only by a post-link patch |
 
-No difference comes from the 30 unmatched game functions: they link from the original bytes.
+The `CheckSum` is 0 in both files. No difference comes from the 29 unmatched game functions:
+they link from the original bytes.
 
-**Import findings (step 25, not applied yet).** The original `.idata$6` is in pull order:
-`COMCTL32.dll`, then WINMM, DDRAW, DSOUND, DINPUT, the game's KERNEL32 imports, USER32,
-GDI32 (each DLL's name after its imports), then the CRT's KERNEL32 imports. So:
-
-* `comctl32.lib` came first on the command line. Its only imports were discarded by
-  `/OPT:REF` (LINK warns LNK4089), but the DLL name string stays. That also gives the Rich
-  `Implib700` 9 (comctl32's descriptor, thunk and `__NULL_IMPORT_DESCRIPTOR`).
-* kernel32 was searched twice in the first pass: before user32, and again after libcmt
-  (the `_RtlUnwind@16` thunk sits between libcmt and ogg in `.text`). LINK drops a repeated
-  library only when it is the same file, so this is reproduced with `kernel32.lib`
-  (`Vc7/lib`) before user32 and `PlatformSDK/Lib/Kernel32.Lib` after `libcmt.lib`.
-* `imports.txt` must then list only the game's own imports, in the original hint/name order
-  per DLL, instead of the `iatorder.py` permutation of all imports.
-* A test link with that command line
-  (`comctl32 winmm ddraw dsound dinput dxguid uuid png vorbisfile kernel32 user32 gdi32 libcmt
-  <PSDK>/Kernel32.Lib ogg vorbis`) gives the original `.idata$6` byte for byte, `.data` 0,
-  `.rsrc` 0, and `linksim.py` predicts its IAT exactly. The IAT order is still wrong there,
-  because the original's qsort input also held 11 discarded game imports
-  (Rich `Import` 173 vs 162). A search over where they can go (labels only; the qsort compares
-  DLL names) found label sets that reproduce the whole IAT: one more COMCTL32 or KERNEL32
-  import plus 10 USER32 ones. The rest of the search space was not finished. To apply it:
-  add the dropped imports as `extern` references (their names are free, as they are
-  discarded), update `link.txt`, `link.py`/`linksim.py` (a path entry for the second
-  kernel32) and `iatorder.py`, and check with `verify.py`.
+Step 27 applied the import findings: `.rdata` went from 2987 to 0 differing bytes, and the
+Rich `Import` (173) and `Implib` counts now equal the original's.
 
 ## Translation units
 

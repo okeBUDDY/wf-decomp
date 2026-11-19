@@ -36,6 +36,8 @@ def link(out=None, extra=()):
             args += [winpath(o) for o in unit_objects()]
         elif line == "wf.res":
             args.append(winpath(os.path.join(BUILD, "wf.res")))
+        elif line.startswith("{VC71}"):
+            args.append(winpath(VC71 + line[len("{VC71}"):]))
         else:
             args.append(line)
     args += ["/OUT:" + winpath(out), "/MAP:" + winpath(os.path.splitext(out)[0] + ".map")]

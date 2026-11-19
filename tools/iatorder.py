@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
-"""Choose the order of import references in the game blob so that LINK's
-(unstable) IAT sort reproduces the original IAT order; writes
-config/imports.txt (see tools/linksim.py for the model).
+"""Write config/imports.txt, the order in which the game blob references its
+imports, and check that LINK's IAT sort then reproduces the original IAT
+(see tools/linksim.py for the model and the README, "IAT order").
 
-Run after mkblobs.py; re-run mkblobs.py afterwards (iterate until stable).
+The original hint/name table (.idata$6) is in pull order: each DLL's game
+imports followed by the DLL name, then the CRT's KERNEL32 imports (pulled from
+the second kernel32 library after libcmt). The game's imports are therefore
+listed in .idata$6 order, and the imports of discarded game code
+(config/imports-discarded.txt) are inserted where they were pulled.
+
+usage: iatorder.py          write config/imports.txt (then run mkblobs.py)
+       iatorder.py --check  simulate the link of the current blobs and compare
+                            the predicted IAT with the original
 """
 import os
+import sys
 
 import pefile
 
-from linksim import import_entries, object_info, simulate, sort_entries
+from gensyms import iat_symbols
 from link import unit_objects
+from linksim import iat_order, import_entries, object_info, simulate
 from wfcommon import CONFIG, ORIG_EXE
 
 
@@ -23,36 +33,89 @@ def link_libs():
     return libs
 
 
-def main():
-    pulled = simulate([object_info(o) for o in unit_objects()], link_libs())
-    entries = import_entries(pulled)
+def dll_key(name):
+    return name.decode().upper().rsplit(".", 1)[0]
+
+
+def original_imports():
+    """{dll: [import symbol without __imp_]} in IAT order, and the PE."""
     p = pefile.PE(ORIG_EXE, fast_load=True)
     p.parse_data_directories(directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"]])
-    want = {}
+    return p
+
+
+def game_imports():
+    """[(symbol, dll)] of the game's kept imports in .idata$6 (pull) order."""
+    p = original_imports()
+    slot = iat_symbols(None)
+    items = []
     for e in p.DIRECTORY_ENTRY_IMPORT:
-        dll = e.dll.decode().upper().rsplit(".", 1)[0]
-        want[dll] = [i.address for i in e.imports]
-    # IAT slot address -> import symbol, via the symbols of the import libs
-    from gensyms import iat_symbols
-    slot = {a: n[len("__imp_"):] for a, n in iat_symbols(None).items()}
-    # positions: sort a list of indices with the same labels to get the permutation
-    tagged = [(dll, i) for i, (dll, imp) in enumerate(entries)]
-    perm = [i for _, i in sort_entries(tagged)]  # output slot k <- input index perm[k]
-    new = list(entries)
-    for dll in {d for d, _ in entries}:
-        outs = [i for i in perm if entries[i][0] == dll and entries[i][1] is not None]
-        target = [slot[a] for a in want.get(dll, [])]
-        extra = [imp for d, imp in entries if d == dll and imp and imp not in target]
-        for i, imp in zip(outs, target + extra):
-            new[i] = (dll, imp)
+        dll = dll_key(e.dll)
+        items.append((e.struct.Name, 0, None, dll))
+        for k, i in enumerate(e.imports):
+            # Ordinal imports have no hint/name entry; they were pulled with the
+            # DLL's other game imports, by ordinal (only DSOUND has them).
+            rva = i.hint_name_table_rva or (e.struct.Name - 1)
+            items.append((rva, i.ordinal or 0, slot[i.address], dll))
+    items.sort()
+    last_name = max(k for k, (_, _, sym, _) in enumerate(items) if sym is None)
+    # the entries after the last DLL name string are the CRT's (second kernel32)
+    return [(sym, dll) for _, _, sym, dll in items[:last_name] if sym]
+
+
+def load_discarded():
+    out = []
+    for line in open(os.path.join(CONFIG, "imports-discarded.txt")):
+        line = line.split("#", 1)[0].split()
+        if line:
+            out.append(tuple(line))
+    return out
+
+
+def reference_order():
+    order = game_imports()
+    for sym, dll, anchor in load_discarded():
+        group = [k for k, (_, d) in enumerate(order) if d == dll]
+        if anchor == "^":
+            pos = group[0] if group else 0
+        elif anchor == "$":
+            pos = group[-1] + 1 if group else len(order)
+        else:
+            pos = next(k for k, (s, _) in enumerate(order) if s == anchor) + 1
+        order.insert(pos, (sym, dll))
+    return order
+
+
+def check():
+    """Predict the IAT of a link of the current blobs; returns the mismatching DLLs."""
+    pulled = simulate([object_info(o) for o in unit_objects()], link_libs())
+    pred = iat_order(import_entries(pulled))
+    slot = iat_symbols(None)
+    bad = []
+    for e in original_imports().DIRECTORY_ENTRY_IMPORT:
+        dll = dll_key(e.dll)
+        want = [slot[i.address][len("__imp_"):] for i in e.imports]
+        got = [s for s in pred.get(dll, []) if s in want]  # the rest is discarded
+        ok = got == want
+        print(f"{dll:9} {len(want):3} imports  {'ok' if ok else 'DIFFERS'}")
+        if not ok:
+            bad.append(dll)
+    return bad
+
+
+def main():
+    if "--check" in sys.argv:
+        return 1 if check() else 0
+    order = reference_order()
     with open(os.path.join(CONFIG, "imports.txt"), "w") as fp:
         fp.write("# Import symbols in the order the game blob references them\n")
-        fp.write("# (generated by tools/iatorder.py; reproduces the original IAT order)\n")
-        for dll, imp in new:
-            if imp:
-                fp.write(f"__imp_{imp} {dll}\n")
-    print(f"{sum(1 for _, i in new if i)} imports ordered")
+        fp.write("# (generated by tools/iatorder.py from the original hint/name table and\n")
+        fp.write("# config/imports-discarded.txt; reproduces the original IAT order)\n")
+        for sym, dll in order:
+            fp.write(f"{sym} {dll}\n")
+    print(f"{len(order)} imports ordered ({len(load_discarded())} of them discarded)")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

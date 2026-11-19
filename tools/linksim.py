@@ -78,6 +78,11 @@ _LIBS = {}
 
 
 def find_lib(name):
+    """A library name searched in LIBDIRS, or a path ({VC71}/... as in link.txt)."""
+    if name.startswith("{VC71}"):
+        return VC71 + name[len("{VC71}"):]
+    if "/" in name:
+        return name
     n = name.lower() if name.lower().endswith(".lib") else name.lower() + ".lib"
     for d in LIBDIRS:
         for f in os.listdir(d):

@@ -1,0 +1,34 @@
+# Imports of game code that the original /OPT:REF discarded (see README, "IAT order").
+#
+# They are not in wf.exe, but LINK pulled their import members before discarding
+# them, so they took part in the IAT sort (Rich header: 173 Import objects). The
+# CRT's unstable qsort only compares DLL names, so only their DLL and their place
+# in the pull order matter: tools/iatorder.py searched every placement of 11 such
+# imports and only these reproduce the whole IAT:
+#   * 10 USER32 imports: a run of 7 anywhere in the game's USER32 group and 3 at its end;
+#   * 1 more COMCTL32 or KERNEL32 import (anywhere in the game's KERNEL32 group).
+# Plus InitCommonControls, comctl32's only import, which is discarded too.
+#
+# The names are free; they are guesses that fit the exe: the about box
+# (dialog 102, IDD_ABOUTBOX) is in the resources but no kept code opens it, and
+# the classic way to open one is an "About" item on the window's system menu.
+#   * the about dialog procedure (7 USER32 imports);
+#   * the system menu item (3 USER32 imports, first seen after all kept ones);
+#   * a debug trace helper (OutputDebugStringA);
+#   * InitCommonControls, called by the discarded setup code.
+#
+# Format: <import symbol> <DLL> <anchor>, where <anchor> is the kept (or earlier
+# discarded) import of the same DLL that it follows in the reference order,
+# "^" for the start of the DLL's group, or "$" for its end.
+__imp__InitCommonControls@0 COMCTL32 ^
+__imp__SetDlgItemTextA@12 USER32 __imp__DialogBoxParamA@20
+__imp__SendDlgItemMessageA@20 USER32 __imp__SetDlgItemTextA@12
+__imp__GetClientRect@8 USER32 __imp__SendDlgItemMessageA@20
+__imp__GetSystemMetrics@4 USER32 __imp__GetClientRect@8
+__imp__SetWindowPos@28 USER32 __imp__GetSystemMetrics@4
+__imp__GetParent@4 USER32 __imp__SetWindowPos@28
+__imp__SetForegroundWindow@4 USER32 __imp__GetParent@4
+__imp__GetSystemMenu@8 USER32 $
+__imp__AppendMenuA@16 USER32 $
+__imp__DrawMenuBar@4 USER32 $
+__imp__OutputDebugStringA@4 KERNEL32 $
