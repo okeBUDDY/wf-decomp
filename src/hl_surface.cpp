@@ -194,8 +194,9 @@ void HLSurface::Release() {
 }
 
 // 0x40bb10
-// TODO: nonmatching: the saved width_ and height_ swap stack slots, and the
-// Log() arguments and the vtable loads use other registers.
+// The kind is chosen with an if/else (a ternary shifts the scratch registers
+// of the EnumTextureFormats calls and the Log() arguments by one), and
+// width_ is restored before height_ (that decides the two stack slots).
 int HLSurface::InitTextureFormats(IDirect3DDevice7* device) {
   // The format search keeps its state in width_ (the kind of
   // format_order_) and height_ (the best index so far).
@@ -244,7 +245,11 @@ int HLSurface::InitTextureFormats(IDirect3DDevice7* device) {
         texture_caps_ |= kNoBlendOne;
       }
       // Opaque textures: kind 0 or 1 by the 16-bit screen format, else 2.
-      width_ = graphics_->app_->depth == 16 ? format_codes_[0] != k555 : 2;
+      if (graphics_->app_->depth == 16) {
+        width_ = format_codes_[0] != k555;
+      } else {
+        width_ = 2;
+      }
       height_ = kFormatsPerKind - 1;
       if (device->EnumTextureFormats(EnumTextureFormatProc, this) == D3D_OK) {
         // Alpha textures: kind 3, 4 or 5.
@@ -261,8 +266,8 @@ int HLSurface::InitTextureFormats(IDirect3DDevice7* device) {
       }
     }
   }
-  height_ = height;
   width_ = width;
+  height_ = height;
   return result;
 }
 
