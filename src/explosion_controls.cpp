@@ -19,8 +19,9 @@
 #include "sprite.h"
 
 // Explosions being created by other explosions; only the outermost one
-// plays its sound.
-int g_explosion_depth;             // 0x469048
+// plays its sound. File-static: VC then knows that stores through pointers
+// do not change it, and moves its loads and stores around them.
+static int g_explosion_depth;      // 0x469048
 ActorDesc g_fragment_desc;         // 0x469014
 ActorDesc g_spark_desc;            // 0x468fe0
 ActorDesc g_shockwave_desc;        // 0x468fac
@@ -57,11 +58,10 @@ int Control16::Initialize() {
 }
 
 // 0x410640
-// TODO: nonmatching (global depth counter load scheduled differently)
 int Control16::OnCreate(Actor* actor, void* param) {
-  ++g_explosion_depth;
   actor->hit_points = 1;
   actor->team = 0;
+  ++g_explosion_depth;
   g_actor_system.Create(18, NULL, actor->transform->m[2][0],
                         actor->transform->m[2][1], 8, 0, NULL);
   --g_explosion_depth;
@@ -97,7 +97,6 @@ int Control17::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x410a00
-// TODO: nonmatching (global depth counter load scheduled differently)
 int Control18::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
@@ -119,7 +118,6 @@ struct Control19Work {
 };
 
 // 0x410710
-// TODO: nonmatching (global depth counter load scheduled differently)
 int Control19::OnMove(Actor* actor) {
   Control19Work* work = reinterpret_cast<Control19Work*>(actor->work);
   if (work->alpha > 0) {
@@ -185,8 +183,6 @@ int Control18::OnMove(Actor* actor) {
 }
 
 // 0x410be0
-// TODO: nonmatching (the original sinks the depth counter store below the
-// pushes)
 int Control19::OnCreate(Actor* actor, void* param) {
   Control19Work* work = reinterpret_cast<Control19Work*>(actor->work);
   actor->hit_points = 1;
@@ -261,8 +257,6 @@ int Control20::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x410e70
-// TODO: nonmatching (case 150: the original sinks the stores of the sprite
-// and the depth counter below the loads of the position)
 int Control20::OnMove(Actor* actor) {
   Control20Work* work = reinterpret_cast<Control20Work*>(actor->work);
   switch (actor->age) {
