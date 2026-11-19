@@ -189,8 +189,9 @@ int HLSPatSys::Initialize(Application* app) {
 }
 
 // 0x40a320
-// TODO: nonmatching: the code matches, but the original's frame has one
-// more 4-byte local (the scalars sit 4 bytes higher, `this` above `id`).
+// TODO: nonmatching: the frame size matches now (the highest id and the id
+// of each pattern are separate locals), but `this` and the pattern's fields
+// sit in other stack slots, and the function is 2 bytes short.
 int HLSPatFile::Load(const char* name, int min_count) {
   if (pats_ == NULL) {
     Release();
@@ -214,11 +215,11 @@ int HLSPatFile::Load(const char* name, int min_count) {
     return 0;
   }
   int pat_count;
-  int id;
+  int max_id;
   file.Read(&pat_count, sizeof(pat_count));
-  file.Read(&id, sizeof(id));
-  ++id;
-  count_ = min_count > id ? min_count : id;
+  file.Read(&max_id, sizeof(max_id));
+  ++max_id;
+  count_ = min_count > max_id ? min_count : max_id;
   pats_ = static_cast<HLSPat**>(malloc(count_ * sizeof(HLSPat*)));
   if (pats_ == NULL) {
     file.Close();
@@ -229,6 +230,7 @@ int HLSPatFile::Load(const char* name, int min_count) {
     pats_[i] = NULL;
   }
   for (int i = 0; i < pat_count; ++i) {
+    int id;
     short u;
     short v;
     short width;

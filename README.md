@@ -233,8 +233,8 @@ matches.
 
 ## Decompiled code
 
-649 of 678 game functions match (84.69% of the 128586 game code bytes; `tools/compare.py`),
-and 122 of the 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
+652 of 678 game functions match (85.17% of the 128586 game code bytes; `tools/compare.py`),
+and 150 of the 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
 counted apart from the game functions; `build/progress.json` has both. A `.text$x` funclet is
@@ -249,11 +249,11 @@ emitted in several files, such as header inlines, count in each):
 | Area | Files | Matched |
 |---|---|---|
 | Core objects | `object.cpp` 13/13, `task.cpp` 9/9, `task_list_delete.cpp` 1/1, `thread.cpp` 2/2, `file.cpp` 6/6, `pack.cpp` 8/8, `path_util.cpp` 2/2, `profile.cpp` 2/2 | 43/43 |
-| Application, globals, stages | `win_main.cpp` 1/1, `application.cpp` 16/16, `cglobal.cpp` 26/27, `game.cpp` 10/10, `fn_game.cpp` 29/32 (with FnOption), `fn_title.cpp` 8/8, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 8/9, `game_hud_name_entry.cpp` 4/5, `game_hud_result.cpp` 3/4, `graphics.cpp` 13/13 | 127/134 |
+| Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 29/32 (with FnOption), `fn_title.cpp` 8/8, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 8/9, `game_hud_name_entry.cpp` 4/5, `game_hud_result.cpp` 3/4, `graphics.cpp` 13/13 | 141/147 |
 | HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 12/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 156/158 |
-| HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 34/35, `hls_txt.cpp` 15/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 75/79 |
+| HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 36/37, `hls_txt.cpp` 15/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 77/81 |
 | Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 35/36 | 144/146 |
-| Actors and controls | `actor_system.cpp` 32/33, `actor_control.cpp` 66/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 14/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 7/10, `background.cpp` 7/8 | 183/193 |
+| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 67/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 14/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 7/10, `background.cpp` 7/8 | 185/193 |
 | Enemy generator (boss design) | `enm_param.cpp` 25/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 69/72 |
 | Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 3/5 | 42/44 |
 
@@ -383,12 +383,50 @@ Known compiler behaviour worth remembering:
   one `return 1` epilogue) where VC duplicates it here; early-return and explicit-store forms
   and `/Os` do not change it. `BackgroundGrid::Run` keeps the tile's x and y on the x87 stack and
   computes `-x_ + x` with `fchs`/`fadd st(2)`; `HLSTxtSys::Measure` is 26 bytes off (esi/edi).
+  `PartControl::OnDestroy` (11 bytes): the original does not rotate the loop over the ancestors
+  (`mov eax, esi`, then the parent load and both exits at the top, `jmp` back); `for (;;)`,
+  `while`, `do`, `goto`, `while ((a = a->parent) != NULL)` with a `goto` out, and if/else
+  forms are all rotated here. `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
+  setter's operand order, `count + 1`, a separate `++count` and a bitfield do not change it;
+  the permuter's fix takes `&count`, so `count` may have gone through a by-reference helper.
+  `CEnmParam::Plan` is the original size; it spills `rate` in the prologue and keeps 0x20000
+  in ebp until `AddStep(17)`. `FnGame::Initialize` uses ecx for `g_application.input` where
+  this picks eax; the parameter type of `set_time_stop_mask` does not matter. The last EH stub
+  (0x4502e0) is the `new HLSTxt[]` funclet of `HLSTxtSys::Initialize`, which differs in its
+  frame.
+* An empty user-declared destructor changes the code of the implicit destructor that contains
+  the class: `~HLSTxtSys() {}` made the inlined member destruction in `~Fonts` (0x401f80)
+  match.
+* `SetIdentity()` instead of the nine written-out stores reorders the stores and the `lea` of
+  the matrix (`ActorSystem::InitRoot`).
+* A local reference to a member (`const unsigned int& flags = work->flags;`, the tests read
+  `flags`, the updates write `work->flags`) fixed the register choice of
+  `PartControl::OnDamage`. A local pointer to a member list (`CSndBufList* list = &buffers_;`)
+  moved the increment in `SoundSystem::Pause`; a pointer stepped along with the index
+  (`EnmSideStats* side = state_.sides; ...; ++i, ++side`) took 343 bytes off
+  `CEnmParam::Plan`.
+* The `.text$yc`/`$yd` dynamic initializers and atexit thunks only exist in the TU that defines
+  the global. Defining the globals in their original objects (`g_replay`, `g_fn_title`,
+  `g_fn_game`, `g_fn_option`, `g_sounds`, `g_bgm` in `cglobal.cpp`; `g_application`,
+  `g_pat_sys`, `g_anm_sys`, `g_actor_system` in `win_main.cpp`; `g_hit_image` in
+  `actor_system.cpp`; `g_laser` in `line_sprites.cpp`; the static members of `HLSPat` and the
+  unused `g_unused_null_sprite` in `hls_pat.cpp`) took the stubs from 122 to 149. A thunk counts
+  only with at least one checked (named) relocation. In `HLSPatFile::Load` a `max_id` local
+  that drives `count_` gave the original frame size, and with it the `PackFile` funclet
+  (0x4502a0).
 * `build/obj/src/` keeps objects of deleted or merged sources (`fn_option.obj`, ...);
   `fdiff.py` may read such a stale object, so delete them after renaming a file.
 
 Flags: the game uses `/O2` with its default `/Ob2`. `Object()` is inlined into
 `TaskList()`, and `Remove` into `RemoveUpTo`/`RemoveFrom`, which `/Ob1` would not do.
 `/G5` vs `/G6` has not been told apart by any function yet.
+`WF_EXTRA_CFLAGS` (environment) adds flags to every game compile of `compare.py` and the
+permuter, for experiments only; no per-file flag is needed so far. A sweep of the 17 files with
+nonmatching functions over `/Ob1 /Oy- /G5 /G7 /Op /J /Oa /Ow /EHa /Os /Zp4 /GR /Oi- /QIfist
+/arch:SSE /Ox /Gs0` fixed nothing (`/G5` gives the same code as the default everywhere; `/Zi`
+hangs cl under Wine when run in parallel). With `/Ob1` only `enm_param.cpp` still compiles its
+other functions the same, and it gains nothing. Moving each draft to the end of its file
+(definition order) changes none of them.
 
 Tools for decompiling:
 * `tools/disasm.py <addr|name|unit>`: disassembly with symbol, string and float annotations.

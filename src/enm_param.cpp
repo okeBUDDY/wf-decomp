@@ -446,8 +446,9 @@ void CEnmParam::AddStep(int id) {
 }
 
 // 0x41abc0
-// TODO: nonmatching (close: the registers of the constants at the start and
-// the pointer of the last loop over the sides).
+// TODO: nonmatching (same size; the original spills rate to the stack in
+// the prologue and keeps 0x20000 in ebp from the flags test into
+// AddStep(17)).
 void CEnmParam::Plan(int score) {
   if (player_samples_ < 1) {
     player_samples_ = 1;
