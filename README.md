@@ -371,10 +371,8 @@ Known compiler behaviour worth remembering:
 * A member pointer kept as `add edi, 0xc` (the address of `device_`) and reloaded after the
   call is an inline member using `this->device_` twice: `HL3D::SetPointFilter()` in
   `DrawResult`/`DrawNameEntry`, where an explicit `d3d->device_->...` pair keeps `d3d` instead.
-* Unresolved leads: `FnOption::Move` inlines `PlayEffect()` four times in the original (it
-  needs `__forceinline` here, 8 bytes too long now); the original keeps `g_application.input`
-  in edi from the pad read to the button case and reloads `pad(0)` there, where this keeps the
-  pad itself. The three inlined
+* Unresolved leads: `FnOption::Move` (see below; `PlayEffect()` is `__forceinline` now). The
+  three inlined
   `SetTexture(..., &g_fonts.textures[2], 0)` calls (`DrawResult`, `DrawNameEntry`,
   `FnOption::Draw`) load `texture_` before the last transform stores, while the calls with a
   variable texture match. The original loads `texture_` into a register right after
@@ -382,7 +380,7 @@ Known compiler behaviour worth remembering:
   check), as if the stores could not alias it; member, free-function, `const&`, reversed-test,
   local-copy, accessor/setter and early-return forms of the helper, `/G5`-`/G7`, and direct
   transform stores instead of `ScaleTransform` all leave it in place (DrawResult is 1 byte
-  short with only this left). `RateGame` (`record.cpp`) keeps the shared `g_rating` tail
+  short with only this left; see the block-scope bullet below for what does move it). `RateGame` (`record.cpp`) keeps the shared `g_rating` tail
   right after the first case (both modes 0) and the other cases jump back into it; VC puts
   it at the end here. Per-branch `SetRating()` calls (with or without `return`), a `goto`
   into the first case, `title = 0` as the initializer, a wrapping `if (mode != 0 || ...)`
@@ -424,15 +422,16 @@ Known compiler behaviour worth remembering:
   locals, the one whose last use comes later gets the lower slot (restoring `width_` first
   gives the original's slots, but the restores in the wrong order). Making the HLSurface
   statics (`max_texture_*`, `texture_caps_`, `format_codes_`, `graphics_`) file-static is
-  worse. `FnOption::Move`: with `__forceinline` on `PlayEffect()`, a row pointer for the
-  preset copy (`int* preset = presets_[values_[kGameMode]];` before the loop, which the
-  original hoists) and a `HLInpDev* pad` local in the button case, the function has the
-  original's size and 115 differing instructions (from 150). What is left: the original
-  keeps `g_application.input` in edi and reloads `pad(0)` from it (and reloads both for
-  `set_trigger`), keeps 0xff in ebp, compares `cursor_ == kExit` as an int (`cmp eax, 0x11`),
-  and puts the `code < 0` branch (`and dword ptr [esi+0x14], ~2`) at the end. An
-  `HLInput* input` local makes VC keep the pad instead (worse). Not committed, because the
-  pad local contradicts the reload for `set_trigger`. `CEnmParam::Plan`: the original
+  worse. `FnOption::Move` (66 differing instructions, from 150, same size): `__forceinline` on
+  `PlayEffect()`, a row pointer for the preset copy (`int* preset = presets_[values_[kGameMode]];`
+  before the loop), an `int cursor = cursor_;` local read before the kind switch and used by
+  the switch and the `cursor == kExit` test (the original compares the int, `cmp eax, 0x11`),
+  and the button case as `if (code >= 0) { ... } else { flags_ &= ~kFlagHeld; }` (that puts the
+  `code < 0` block at the end) with a `HLInpDev* pad` local. Only the input register is left:
+  the original keeps `g_application.input` in edi and reloads `pad(0)` from it for
+  `GetPressed()` (and both for `set_trigger`); here edi holds the pad. Without the pad local,
+  or with an `HLInput* input` local (with or without the pad), VC moves the 0 constant from
+  edx to ebp (113-159 instructions). `CEnmParam::Plan`: the original
   computes `rate` between the travel average and its conversion (and so spills it); every
   order of the `count`, `add` and `rate` lines and a float `travel` local compute `rate`
   either before or after the `_ftol`. `CEnmParam::Grow`: `code` reused as `base`, `index` as
@@ -533,6 +532,22 @@ Known compiler behaviour worth remembering:
   is a local declared in each branch (`float left = -offset;` in `Control01::Fire`): VC
   hoists the two negations and stores `offset` with `fstp`/`fld`; one local before the `if`
   keeps it with `fst`, and `-offset + x` written in both branches becomes `x - offset`.
+* **Hoisting a load above stores to a local (block scope).** A `/FAs` probe shows when VC
+  schedules a load through a pointer above stores to a local whose address is passed to a call
+  later: only when the pointer was defined *before the local's block* (a local or parameter set
+  outside a `{ }` block that declares the transform) or is a parameter of the function. A pointer
+  loaded inside the same scope, a local pointer declared before the transform in the same
+  scope, `/Oa`, union/array/non-POD matrix types, `const&`/array/member-call forms of the
+  escaping call, and escaping only after the load all keep the load below the stores. This is
+  the `SetTexture()` difference of `DrawResult`, `DrawNameEntry` and `FnOption::Draw` and the
+  `app_->d3d` load of `BackgroundGrid::Run`. Wrapping DrawResult's transform part in a block
+  after `HL3D* d3d = g_application.d3d;` (and `SetTexture(d3d, ...)`) gives the original size
+  and hoists the texture load (190 -> 77 differing bytes), but loads `d3d` at the top where
+  the original loads it after the frame-count conversion; in DrawNameEntry the same block
+  fixes the first (NULL) texture test but not the second, whose `g_application.d3d` is reloaded
+  after a call and still hoisted in the original. Not committed (an extra block is not natural
+  without more evidence); the original's form probably comes from an inline helper or a
+  block whose pointer is defined outside it.
 * `build/obj/src/` keeps objects of deleted or merged sources (`fn_option.obj`, ...);
   `fdiff.py` may read such a stale object, so delete them after renaming a file.
 

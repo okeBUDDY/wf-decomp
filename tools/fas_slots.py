@@ -7,6 +7,7 @@ Each is applied alone, compiled with tools/fas.py, and the `name$ = off` / `tvNN
 lines above the function's PROC are printed on one line. The source is restored afterwards.
 """
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -17,8 +18,12 @@ from fas import compile_fas  # noqa: E402
 def slots(asm_path, func):
     with open(asm_path, encoding='cp932', errors='replace') as f:
         asm = f.read()
-    k = asm.find(func)
-    k = asm.find('PROC', k)
+    k = -1
+    for m in re.finditer(r'^\S*' + re.escape(func) + r'\S* PROC', asm, re.M):
+        k = m.start()
+        break
+    if k < 0:
+        return 'FUNCTION NOT FOUND'
     start = asm.rfind('_TEXT\tSEGMENT', 0, k)
     lines = [ln for ln in asm[start:k].splitlines() if '$ = ' in ln or ln.startswith('tv')]
     return ' '.join(ln.split(';')[0].replace('\t', '').strip() for ln in lines)

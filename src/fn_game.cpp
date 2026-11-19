@@ -393,7 +393,7 @@ static inline int Trigger(int item) {
   return g_application.input->pad(0)->trigger(kOptionItems[item].param);
 }
 
-static inline void PlayEffect(int id) {
+static __forceinline void PlayEffect(int id) {
   g_application.sound->channel(id)->Assign(&g_sounds[id], 0, 1.0f);
 }
 
@@ -629,8 +629,11 @@ void FnOption::UpdateChoiceText(int item) {
 }
 
 // 0x41d4d0
-// TODO: nonmatching: the original keeps g_application.input (not the pad)
-// in edi and 0 in edx; the rest is the same code.
+// TODO: nonmatching (66 instructions): the original keeps
+// g_application.input (not the pad) in edi, reloads pad(0) from it for
+// GetPressed() and reloads both for set_trigger(); with a plain
+// g_application.input->pad(0) in the button case VC moves the 0 constant
+// from edx to ebp instead.
 void FnOption::Move() {
   blink_ -= 4;
   if (blink_ <= 0) {
@@ -663,7 +666,8 @@ void FnOption::Move() {
     flags_ |= kFlagHeld;
     return;
   }
-  switch (kOptionItems[cursor_].kind) {
+  int cursor = cursor_;
+  switch (kOptionItems[cursor].kind) {
     case kKindChoice:
     case kKindFormatted: {
       short old = values_[cursor_];
@@ -707,8 +711,9 @@ void FnOption::Move() {
       }
       if (kOptionItems[cursor_].kind == kKindFormatted) {
         UpdateChoiceText(cursor_);
+        int* preset = presets_[values_[kGameMode]];
         for (int i = 0; i < kRules; ++i) {
-          presets_[values_[kGameMode]][i] = values_[kFirstRuleItem + i];
+          preset[i] = values_[kFirstRuleItem + i];
           UpdateChoiceText(kFirstRuleItem + i);
         }
       }
@@ -717,7 +722,7 @@ void FnOption::Move() {
     }
     case kKindAction:
       if (pressed & (HLInpDev::kTrigger * 0xb)) {
-        if (cursor_ == kExit) {
+        if (cursor == kExit) {
           g_application.sound->channel(kChannelBgm)->Fade(1.0f, 0, 1.0f, 1);
           g_global.screen_fade->FadeOut(60);
           flags_ |= kFlagExit;
@@ -726,21 +731,21 @@ void FnOption::Move() {
       }
       break;
     case kKindButton: {
-      int code = g_application.input->pad(0)->GetPressed();
-      if (code < 0) {
+      HLInpDev* pad = g_application.input->pad(0);
+      int code = pad->GetPressed();
+      if (code >= 0) {
+        if (flags_ & kFlagHeld) {
+          break;
+        }
+        flags_ |= kFlagHeld;
+        PlayEffect(kSndSwitch);
+        if (code != values_[cursor_]) {
+          pad->set_trigger(kOptionItems[cursor_].param, code);
+          values_[cursor_] = code;
+          UpdateButtonText(cursor_);
+        }
+      } else {
         flags_ &= ~kFlagHeld;
-        break;
-      }
-      if (flags_ & kFlagHeld) {
-        break;
-      }
-      flags_ |= kFlagHeld;
-      PlayEffect(kSndSwitch);
-      if (code != values_[cursor_]) {
-        g_application.input->pad(0)->set_trigger(kOptionItems[cursor_].param,
-                                                 code);
-        values_[cursor_] = code;
-        UpdateButtonText(cursor_);
       }
       break;
     }
