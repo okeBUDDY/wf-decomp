@@ -139,6 +139,30 @@ def calls_to_methods(text):
         text = text[:m.start()] + f"({obj.strip()}){op}{m.group(1)}({rest.strip()})" + text[end:]
 
 
+FOR_DECL_RE = re.compile(r"\bfor\s*\(\s*((?:unsigned\s+|const\s+)?[A-Za-z_]\w*(?:\s+|\s*\*+\s*))([A-Za-z_]\w*)\s*=")
+
+
+def hoist_for_decls(text):
+    """`for (T x = a; ...) {...}` -> `{ T x; for (x = a; ...) {...} }`: the
+    permuter's type pass does not know declarations in a for header."""
+    while True:
+        m = FOR_DECL_RE.search(text)
+        if not m:
+            return text
+        paren = text.index("(", m.start())
+        hdr_end = _match(text, paren, "(", ")")
+        i = hdr_end
+        while text[i].isspace():
+            i += 1
+        if text[i] == "{":
+            end = _match(text, i, "{", "}")
+        else:
+            end = text.index(";", i) + 1
+        typ, name = m.group(1).strip(), m.group(2)
+        loop = "for (" + name + " =" + text[m.end():end]
+        text = text[:m.start()] + "{\n" + f"{typ} {name};\n" + loop + "\n}" + text[end:]
+
+
 def find_function(src_text, addr):
     """(start, brace, end) of the definition after the `// 0x<addr>` comment:
     the header is src_text[start:brace], the body src_text[brace:end]."""
@@ -277,6 +301,8 @@ def stubs_for(text):
 
 def to_c(header, body):
     """C rendering of a C++ definition (header up to `{`, then body)."""
+    # `new T` -> `((T*)new__())`; compile.py turns it back.
+    body = re.sub(r"\bnew\s+([A-Za-z_]\w*)(?!\s*[\[(])", r"((\1*)new__())", body)
     for bad in (r"\bnew\b", r"\bdelete\b", r"\boperator\b", r"\btemplate\b"):
         if re.search(bad, body):
             print(f"warning: {bad} is C++ only; edit base.c by hand", file=sys.stderr)
@@ -286,6 +312,7 @@ def to_c(header, body):
     text = re.sub(r"(?<![\w:])::(\w)", r"\1", text)  # ::Global
     text = re.sub(r"\b(\w+)::(?=\w)", r"\1__", text)
     text = methods_to_calls(text)
+    text = hoist_for_decls(text)
     return stubs_for(text) + "\n" + text + "\n"
 
 
@@ -297,6 +324,7 @@ def from_c(c_text, func_name, header):
     text = c_text[m.start():]
     body = text[text.index("{"):]
     body = re.sub(r"\bstruct\s+(?=\w)", "", body)
+    body = re.sub(r"\(\s*(\w+)\s*\*\s*\)\s*new__\s*\(\s*\)", r"(new \1)", body)
     body = calls_to_methods(body)
     body = re.sub(r"\b([A-Za-z]\w*?)__(?=[A-Za-z])", r"\1::", body)
     return header.rstrip() + " " + body.rstrip() + "\n"

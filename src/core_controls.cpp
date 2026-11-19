@@ -353,7 +353,6 @@ void Control44::Setup(Actor* actor, int rank) {
 }
 
 // 0x414700
-// TODO: nonmatching (the original keeps `this` in edi and the sprite in ebx).
 int Control44::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   reinterpret_cast<PartWork*>(actor->work)->flags &= ~0x10000;
@@ -580,7 +579,6 @@ int Control49::Initialize() {
 }
 
 // 0x414e80
-// TODO: nonmatching (as Control44::OnCreate, and the sprite goes through eax).
 int Control49::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(54));
@@ -724,7 +722,6 @@ int Control43::OnMove(Actor* actor) {
 }
 
 // 0x414550
-// TODO: nonmatching (esi and edi swap between the segment and the sprite).
 void Control43::OnEvent(Actor* actor, int x, int y) {
   Control43Work* work = reinterpret_cast<Control43Work*>(actor->work);
   if (x != 2 || work->sound == 2) {

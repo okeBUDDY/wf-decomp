@@ -117,13 +117,11 @@ class Actor {
   void TurnTo(Actor* target, short speed);  // 0x414a00
   // Moves the actor to the draw list of `new_layer`.
   void SetLayer(unsigned short new_layer);  // 0x4108c0
-  // Replaces the sprite (the null sprite for NULL).
+  // Replaces the sprite (the null sprite for NULL). The ternary, not an if,
+  // gives the original's register choice in its callers.
   void SetSprite(HLSObject* new_sprite) {
     sprite->Reset();
-    if (new_sprite == NULL) {
-      new_sprite = &g_null_sprite;
-    }
-    sprite = new_sprite;
+    sprite = new_sprite != NULL ? new_sprite : &g_null_sprite;
   }
   float x() const { return transform->m[2][0]; }
   float y() const { return transform->m[2][1]; }

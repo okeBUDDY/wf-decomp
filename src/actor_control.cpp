@@ -426,7 +426,6 @@ int CorePartControl::InitCore(Actor* actor, void* param) {
 }
 
 // 0x4192b0
-// TODO: nonmatching (`this` and the sprite swap ebx and ebp).
 int LinkedPartControl::InitLinked(Actor* actor, void* param) {
   InitPart(actor, param);
   const EnmPlanPart* part =
