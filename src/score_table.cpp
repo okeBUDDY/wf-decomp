@@ -74,12 +74,11 @@ void ScoreTable::Insert(const ScoreEntry* entry, int rank) {
 }
 
 // 0x4210c0
-// TODO: nonmatching (register allocation of entry/line)
 int ScoreTable::Format(char* text) {
+  const ScoreEntry* entry = entries_;
   strcpy(text, "   NAME SCORE      STG DEAD TIME\n\n\n");
   char* line = text + strlen(text);
-  for (int i = 0; i < kEntries; ++i) {
-    const ScoreEntry* entry = &entries_[i];
+  for (int i = 0; i < kEntries; ++i, ++entry) {
     const char* begin;
     const char* end;
     if (i == rank_) {
@@ -132,7 +131,6 @@ void ScoreTable::Recover() {
 }
 
 // 0x421360
-// TODO: nonmatching (this/pos register swap, loop alignment)
 int ScoreTable::Load() {
   File file;
   if (path_[0] == '\0' || !file.Open(path_, File::kRead)) {
@@ -144,30 +142,34 @@ int ScoreTable::Load() {
     return 0;
   }
   FileHeader header;
-  if (version == kFileVersion && file.ReadExact(&header, sizeof(header))) {
-    long pos = file.Tell();
-    for (int i = 0; i < header.count; ++i, pos += header.size) {
-      file.Seek(pos, SEEK_SET);
-      GameRules rules;
-      if (!file.ReadExact(&rules, sizeof(rules))) {
-        goto broken;
-      }
-      if (memcmp(&rules, &rules_, sizeof(rules)) == 0) {
-        if (!file.ReadExact(entries_, sizeof(entries_))) {
-          goto broken;
-        }
-        return 1;
-      }
-    }
+  if (version != kFileVersion) {
+    Recover();
     return 0;
   }
-broken:
-  Recover();
+  if (!file.ReadExact(&header, sizeof(header))) {
+    Recover();
+    return 0;
+  }
+  long pos = file.Tell();
+  for (int i = 0; i < header.count; ++i, pos += header.size) {
+    file.Seek(pos, SEEK_SET);
+    GameRules rules;
+    if (!file.ReadExact(&rules, sizeof(rules))) {
+      Recover();
+      return 0;
+    }
+    if (memcmp(&rules_, &rules, sizeof(rules)) == 0) {
+      if (!file.ReadExact(entries_, sizeof(entries_))) {
+        Recover();
+        return 0;
+      }
+      return 1;
+    }
+  }
   return 0;
 }
 
 // 0x421540
-// TODO: nonmatching (block layout of the failure returns)
 int ScoreTable::Store() {
   File file;
   if (path_[0] == '\0' || !file.Open(path_, File::kReadUpdate)) {
@@ -178,37 +180,40 @@ int ScoreTable::Store() {
   if (!file.ReadExact(&version, sizeof(version))) {
     return 0;
   }
+  if (version != kFileVersion) {
+    return 0;
+  }
   FileHeader header;
-  if (version == kFileVersion && file.ReadExact(&header, sizeof(header))) {
-    long pos = file.Tell();
-    int i;
-    for (i = 0; i < header.count; ++i, pos += header.size) {
-      file.Seek(pos, SEEK_SET);
-      GameRules rules;
-      if (!file.ReadExact(&rules, sizeof(rules))) {
-        goto failed;
-      }
-      if (memcmp(&rules, &rules_, sizeof(rules)) == 0) {
-        break;
-      }
-    }
+  if (!file.ReadExact(&header, sizeof(header))) {
+    return 0;
+  }
+  long pos = file.Tell();
+  int i;
+  for (i = 0; i < header.count; ++i, pos += header.size) {
     file.Seek(pos, SEEK_SET);
-    if (!file.WriteExact(&rules_, sizeof(rules_))) {
+    GameRules rules;
+    if (!file.ReadExact(&rules, sizeof(rules))) {
       return 0;
     }
-    if (file.WriteExact(entries_, sizeof(entries_))) {
-      if (i != header.count) {
-        return 1;
-      }
-      ++header.count;
-      file.Seek(sizeof(version), SEEK_SET);
-      if (file.WriteExact(&header, sizeof(header))) {
-        return 1;
-      }
+    if (memcmp(&rules_, &rules, sizeof(rules)) == 0) {
+      break;
     }
   }
-failed:
-  return 0;
+  file.Seek(pos, SEEK_SET);
+  if (!file.WriteExact(&rules_, sizeof(rules_))) {
+    return 0;
+  }
+  if (!file.WriteExact(entries_, sizeof(entries_))) {
+    return 0;
+  }
+  if (i == header.count) {
+    ++header.count;
+    file.Seek(sizeof(version), SEEK_SET);
+    if (!file.WriteExact(&header, sizeof(header))) {
+      return 0;
+    }
+  }
+  return 1;
 }
 
 // 0x4217b0

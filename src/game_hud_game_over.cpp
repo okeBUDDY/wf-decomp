@@ -126,11 +126,7 @@ static D3DVECTOR kWeaponBar[4] = {
     {0, 2, 0}, {64, 2, 0}, {0, 12, 0}, {64, 12, 0}};  // 0x45de50
 
 // 0x420500
-// TODO: nonmatching: for the title line the original loads title_slide_
-// for the int conversion before it clears transform.m[1][0]; the rest
-// matches.
 void GameHud::DrawGameOver() {
-  HL3D* d3d;
   Transform transform;
   transform.m[2][2] = 1;
   transform.m[1][1] = 1;
@@ -238,15 +234,8 @@ void GameHud::DrawGameOver() {
     y += 36;
   }
 
-  transform.m[2][2] = 1;
-  transform.m[1][1] = 1;
-  transform.m[0][0] = 1;
-  transform.m[1][2] = 0;
-  transform.m[1][0] = 0;
-  transform.m[0][2] = 0;
-  transform.m[0][1] = 0;
-  transform.m[2][0] = title_slide_ + 360;
-  transform.m[2][1] = 404;
+  SetIdentity(&transform);
+  TranslateTransform(&transform, title_slide_ + 360, 404);
   title_pos_.x = static_cast<int>(title_slide_) + 360;
   g_application.d3d->DrawPoints(D3DPT_LINESTRIP, &transform, kTitleLine,
                                 0xc8ffc800, 3);

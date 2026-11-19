@@ -155,8 +155,6 @@ int HLImage::LoadPng(File* file) {
 }
 
 // 0x40d9a0
-// TODO: nonmatching: the original tests format 0 on its own before the
-// other cases and lays the cases out from kPng down.
 int HLImage::Load(const char* path, int format) {
   if (path == NULL || path[0] == '\0') {
     return 0;
@@ -166,15 +164,15 @@ int HLImage::Load(const char* path, int format) {
   }
   PackFile file;
   if (file.Open(path, File::kRead)) {
-    switch (format) {
-      case kAuto:
-        break;
-      case kPng:
-        return LoadPng(&file) ? kPng : 0;
-      case kTga:
-        return LoadTga(&file) ? kTga : 0;
-      case kBmp:
-        return LoadBmp(&file) ? kBmp : 0;
+    if (format != kAuto) {
+      switch (format) {
+        case kPng:
+          return LoadPng(&file) ? kPng : 0;
+        case kTga:
+          return LoadTga(&file) ? kTga : 0;
+        case kBmp:
+          return LoadBmp(&file) ? kBmp : 0;
+      }
     }
     // By the last letter of the name: .bmp, .png, .tga.
     switch (tolower(path[strlen(path) - 1])) {
