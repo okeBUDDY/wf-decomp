@@ -140,10 +140,8 @@ void HLSTxtSys::Measure(SIZE* size, const char* text) {
 }
 
 // 0x40ad20
-// TODO: nonmatching: the cell corners live in an 8-byte local in the
-// original (with the left edge in a register); stack slots differ.
 int HLSTxtSys::Initialize(Application* app, HLSurface* texture, int txt_count,
-                          const char* first, short char_count, int u, int v,
+                          const char* first, int char_count, int u, int v,
                           int width, int height, int columns, int space_width,
                           float* widths) {
   char_width_ = static_cast<float>(width);

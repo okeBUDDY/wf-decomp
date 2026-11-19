@@ -73,7 +73,7 @@ class HLSTxtSys : public Object {
   // not positive) and `widths` has the width of each character (all
   // `width` when NULL). Makes `txt_count` text objects.
   int Initialize(Application* app, HLSurface* texture, int txt_count,
-                 const char* first, short char_count, int u, int v, int width,
+                 const char* first, int char_count, int u, int v, int width,
                  int height, int columns, int space_width,
                  float* widths);  // 0x40ad20
   void Release();                 // 0x40b070
