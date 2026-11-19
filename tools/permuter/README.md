@@ -39,8 +39,10 @@ Notes:
   (`perm_inline`, the external/function type passes, `perm_sameline`).
   Candidates that are not valid C++ (a temporary holding a class by value, a
   member-function pointer, ...) just fail to compile and are skipped.
-* `new`, `delete`, references and templates are not rendered; setup.py warns,
-  and base.c can be edited by hand.
+* `new T`, `new T[n]` and `delete p` are rendered (as `new__()`, `new_array__(n)`,
+  `delete__(p)`); references and templates are not: setup.py warns, and base.c can
+  be edited by hand. Stubs made from string literals or labels (`int d種の;`,
+  `int default;`) and undeclared SDK structs (`SMALL_RECT`) need fixing by hand too.
 * A candidate the permuter reports is a hint, not code: port the idea back to
   natural C++ in `src/` and confirm it with `tools/compare.py`. Never commit
   permuter output.

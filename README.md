@@ -160,7 +160,7 @@ sections 0.
 | headers | Rich header entry order: `Implib710 2067` is first seen after `Utc13_C 9466` instead of right after the dxguid entry | (in the 124) | Not examined; probably the newer dxguid.lib too |
 | headers | TimeDateStamp | 4 | Only by the post-link stamp |
 
-The `CheckSum` is 0 in both files. No difference comes from the 29 unmatched game functions:
+The `CheckSum` is 0 in both files. No difference comes from the 22 unmatched game functions:
 they link from the original bytes. The Rich `Import` (173) and `Implib` counts equal the
 original's since step 27 (from the import fix).
 
@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-653 of 678 game functions match (85.53% of the 128586 game code bytes; `tools/compare.py`),
+656 of 678 game functions match (86.94% of the 128586 game code bytes; `tools/compare.py`),
 and 150 of the 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -252,10 +252,10 @@ emitted in several files, such as header inlines, count in each):
 | Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 29/32 (with FnOption), `fn_title.cpp` 8/8, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 8/9, `game_hud_name_entry.cpp` 4/5, `game_hud_result.cpp` 3/4, `graphics.cpp` 13/13 | 141/147 |
 | HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 12/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 156/158 |
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 36/37, `hls_txt.cpp` 15/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 77/81 |
-| Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 35/36 | 144/146 |
-| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 14/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 7/10, `background.cpp` 7/8 | 186/193 |
+| Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 145/146 |
+| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 14/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 8/10, `background.cpp` 7/8 | 187/193 |
 | Enemy generator (boss design) | `enm_param.cpp` 25/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 69/72 |
-| Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 3/5 | 42/44 |
+| Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 4/5 | 43/44 |
 
 Known compiler behaviour worth remembering:
 
@@ -311,7 +311,7 @@ Known compiler behaviour worth remembering:
 * `Actor::angle`, `start_angle` and `matrix_angle` are `short`, and `AngleTo()` returns
   `short`: the original reads them with `movsx` and compares two angles as words
   (`cmp word ptr [eax+0x18], di`). With the `unsigned short` types `Control01::Fire` was 98
-  instructions off; now 2. Every matching function kept matching once `MovePart`'s
+  instructions off (it matches now). Every matching function kept matching once `MovePart`'s
   `old_angle` local became a `short` too.
 * Two null-checked returns with a shared tail (`test`/`jmp` into the other's `jne`) are two
   `p ? p : ""` returns, one of them an inlined base-class call (`CSndStrm::GetPath`).
@@ -384,13 +384,17 @@ Known compiler behaviour worth remembering:
   check), as if the stores could not alias it; member, free-function, `const&`, reversed-test,
   local-copy, accessor/setter and early-return forms of the helper, `/G5`-`/G7`, and direct
   transform stores instead of `ScaleTransform` all leave it in place (DrawResult is 1 byte
-  short with only this left). `RateGame` and `NextReplay` (`record.cpp`) both differ by tail
-  duplication: the original keeps one shared tail (stores of `g_rating` from int registers;
-  one `return 1` epilogue) where VC duplicates it here; early-return and explicit-store forms
-  and `/Os` do not change it. `BackgroundGrid::Run` (4 instructions) sets the tile's x and y in the
+  short with only this left). `RateGame` (`record.cpp`) keeps the shared `g_rating` tail
+  right after the first case (both modes 0) and the other cases jump back into it; VC puts
+  it at the end here. Per-branch `SetRating()` calls (with or without `return`), a `goto`
+  into the first case, `title = 0` as the initializer, a wrapping `if (mode != 0 || ...)`
+  and `/Os` do not move it, and the permuter found nothing in 25 minutes.
+  `BackgroundGrid::Run` (4 instructions) sets the tile's x and y in the
   matrix and then calls `TranslateTransform(&transform, -x_, -y_)`, which keeps
-  `fchs`/`fadd st(2)`; only the scheduling of the +320/+240 stores is left; `HLSTxtSys::Measure` is 26 bytes off (esi/edi).
-  `Control01::Fire` stores `offset` with `fstp` and reloads it for the negation (here `fst`).
+  `fchs`/`fadd st(2)`; only the scheduling of the +320/+240 stores is left (a color local,
+  a pointer to the matrix, `TranslateTransform(&transform, 320, 240)`, screen-position
+  locals and the reversed order do not change it); `HLSTxtSys::Measure` is 26 bytes off
+  (esi/edi; a `char` local for the switch and a 40-minute permuter run do not help).
   `Control32::Dash` (12 bytes short) keeps the squared distance in its own local and spills
   the acceleration into the dead `actor` slot. `Control32::RunProgram9c` and `RunProgramB0`
   keep `actor`/`program` in other registers, and the original uses memory operands
@@ -401,13 +405,30 @@ Known compiler behaviour worth remembering:
   corners (one `scale` or one per block) and an inline `ScaleCorner()` helper all let VC
   move the next loads above the stores (0x111-0x114 bytes).
   `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
-  setter's operand order, `count + 1`, a separate `++count` and a bitfield do not change it;
-  the permuter's fix takes `&count`, so `count` may have gone through a by-reference helper.
+  setter's operand order, `count + 1`, a separate `++count`, `count++` in the test, a
+  function-scope `count`, a `const unsigned int&` to the flags, `&=`/`|=` statements in the
+  setter and a bitfield do not change it; the permuter's fix takes `&count`, so `count` may
+  have gone through a by-reference helper.
   `CEnmParam::Plan` is the original size; it spills `rate` in the prologue and keeps 0x20000
   in ebp until `AddStep(17)`. `FnGame::Initialize` uses ecx for `g_application.input` where
-  this picks eax; the parameter type of `set_time_stop_mask` does not matter. The last EH stub
-  (0x4502e0) is the `new HLSTxt[]` funclet of `HLSTxtSys::Initialize`, which differs in its
-  frame.
+  this picks eax; the parameter type of `set_time_stop_mask`, a `bool` or `unsigned` flag, an
+  `input` local, an inverted test, a `mode` local, a `default:` case and moving the flag read
+  do not change it (the permuter found nothing either).
+  `Control01::OnCreate` and `OnMove` differ in the inlined `SelectWeapon()`: the original
+  loads the laser into edx (the flame was in ecx) and the weapon's x and y into ecx/edx;
+  `Load` matches with the same inline. Loading `work->laser` earlier breaks `Load`.
+  `HLSTxtSys::Initialize` (30 bytes) and `HLSPatFile::Load` (26 bytes) now differ in stack
+  slots only. In `Initialize` the original spills into the dead parameter slots in another
+  order (the `space_width` temporary, the `new` result and the glyph offset share `app`'s
+  slot, the glyph index takes `texture`'s, the int-to-float temporary `txt_count`'s and
+  `u + width` `char_count`'s; here the order is rotated by one). That slot is also what the
+  last EH stub (0x4502e0, the `new HLSTxt[]` funclet, `delete [ebp+4]`) reads, so it matches
+  with the function. Statement order of the member stores (random search), the loop index
+  type, a function-scope index and the cell order do not change it. In `Load` the original's
+  highest id and the loop's id share one slot (0x24), `this` sits at 0x28, and the frame
+  still has the original size, so one more 4-byte local exists; a block-scoped `max_id` or
+  one `id` for both gives the sharing but a frame 4 bytes smaller, and declaration order
+  inside the loop changes nothing.
 * An empty user-declared destructor changes the code of the implicit destructor that contains
   the class: `~HLSTxtSys() {}` made the inlined member destruction in `~Fonts` (0x401f80)
   match.
@@ -438,9 +459,27 @@ Known compiler behaviour worth remembering:
 * VC does not unroll loops: four calls in a row in the original are four calls in the source
   (`SendEvent()` to the arms in `Control32::Dash`). A `return 0` placed after all the other
   code is `if (ok) { ...; return 1; } return 0;` rather than an early `if (!ok) return 0;`.
-* A negation computed once before an `if` whose two branches use it (`fld; fchs` above the
-  `je`) is a local (`float left = -offset;` in `Control01::Fire`); written in both branches,
-  VC turns `-offset + x` into `x - offset`.
+* The mangled names are made up, so parameter types are free as long as the callee still
+  matches. A short local passed to a short parameter is pushed with a dword load; the
+  original's `movsx` before the push means the parameter was an int (`HLSPatSys::Create`'s
+  u and v). A short parameter that the original loads as a dword and sign-extends from the
+  register later was an int stored into a short member, with the later use reading the
+  member (`HLSTxtSys::Initialize`'s `txt_count`, `new HLSTxt[txt_count_]`).
+* A pointer member that the original reads once for two computations and reloads for the
+  next pair is an inline helper taking it as a parameter (`HLSTxtSys::GetTexCoord()`, the
+  inline twin of `HL3D::GetTexCoord()`, for each glyph corner).
+* `(c) + 1` gives `sbb`/`neg`/`inc`; `c ? 2 : 1` gives `xor`/`cmp`/`seta`/`inc`.
+* Block order follows the if/else orientation: VC emits the then-block first and lets the
+  else-block fall into the code after the `if`. `CSndFileSEQ::OpenPiece` tests
+  `rate_ != 0` first (the first piece sets the format in the else branch) and leaves through
+  `goto failed` to the one Close/delete path (the author uses `goto failed` elsewhere too,
+  `HLSTxtSys::Initialize`). `cGlobal::NextReplay` returns 1 from inside the last-record test
+  and ends with `if (next[0] == 0) { if (first[0] != 0) copy first; else return 0; } else
+  copy next;`.
+* A negation computed before an `if` whose two branches use it (`fld; fchs` above the `je`)
+  is a local declared in each branch (`float left = -offset;` in `Control01::Fire`): VC
+  hoists the two negations and stores `offset` with `fstp`/`fld`; one local before the `if`
+  keeps it with `fst`, and `-offset + x` written in both branches becomes `x - offset`.
 * `build/obj/src/` keeps objects of deleted or merged sources (`fn_option.obj`, ...);
   `fdiff.py` may read such a stale object, so delete them after renaming a file.
 
