@@ -80,34 +80,31 @@ HLSTxt* HLSTxtSys::Create(int size, char* text) {
 }
 
 // 0x40ab20
-// TODO: nonmatching: the original keeps the height in memory (a local
-// struct or an address-taken variable); here it stays on the x87 stack.
+// TODO: nonmatching (close): `text` and the character swap esi/edi and
+// eax/edx. Declaring `line` first keeps the height in memory as in the
+// original.
 void HLSTxtSys::Measure(SIZE* size, const char* text) {
-  struct {
-    float width;
-    float height;
-  } extent;
-  extent.width = 0.0f;
-  extent.height = char_height_;
-  const Mapping* last = &mappings_[mapping_count_ - 1];
   float line = 0.0f;
+  float width = 0.0f;
+  float height = char_height_;
+  const Mapping* last = &mappings_[mapping_count_ - 1];
   for (;; ++text) {
     switch (*text) {
       case '\0':
-        if (line > extent.width) {
-          extent.width = line;
+        if (line > width) {
+          width = line;
         }
-        if (extent.width == 0.0f) {
+        if (width == 0.0f) {
           size->cx = size->cy = 0;
         } else {
-          size->cx = static_cast<LONG>(extent.width);
-          size->cy = static_cast<LONG>(extent.height);
+          size->cx = static_cast<LONG>(width);
+          size->cy = static_cast<LONG>(height);
         }
         return;
       case '\n':
-        extent.height += char_height_;
-        if (line > extent.width) {
-          extent.width = line;
+        height += char_height_;
+        if (line > width) {
+          width = line;
         }
         line = 0.0f;
         break;
