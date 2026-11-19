@@ -235,8 +235,6 @@ void HLSTxtSys::DrawGlyph(float x, float y, const Glyph* glyph,
 }
 
 // 0x40b180
-// TODO: nonmatching: the original spills the character code to a stack
-// slot before the mapping search (an inline helper taking it by address?).
 void HLSTxtSys::Print(float x, float y, const char* text,
                       const D3DCOLOR* palette, D3DCOLOR color, int count) {
   if (count == 0) {
@@ -280,12 +278,12 @@ void HLSTxtSys::Print(float x, float y, const char* text,
               break;
             }
           }
-          unsigned short index = code - first_char_;
-          DrawGlyph(left, y, &glyphs_[index], current);
+          code -= first_char_;
+          DrawGlyph(left, y, &glyphs_[code], current);
           if (--count <= 0) {
             return;
           }
-          left += widths_ != NULL ? widths_[index] : char_width_;
+          left += widths_ != NULL ? widths_[code] : char_width_;
           break;
         }
         case ' ':
@@ -325,13 +323,13 @@ void HLSTxtSys::Print(float x, float y, const char* text,
               break;
             }
           }
-          unsigned short index = code - first_char_;
-          DrawGlyph(left, y, &glyphs_[index], current);
+          code -= first_char_;
+          DrawGlyph(left, y, &glyphs_[code], current);
           if (--count <= 0) {
             return;
           }
           ++text;
-          left += widths_ != NULL ? widths_[index] : char_width_;
+          left += widths_ != NULL ? widths_[code] : char_width_;
           break;
         }
         case ' ':
