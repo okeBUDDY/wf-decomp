@@ -253,16 +253,22 @@ int cGlobal::LoadSounds() {
 }
 
 // 0x401880
-// TODO: nonmatching: the original keeps the two Error() returns apart and
-// sends the failed loads to the second one; this merges both Error() calls.
 int cGlobal::Initialize(Application* app) {
   if (!OpenPack("data.bin")) {
     Error("data.bin がオープンできません");
     return 0;
   }
   flags = 0;
-  if (!LoadFonts() || !LoadPatterns() || !RegisterActorControls() ||
-      !LoadSounds()) {
+  if (!LoadFonts()) {
+    return 0;
+  }
+  if (!LoadPatterns()) {
+    return 0;
+  }
+  if (!RegisterActorControls()) {
+    return 0;
+  }
+  if (!LoadSounds()) {
     return 0;
   }
   g_application.d3d->SetCullMode(D3DCULL_NONE);
