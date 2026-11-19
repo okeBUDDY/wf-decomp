@@ -204,7 +204,6 @@ class Control01 : public ActorControl {
   // Switches to `weapon` (the next one when negative).
   static void SelectWeapon(Actor* actor, int weapon, float x, float y);
 
-  static int weapon_;      // 0x4690ec, kept from one life to the next
   static ActorDesc shot_;  // 0x4690b8
 };
 

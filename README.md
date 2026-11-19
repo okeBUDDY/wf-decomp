@@ -160,7 +160,7 @@ sections 0.
 | headers | Rich header entry order: `Implib710 2067` is first seen after `Utc13_C 9466` instead of right after the dxguid entry | (in the 124) | Not examined; probably the newer dxguid.lib too |
 | headers | TimeDateStamp | 4 | Only by the post-link stamp |
 
-The `CheckSum` is 0 in both files. No difference comes from the 18 unmatched game functions:
+The `CheckSum` is 0 in both files. No difference comes from the 15 unmatched game functions:
 they link from the original bytes. The Rich `Import` (173) and `Implib` counts equal the
 original's since step 27 (from the import fix).
 
@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-660 of 678 game functions match (89.88% of the 128586 game code bytes; `tools/compare.py`),
+663 of 678 game functions match (91.28% of the 128586 game code bytes; `tools/compare.py`),
 and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -253,7 +253,7 @@ emitted in several files, such as header inlines, count in each):
 | HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 12/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 156/158 |
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 17/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 80/81 |
 | Sound | `snd_sys.cpp` 28/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 145/146 |
-| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 15/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 8/10, `background.cpp` 7/8 | 188/193 |
+| Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 16/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 10/10, `background.cpp` 7/8 | 191/193 |
 | Enemy generator (boss design) | `enm_param.cpp` 25/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 69/72 |
 | Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 4/5 | 43/44 |
 
@@ -393,9 +393,6 @@ Known compiler behaviour worth remembering:
   a pointer to the matrix, `TranslateTransform(&transform, 320, 240)`, screen-position
   locals and the reversed order do not change it); `HLSTxtSys::Measure` is 26 bytes off
   (esi/edi; a `char` local for the switch and a 40-minute permuter run do not help).
-  `Control32::Dash` (12 bytes short) keeps the squared distance in its own local and spills
-  the acceleration into the dead `actor` slot; function-scope locals, `speed` in
-  `distance2`, a `time` local, `part`-style flags and `dx = x - from_x` do not fix it.
   `GameHud::UpdateChart` is the six corners written out (0x14d bytes, no loop), each
   scale computed and stored before the next corner's load; the loop, the written-out
   corners (one `scale` or one per block) and an inline `ScaleCorner()` helper all let VC
@@ -410,11 +407,6 @@ Known compiler behaviour worth remembering:
   this picks eax; the parameter type of `set_time_stop_mask`, a `bool` or `unsigned` flag, an
   `input` local, an inverted test, a `mode` local, a `default:` case and moving the flag read
   do not change it (the permuter found nothing either).
-  `Control01::OnCreate` and `OnMove` differ in the inlined `SelectWeapon()`: the original
-  loads the laser into edx (the flame was in ecx) and the weapon's x and y into ecx/edx;
-  `Load` matches with the same inline. Loading `work->laser` earlier breaks `Load`; without
-  the `laser` local (`work->laser->color = 0` after the `weapon_` store) `OnCreate` is down
-  to one misplaced `dec eax` (5 bytes), but then the laser load comes after the store.
   `HLSurface::InitTextureFormats` (25 bytes): the slots of the saved `width_`/`height_`
   follow the order of the restore statements, not the declarations: in every combination of
   declaration, initialization and restore order tried, the variable restored first gets the
@@ -428,10 +420,25 @@ Known compiler behaviour worth remembering:
   `off + from`, a `short`/`int` result local, a `WrapAngle()` inline, function-scope
   `from`/`off` and an `unsigned short` StartTurn parameter all give `add eax, ebx` (a probe
   TU shows VC canonicalizes all of them the same). A 45-minute permuter run found nothing.
-  In `Control32::Dash`
-  computing `acceleration` before `distance2` (`float acceleration = power * 0.005f;` one line
-  up) puts the acceleration into the dead `actor` slot as in the original, but `distance2`
-  then stays on the FPU instead of in its own local (2 bytes short, more bytes differ).
+  `HLSurface::InitTextureFormats`: a `/FAs` probe shows the rule. Of the two saved
+  locals, the one whose last use comes later gets the lower slot (restoring `width_` first
+  gives the original's slots, but the restores in the wrong order). Making the HLSurface
+  statics (`max_texture_*`, `texture_caps_`, `format_codes_`, `graphics_`) file-static is
+  worse. `FnOption::Move`: with `__forceinline` on `PlayEffect()`, a row pointer for the
+  preset copy (`int* preset = presets_[values_[kGameMode]];` before the loop, which the
+  original hoists) and a `HLInpDev* pad` local in the button case, the function has the
+  original's size and 115 differing instructions (from 150). What is left: the original
+  keeps `g_application.input` in edi and reloads `pad(0)` from it (and reloads both for
+  `set_trigger`), keeps 0xff in ebp, compares `cursor_ == kExit` as an int (`cmp eax, 0x11`),
+  and puts the `code < 0` branch (`and dword ptr [esi+0x14], ~2`) at the end. An
+  `HLInput* input` local makes VC keep the pad instead (worse). Not committed, because the
+  pad local contradicts the reload for `set_trigger`. `CEnmParam::Plan`: the original
+  computes `rate` between the travel average and its conversion (and so spills it); every
+  order of the `count`, `add` and `rate` lines and a float `travel` local compute `rate`
+  either before or after the `_ftol`. `CEnmParam::Grow`: `code` reused as `base`, `index` as
+  the first loop's counter, and `base`/`count` computed before the hits check do not help;
+  a 45-minute permuter run only got from 1880 to 1485 with an unnatural `code << 3`
+  temporary computed before the hits check.
 * An empty user-declared destructor changes the code of the implicit destructor that contains
   the class: `~HLSTxtSys() {}` made the inlined member destruction in `~Fonts` (0x401f80)
   match.
@@ -467,6 +474,17 @@ Known compiler behaviour worth remembering:
   and pointer ones (which go in address order). `HLSTxtSys::Initialize` matched once
   `char_count` became an int (its member stays `short`): with the short parameter the whole
   assignment was rotated by one slot. Parameter and local names do not matter.
+* A global that only one file uses may also be a file-`static` that stands in for a static
+  member: `Control01::weapon_` (0x4690ec) is `g_player_weapon` in `player.cpp`. With the static
+  member, the inlined `SelectWeapon()` either put the laser in the wrong register or loaded it
+  after the store to the weapon; with the file-static, VC knows that the store does not alias
+  `laser->color`, which fixed `Control01::OnCreate` and `OnMove` (Load kept matching).
+* A local copy of a member next to the member itself: `Control32::Dash`'s brake formula
+  takes the acceleration from a local (`float acceleration = work->deceleration;`, declared in
+  the `if`) and the deceleration from `work->deceleration` (v^2 = 2 d a b / (a + b), brake after
+  v / a frames, with a == b here). The local is then homed in the dead `actor` slot and
+  `distance2` in its own local, as in the original; with one name for both, VC kept one of the
+  two on the FPU stack.
 * The author reuses variables, and a reused variable's longer life changes slots and
   registers. `Control32::StartTurn` (16-bit `angle`, as its caller shows) stores the peak of a
   short turn in `angle` itself (`angle = sqrt(...); turn_peak = angle; turn_end = angle * 2;`):

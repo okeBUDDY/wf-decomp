@@ -45,6 +45,10 @@ extern int g_weapon_sounds[2];          // 0x45d4e0, indices of the sounds
 extern FloatRect g_player_bounds;       // 0x45d4e8
 extern short g_direction_angles[0x10];  // 0x45d4f8, by direction keys
 
+// The player's weapon (Control01::Weapons), kept from one life to the next.
+// File-static: VC knows that stores through pointers leave it alone.
+static int g_player_weapon;  // 0x4690ec
+
 __forceinline void Control01::SelectWeapon(Actor* actor, int weapon, float x,
                                            float y) {
   PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
@@ -58,7 +62,7 @@ __forceinline void Control01::SelectWeapon(Actor* actor, int weapon, float x,
   work->shots = 0;
   work->flame->angle = 0;
   Actor* laser = work->laser;
-  weapon_ = weapon;
+  g_player_weapon = weapon;
   laser->color = 0;
   switch (weapon) {
     case kLaser:
@@ -69,7 +73,7 @@ __forceinline void Control01::SelectWeapon(Actor* actor, int weapon, float x,
 }
 
 // 0x412f90
-void Control01::ResetWeapon() { weapon_ = kShot; }
+void Control01::ResetWeapon() { g_player_weapon = kShot; }
 
 // 0x412fe0
 int Control01::Initialize() {
@@ -93,7 +97,7 @@ int Control01::Save(Actor* actor, File* file) {
   PlayerRecord record;
   record.x = actor->transform->m[2][0];
   record.y = actor->transform->m[2][1];
-  record.weapon = weapon_;
+  record.weapon = g_player_weapon;
   record.tip_x = g_laser.tip_x_;
   record.tip_y = g_laser.tip_y_;
   record.angle = g_laser.angle_;
@@ -205,8 +209,6 @@ int Control01::Load(Actor* actor, File* file) {
 }
 
 // 0x413550
-// TODO: nonmatching (SetSprite() goes through eax in the original; register
-// choice)
 int Control01::OnCreate(Actor* actor, void* param) {
   PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
   actor->hit_points = 1;
@@ -245,7 +247,7 @@ int Control01::OnCreate(Actor* actor, void* param) {
   actor->speed = 0.0f;
   float y = actor->transform->m[2][1];
   float x = actor->transform->m[2][0];
-  SelectWeapon(actor, weapon_, x, y);
+  SelectWeapon(actor, g_player_weapon, x, y);
   work->invincible = 120;
   actor->color = 0xffffffff;
   actor->team = 0;
@@ -253,8 +255,6 @@ int Control01::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x4136f0
-// TODO: nonmatching (register choice around the weapon switch and the blink
-// color)
 int Control01::OnMove(Actor* actor) {
   PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
   int pressed = g_fn_game.pressed();
