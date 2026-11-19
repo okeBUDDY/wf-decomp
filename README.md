@@ -388,8 +388,8 @@ Known compiler behaviour worth remembering:
   function-scope `count`, a `const unsigned int&` to the flags, `&=`/`|=` statements in the
   setter and a bitfield do not change it; the permuter's fix takes `&count`, so `count` may
   have gone through a by-reference helper.
-  `CEnmParam::Plan` is the original size; it spills `rate` in the prologue and keeps 0x20000
-  in ebp until `AddStep(17)`. `FnGame::Initialize` uses ecx for `g_application.input` where
+  `CEnmParam::Plan` is the original size; it spills `rate` in the prologue (the 0x20000 in
+  ebp was fixed in step 41). `FnGame::Initialize` uses ecx for `g_application.input` where
   this picks eax; the parameter type of `set_time_stop_mask`, a `bool` or `unsigned` flag, an
   `input` local, an inverted test, a `mode` local, a `default:` case and moving the flag read
   do not change it (the permuter found nothing either).
@@ -651,6 +651,37 @@ Known compiler behaviour worth remembering:
     `unsigned short& to = from; to += off;` also give `add ebx, eax`). `StartTurn` takes a
     `short` and `off` is masked, so neither change alters behaviour. References to locals
     that are only read (`const int& p = pause;`) are pure aliases and change nothing.
+  * **`CEnmParam::Plan` 64 -> 53** (permuter hint, 835 from 1770): `const EnmSideStats& first
+    = state_.sides[0];` before the `state_.flags & 0x10000` test, with `mode0 = first.mode`
+    and `first.progress < 65`, keeps `&state_.sides[0]` in ebp up to the mode reads as in the
+    original, which frees ebp for the 0x20000 constant shared by the flags test and
+    `AddStep(17)`. Reading only the mode through `first` (and the progress off `state_`,
+    as the original's `[esi + 0x12]` suggests) loses it again (64), and so does declaring it
+    anywhere earlier. Left: `rate` is not spilled, `kinds[1]` is stored before `kinds[0]` in
+    the original (`unsigned int kinds[2]; kinds[1] = 0; kinds[0] = 0;` gives that, 51, but is
+    not committed), the first progress read is `[ebp + 6]` instead of `[esi + 0x12]`, and an
+    `xor edx, edx`/`mov eax, ebp` pair is swapped. The rate spill: VC orders independent x87
+    work so that the later-used value sits deeper (every statement order of `travel`/`rate`
+    in a probe computes `rate` first and keeps it in st1 across `__ftol2`); the original
+    computes the travel quotient first and so has to spill `rate`. References to `rate`,
+    `add`, `count` or the members, `/Op` (rounds every conversion) and a `volatile` rate
+    (stored into `score`'s slot, after the `_ftol`) do not reproduce it.
+  * `CEnmParam::Grow`: `const short& mode = state_.sides[...].mode` (re-read after each
+    loop, so wrong code) gives the original's `this` ebp / `base` ebx, and a `const unsigned
+    int& flags = slot->flags` at the top of the else block puts `code` in ecx (71) but
+    re-reads the flags for the `& 8` test. Pure alias references (`int& count = count_v;`,
+    for `slot`, `count`, `base`, `index`, `mode`, `n`, `i`, `weapon`, `limit`), references in
+    the tail (`int& parts`, `const int& total = ++parts;`, `part_total_`), an `EnmSlot& s`
+    for the else block or the tail, a `CEnmParam& self`, and nine spellings of the side
+    index (`(state_.sides + side)->mode`, `this->`, `? 1 : 0`, ...) leave it at 87; a ternary
+    picking `state_.sides[1].mode` or `[0].mode` is the original size but 82.
+  * `FnGame::Initialize`, `HLSurface::Load`, `FnGame::RateGame`: reference forms (`HLInput*&`
+    / `HLInput&` / `Application&` locals, `int& pause`, `const unsigned int& flags`, `const
+    short& w = image.width()`, `const HLImage& img`, `const unsigned char&` scale factors)
+    change nothing (a reference to `scale_y_` re-reads it: 267). `RateGame`: a
+    `SetRating(grade, title); return;` in every branch but the first is not cross-jumped
+    (74, 0x113 bytes); swapping the `grade`/`title` assignments or declarations, `char`
+    SetRating parameters and a hoisted `title = 0` are 20-31.
 * **Step 40 (drafts only, no new matches).** Probes with `tools/fas_variants.py` and
   `tools/multi_variants.py` (and a 1-hour permuter run on `HLSurface::Load` from the
   `short bits` form, which found nothing).

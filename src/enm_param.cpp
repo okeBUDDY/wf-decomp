@@ -452,8 +452,9 @@ void CEnmParam::AddStep(int id) {
 
 // 0x41abc0
 // TODO: nonmatching (same size; the original spills rate to the stack in
-// the prologue and keeps 0x20000 in ebp from the flags test into
-// AddStep(17)).
+// the prologue, stores kinds[1] before kinds[0] and reads the first side's
+// progress off `this`). The `first` reference keeps &state_.sides[0] in ebp
+// up to the mode reads, which frees ebp for 0x20000 as in the original.
 void CEnmParam::Plan(int score) {
   if (player_samples_ < 1) {
     player_samples_ = 1;
@@ -586,12 +587,13 @@ void CEnmParam::Plan(int score) {
   if (g_global.stage >= 1) {
     AddStep(1);
   }
+  const EnmSideStats& first = state_.sides[0];
   if (state_.flags & 0x10000) {
     AddStep(6);
   }
-  int mode0 = state_.sides[0].mode;
+  int mode0 = first.mode;
   int mode1 = state_.sides[1].mode;
-  if (state_.sides[0].progress < 65) {
+  if (first.progress < 65) {
     mode0 = 0;
   }
   if (state_.sides[1].progress < 65) {
