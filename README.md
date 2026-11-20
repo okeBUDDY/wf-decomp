@@ -1,26 +1,43 @@
 # Warning Forever 1.08 decompilation
 
-A byte-matching decompilation of `wf.exe` from Warning Forever 1.08 (Hikoza T. Ohkubo, 2005).
-The exe is a PE32 file with image base 0x400000 and no relocations. It was built with
-Visual C++ .NET 2003 (cl 13.10.3077, LINK 7.10). Its third-party libraries were built with
-Visual C++ .NET 2002 (cl 13.00.9466).
+A byte-matching decompilation of Warning Forever 1.08 (Hikoza T. Ohkubo, 2005).
+
+This decompilation was completed using generative AI (Claude Opus 5.5).
+
+> [!WARNING]
+> **Disclaimer:** there is no official release of Warning Forever or Warning Forever+ on any
+> storefront. The only official sources are [the original
+> website](https://www.hikware.com/Prod/index.html#wf) and the
+> [wf-decomp](https://github.com/okeBUDDY/wf-decomp) and
+> [wf-plus](https://github.com/okeBUDDY/wf-plus) repositories on GitHub.
 
 Version 1.08 is the last release: the original developer ended development and support of the
 game after it. The game is still [freely available to download from the official
 website](https://www.hikware.com/Prod/index.html#wf). This repository does not contain the game;
-the build needs your own copy of version 1.08's `wf.exe`.
+building it needs your own copy of version 1.08's `wf.exe`.
 
-The current state:
+All 678 game functions are decompiled to C++ in `src/` and compile to the original's bytes,
+and the whole exe is relinked from them with the original linker. The relinked `wf.exe` is
+byte-identical to the original except for the link timestamp, which the optional post-link
+stamp restores (see [Remaining differences](#remaining-differences-of-buildwfexe)):
 
+* All 678 game functions match byte for byte, and so do the 151 compiler-generated EH stubs;
+  the relinked exe takes every game function from the compiled source (`tools/compare.py`,
+  `objdiff.json`).
 * All 361 identified library functions (libogg 1.0, libvorbis 1.0, zlib 1.1.4,
   libpng 1.2.5) are rebuilt from source and match byte for byte.
-* The whole exe is relinked with the original LINK from game "blob" objects,
-  the rebuilt libraries, libcmt and the SDK import libraries. Every section (`.text`,
-  `.rdata` with the import table, `.data`, `.rsrc`) is byte-identical, and so is the Rich
-  header; only the link timestamp differs (see below).
-* All 678 game functions are decompiled to C++ in `src/` and match byte for byte; the
-  relinked exe takes every game function from the compiled source (`tools/compare.py`,
-  `objdiff.json`).
+* The exe is relinked with the original LINK from game "blob" objects, the rebuilt
+  libraries, libcmt and the SDK import libraries. Every section (`.text`, `.rdata` with the
+  import table, `.data`, `.rsrc`) is byte-identical, and so is the Rich header.
+
+## The original exe
+
+`wf.exe` is not part of this repository. Take it from the 1.08 release (`wf108.zip`, the
+game's download, see above); its SHA-1 is in `config/wf.sha1`. It is a PE32 file with image
+base 0x400000 and no relocations, built with Visual C++ .NET 2003 (cl 13.10.3077, LINK 7.10);
+its third-party libraries were built with Visual C++ .NET 2002 (cl 13.00.9466). The build
+reads it for the bytes that are not compiled from source (the units' data and the icon) and
+to verify the result. Never commit `wf.exe`, `data.bin` or toolchain binaries.
 
 ## Setup
 
@@ -38,9 +55,7 @@ The current state:
     `d9c7e86a243fb043d87c23f496b15742ec7c328e`). Default:
     `/root/wf/tools/dxsdk/apr2005`.
   * `WINEPREFIX` defaults to `/root/.wine-wf`.
-* Put the original `wf.exe` (from the game's download, see above) in `orig/`, or point
-  `WF_ORIG` at it. Its SHA-1 is in
-  `config/wf.sha1`. Never commit `wf.exe`, `data.bin` or toolchain binaries.
+* Put the original `wf.exe` in `orig/`, or point `WF_ORIG` at it.
 * Library source tarballs (`libogg-1.0`, `libvorbis-1.0`, `zlib-1.1.4`, `libpng-1.2.5`)
   go in `WF_THIRDPARTY` (default `/root/wf/thirdparty`). `config/libs.json` records their SHA-1s.
 * **wineserver:** every tool that runs Wine first starts a persistent
