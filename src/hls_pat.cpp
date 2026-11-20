@@ -38,7 +38,8 @@ int HLSPat::Setup(int width, int height, HLSurface* texture, short u, short v,
   if (texture == NULL) {
     texture_ = new HLSurface;
     if (texture_ == NULL ||
-        !texture_->Create(width, height, HLSurface::kTexture | 0x40)) {
+        !texture_->Create(width, height,
+                          HLSurface::kTexture | HLSurface::kAlpha)) {
       return 0;
     }
     owns_texture_ = true;

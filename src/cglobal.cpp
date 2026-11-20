@@ -78,8 +78,8 @@ void cGlobal::ClearStage() {
 void cGlobal::ResetSound() {
   g_application.sound->Stop(NULL, -1);
   g_application.sound->MuteGroup(0, -1);
-  g_application.sound->SetGroupVolume(effect_volume, 0);
-  g_application.sound->SetGroupVolume(music_volume, 1);
+  g_application.sound->SetGroupVolume(effect_volume, kSoundEffects);
+  g_application.sound->SetGroupVolume(music_volume, kSoundMusic);
 }
 
 // 0x401240
@@ -96,13 +96,16 @@ void cGlobal::ResetGame() {
 
 // 0x401280
 int cGlobal::LoadFonts() {
-  if (!g_fonts.textures[0].Load("font0.png", 0x44)) {
+  if (!g_fonts.textures[0].Load("font0.png",
+                                HLSurface::kTexture | HLSurface::kAlpha)) {
     return 0;
   }
-  if (!g_fonts.textures[1].Load("font1.png", 0x44)) {
+  if (!g_fonts.textures[1].Load("font1.png",
+                                HLSurface::kTexture | HLSurface::kAlpha)) {
     return 0;
   }
-  if (!g_fonts.textures[2].Load("font2.png", 0x44)) {
+  if (!g_fonts.textures[2].Load("font2.png",
+                                HLSurface::kTexture | HLSurface::kAlpha)) {
     return 0;
   }
   if (!g_fonts.text.Initialize(&g_application, &g_fonts.textures[1], 32, " ",
@@ -171,88 +174,88 @@ void ActorSystem::SetMargin(int x, int y) {
 
 // 0x401550
 int cGlobal::LoadSounds() {
-  if (!g_sounds[kSndBomb1].Load("bomb_1.ogg", 0, 0)) {
+  if (!g_sounds[kSndBomb1].Load("bomb_1.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndBomb2].Load("bomb_2.ogg", 0, 0)) {
+  if (!g_sounds[kSndBomb2].Load("bomb_2.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndBomb3].Load("bomb_3.ogg", 0, 0)) {
+  if (!g_sounds[kSndBomb3].Load("bomb_3.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndBomb4].Load("bomb_4.ogg", 0, 0)) {
+  if (!g_sounds[kSndBomb4].Load("bomb_4.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndBombPre].Load("bomb_pre.ogg", 0, 0)) {
+  if (!g_sounds[kSndBombPre].Load("bomb_pre.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndBombAll].Load("bomb_all.ogg", 0, 0)) {
+  if (!g_sounds[kSndBombAll].Load("bomb_all.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndBombMe].Load("bomb_me.ogg", 0, 0)) {
+  if (!g_sounds[kSndBombMe].Load("bomb_me.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndDamage].Load("damage.ogg", 0, 0)) {
+  if (!g_sounds[kSndDamage].Load("damage.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndNoDamage].Load("nodamage.ogg", 0, 0)) {
+  if (!g_sounds[kSndNoDamage].Load("nodamage.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndWarning].Load("warning.ogg", 0, 0)) {
+  if (!g_sounds[kSndWarning].Load("warning.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndSwitch].Load("switch.ogg", 0, 0)) {
+  if (!g_sounds[kSndSwitch].Load("switch.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndWeapon0].Load("wep0.ogg", 0, 0)) {
+  if (!g_sounds[kSndWeapon0].Load("wep0.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndWeapon1].Load("wep1.ogg", 0, 0)) {
+  if (!g_sounds[kSndWeapon1].Load("wep1.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndFireMe].Load("fire_me.ogg", 0, 0)) {
+  if (!g_sounds[kSndFireMe].Load("fire_me.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndFireBl].Load("fire_bl.ogg", 0, 0)) {
+  if (!g_sounds[kSndFireBl].Load("fire_bl.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndFireCn].Load("fire_cn.ogg", 0, 0)) {
+  if (!g_sounds[kSndFireCn].Load("fire_cn.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndFireLs1].Load("fire_ls1.ogg", 0, 0)) {
+  if (!g_sounds[kSndFireLs1].Load("fire_ls1.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndFireLs2].Load("fire_ls2.ogg", 0, 0)) {
+  if (!g_sounds[kSndFireLs2].Load("fire_ls2.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndFireLs3].Load("fire_ls3.ogg", 0, 0)) {
+  if (!g_sounds[kSndFireLs3].Load("fire_ls3.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndFireMs].Load("fire_ms.ogg", 0, 0)) {
+  if (!g_sounds[kSndFireMs].Load("fire_ms.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndBarrier].Load("barrier.ogg", 0, 0)) {
+  if (!g_sounds[kSndBarrier].Load("barrier.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndBoost1].Load("boost1.ogg", 0, 0)) {
+  if (!g_sounds[kSndBoost1].Load("boost1.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndBoost2].Load("boost2.ogg", 0, 0)) {
+  if (!g_sounds[kSndBoost2].Load("boost2.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndTrans1].Load("trans1.ogg", 0, 0)) {
+  if (!g_sounds[kSndTrans1].Load("trans1.ogg", 0, kSoundEffects)) {
     return 0;
   }
-  if (!g_sounds[kSndTrans2].Load("trans2.ogg", 0, 0)) {
+  if (!g_sounds[kSndTrans2].Load("trans2.ogg", 0, kSoundEffects)) {
     return 0;
   }
   g_actor_system.SetDamageSound(Actor::kDamageArmor, &g_sounds[kSndDamage],
                                 g_application.sound->channel(kSndDamage));
   g_actor_system.SetDamageSound(Actor::kDamageGuard, &g_sounds[kSndNoDamage],
                                 g_application.sound->channel(kSndNoDamage));
-  if (!g_bgm.Load("bgm.seq", 0x1000000, 1) &&
-      !g_bgm.Load("bgm.ogg", 0x1000000, 1)) {
-    g_bgm.Load("bgm.wav", 0x1000000, 1);
+  if (!g_bgm.Load("bgm.seq", CSndBuf::kFromDisk, kSoundMusic) &&
+      !g_bgm.Load("bgm.ogg", CSndBuf::kFromDisk, kSoundMusic)) {
+    g_bgm.Load("bgm.wav", CSndBuf::kFromDisk, kSoundMusic);
   }
   Object::ClearError();
   return 1;

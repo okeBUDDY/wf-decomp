@@ -36,6 +36,12 @@ enum SoundId {
   kChannelBgm = kSounds,  // the channel of g_bgm
 };
 
+// The volume groups of the sounds (CSndBuf::group()).
+enum SoundGroup {
+  kSoundEffects = 0,  // g_sounds
+  kSoundMusic = 1,    // g_bgm
+};
+
 extern CSndBuf g_sounds[kSounds];  // 0x4681f0
 // The music: "bgm.seq", else "bgm.ogg", else "bgm.wav".
 extern CSndStrm g_bgm;  // 0x4686f0

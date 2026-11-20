@@ -132,7 +132,7 @@ int Graphics::Initialize(Application* app) {
     Error("ﾌﾟﾗｲﾏﾘｻｰﾌｪｽが生成できません");
     return 0;
   }
-  primary_.Attach(1);
+  primary_.Attach(HLSurface::kPrimary);
   if (app_->flags & Application::kFullScreen) {
     DDSCAPS2 caps;
     ZeroMemory(&caps, sizeof(caps));
@@ -143,9 +143,10 @@ int Graphics::Initialize(Application* app) {
       Error("ﾊﾞｯｸｻｰﾌｪｽが生成できません");
       return 0;
     }
-    back_.Attach(2);
+    back_.Attach(HLSurface::kBackBuffer);
   } else {
-    if (!back_.Create(app_->width, app_->height, 0x23)) {
+    if (!back_.Create(app_->width, app_->height,
+                      HLSurface::kOffscreen | HLSurface::kRenderTarget)) {
       return 0;
     }
     app_->options |= Application::kClipper;
