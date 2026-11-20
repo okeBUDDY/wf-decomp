@@ -32,18 +32,18 @@ FnGame::FnGame() {
   name_ = "fnGame";
   background_ = NULL;
   hud_ = NULL;
-  mode_ = 0;
+  mode_ = kModeRecord;
 }
 
 // 0x41be30
 void FnGame::SetMode(int mode, const char* path) {
   mode_ = mode;
   switch (mode) {
-    case 0:
+    case kModeRecord:
       g_replay.Open(Replay::kRecord, "rec\\temp.rec");
       break;
-    case 1:
-    case 2:
+    case kModeReplay:
+    case kModeDemo:
       g_replay.Open(Replay::kPlay, path);
       break;
   }
@@ -115,13 +115,13 @@ void FnGame::Move() {
       if (flags_ & kFlagMusic) {
         RateGame();
         switch (bgm_mode_) {
-          case 1:
+          case kBgmFade:
             if (g_global.stage > 1) {
               g_application.sound->channel(kChannelBgm)
                   ->Fade(0.0f, 1.0f, 3.0f, 0);
             }
             break;
-          case 2:
+          case kBgmRewind:
             g_application.sound->channel(kChannelBgm)
                 ->Assign(&g_bgm, Channel::kLoop, 1.0f);
             break;
@@ -142,11 +142,11 @@ void FnGame::Move() {
       g_replay.Close();
       if (flags_ & kFlagMusic) {
         switch (bgm_mode_) {
-          case 1:
+          case kBgmFade:
             g_application.sound->channel(kChannelBgm)
                 ->Fade(1.0f, 0.0f, 5.0f, 0);
             break;
-          case 2:
+          case kBgmRewind:
             g_application.sound->channel(kChannelBgm)
                 ->Fade(1.0f, 0.0f, 5.0f, 1);
             break;
@@ -206,7 +206,7 @@ void FnGame::Move() {
       }
       if (flags_ & kFlagMusic) {
         SetSeqFlags();
-        if (bgm_mode_ != 2) {
+        if (bgm_mode_ != kBgmRewind) {
           g_application.sound->channel(kChannelBgm)
               ->Assign(&g_bgm, Channel::kLoop, 1.0f);
         }
@@ -227,7 +227,7 @@ void FnGame::Move() {
   if (exit_frames_ != 0) {
     if (++exit_time_ >= exit_frames_) {
       if ((flags_ & kFlagReplayList) && g_global.NextReplay(g_text_buffer)) {
-        mode_ = 1;
+        mode_ = kModeReplay;
         g_replay.Open(Replay::kPlay, g_text_buffer);
         g_application.user_func->Finish(&g_fn_game);
       } else {
@@ -282,15 +282,15 @@ int FnGame::Initialize() {
   SetState(kStateStart);
   int pause = g_global.flags & cGlobal::kFlagPause;
   switch (mode_) {
-    case 0:
+    case kModeRecord:
       if (g_bgm.loaded()) {
         flags_ |= kFlagMusic;
       }
       break;
-    case 1:
+    case kModeReplay:
       flags_ |= kFlagPlayback | kFlagReplayList;
       break;
-    case 2:
+    case kModeDemo:
       g_application.sound->MuteGroup(1, -1);
       flags_ |= kFlagPlayback;
       return 1;
@@ -685,7 +685,8 @@ void FnOption::Move() {
       break;
     }
     case kKindAction:
-      if (pressed & (HLInpDev::kTrigger * 0xb)) {
+      if (pressed &
+          (FnGame::kKeyFire | FnGame::kKeySlow | FnGame::kKeySwitch)) {
         if (cursor == kExit) {
           g_application.sound->channel(kChannelBgm)->Fade(1.0f, 0, 1.0f, 1);
           g_global.screen_fade->FadeOut(60);

@@ -1,5 +1,4 @@
-// fnTitle: the title screen (vtable 0x453474). Only the fields used by
-// decompiled code are known so far.
+// fnTitle: the title screen (vtable 0x453474).
 #ifndef WF_FN_TITLE_H_
 #define WF_FN_TITLE_H_
 
@@ -22,7 +21,7 @@ class FnTitle : public UserFunc {
     kFlagMenuCursor = 0x1,  // the arrows around the menu item are shown
     kFlagTitleShown = 0x2,  // the intro is over (or was skipped)
   };
-  // time_: the steps of the title screen.
+  // step_: the steps of the title screen.
   enum Step {
     kStepLogo = 100,      // 100-104: the logo fades in and out
     kStepIntro = 200,     // 200-206: the title sweeps in
@@ -40,12 +39,12 @@ class FnTitle : public UserFunc {
     kMenuItemCount = 4,
   };
 
-  Actor* logo_[2];      // 0x14, the two halves of the logo (etc2.pat)
-  Actor* sweeps_[2];    // 0x1c, the bars that sweep in (etc0.pat)
-  Actor* subtitle_;     // 0x24, draws texts_[0]
-  HLSTxt* texts_[3];    // 0x28: the subtitle, the menu item, the scores
-  float sweep_offset_;  // 0x34, of the bars that sweep in
-  char unknown_38_[0x3c - 0x38];
+  Actor* logo_[2];       // 0x14, the two halves of the logo (etc2.pat)
+  Actor* sweeps_[2];     // 0x1c, the bars that sweep in (etc0.pat)
+  Actor* subtitle_;      // 0x24, draws texts_[0]
+  HLSTxt* texts_[3];     // 0x28: the subtitle, the menu item, the scores
+  float sweep_offset_;   // 0x34, of the bars that sweep in
+  int unused_38_;        // 0x38, never accessed
   float hex_scale_;      // 0x3c, of the spinning hexagon
   unsigned int flags_;   // 0x40, Flags
   short cursor_alpha_;   // 0x44
@@ -56,7 +55,7 @@ class FnTitle : public UserFunc {
   short scores_length_;  // 0x4e
   short menu_;           // 0x50, MenuItem
   short menu_x_;         // 0x52, of the menu item
-  short time_;           // 0x54, Step
+  short step_;           // 0x54, Step
   short step_time_;      // 0x56, frames in the current step
 };
 

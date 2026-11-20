@@ -252,7 +252,7 @@ void GameHud::Run() {
   if (flags_ & kFlagReplay) {
     texts_[kTextReplayName]->Print(replay_name_x_, 456, kTextColor, -1);
     texts_[kTextReplayDate]->Print(512, 468, kTextColor, -1);
-    if (g_fn_game.mode() == 1) {
+    if (g_fn_game.mode() == FnGame::kModeReplay) {
       texts_[kTextReplayHelp]->Print(0, 460, kTextColor, -1);
     }
   }

@@ -1,5 +1,4 @@
 // fnGame: the stage that runs a game (vtable 0x4530a8, g_fn_game).
-// Only the fields used by decompiled code are known so far.
 #ifndef WF_FN_GAME_H_
 #define WF_FN_GAME_H_
 
@@ -20,13 +19,21 @@ class FnGame : public UserFunc {
     kKeySwitch = HLInpDev::kTrigger << 3,  // the weapon
   };
 
+  // mode_: what the stage runs.
+  enum Mode {
+    kModeRecord = 0,  // a game, recorded to rec\temp.rec
+    kModeReplay =
+        1,          // the replays in the rec folder, one after another (REPLAY)
+    kModeDemo = 2,  // one replay without music (the title's demo)
+  };
+
   FnGame();                  // 0x41be00
   virtual int Initialize();  // 0x41bf50
   virtual void Finalize();   // 0x41c0e0
   virtual void Move();       // 0x41c190
   virtual void Draw();       // 0x41bea0
 
-  // Starts recording (`mode` 0) or playing back `path` (1, 2).
+  // Starts recording (kModeRecord) or playing back `path`.
   void SetMode(int mode, const char* path);  // 0x41be30
   // Enters `state`.
   void SetState(short state);  // 0x41be80
@@ -45,7 +52,7 @@ class FnGame : public UserFunc {
     kBgmRewind = 2,  // restarts at each stage
   };
 
-  // 0 while recording, else playing back.
+  // Mode.
   int mode() const { return mode_; }
   void set_bgm_mode(int mode) { bgm_mode_ = mode; }
   unsigned short keys() const { return keys_; }
@@ -69,7 +76,7 @@ class FnGame : public UserFunc {
   BackgroundGrid* background_;  // 0x14
   GameHud* hud_;                // 0x18
   unsigned int flags_;          // 0x1c
-  int mode_;                    // 0x20
+  int mode_;                    // 0x20, Mode
   int bgm_mode_;                // 0x24, BgmMode
   short exit_frames_;           // 0x28, frames until the stage ends, 0: running
   short exit_time_;             // 0x2a

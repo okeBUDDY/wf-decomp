@@ -51,7 +51,7 @@ int BackgroundGrid::Initialize() {
   tiles_[0].z = tiles_[1].z = tiles_[2].z = tiles_[3].z = 0.999999f;
   x_ = y_ = 0;
   angle_ = rand() & 0x3ff;
-  unknown_56_ = 0;
+  unused_56_ = 0;
   return 1;
 }
 

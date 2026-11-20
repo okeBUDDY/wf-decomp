@@ -72,9 +72,9 @@ class FnOption : public UserFunc {
   short blink_;                    // 0x1a, alpha of the cursor, 255 down to 0
   short values_[kItems];           // 0x1c, of each menu item
   unsigned char enabled_[kItems];  // 0x40, of each menu item
-  char unknown_52_[2];
-  HLSTxt* items_[kItems];       // 0x54, the text of each menu item
-  BackgroundGrid* background_;  // 0x9c
+                                   // 0x52: padding
+  HLSTxt* items_[kItems];          // 0x54, the text of each menu item
+  BackgroundGrid* background_;     // 0x9c
 };
 
 extern FnOption g_fn_option;  // 0x467cd0

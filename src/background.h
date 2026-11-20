@@ -70,7 +70,7 @@ class BackgroundGrid : public Task {
   D3DVECTOR tiles_[4];  // 0x20, the offsets of the copies
   D3DVECTOR* points_;   // 0x50, kPoints
   short angle_;         // 0x54, of the scrolling
-  short unknown_56_;    // 0x56
+  short unused_56_;     // 0x56, only cleared by Initialize()
   float x_;             // 0x58, scroll position
   float y_;             // 0x5c
 };
