@@ -120,13 +120,13 @@ int HLDevice::CheckDisplay(HWND window) {
 
 // 0x404480
 void HLDevice::InitDialog(HWND dialog) {
-  graphics_.Fill(GetDlgItem(dialog, 0x3eb),
+  graphics_.Fill(GetDlgItem(dialog, kGraphicsCombo),
                  app_->graphics_flags & AppSettings::kDirectDraw);
-  sound_.Fill(GetDlgItem(dialog, 0x3ed),
+  sound_.Fill(GetDlgItem(dialog, kSoundCombo),
               app_->graphics_flags & AppSettings::kSound);
-  pads_[0].Fill(GetDlgItem(dialog, 0x3ec),
+  pads_[0].Fill(GetDlgItem(dialog, kInputCombo),
                 app_->graphics_flags & AppSettings::kInput);
-  HWND pads = GetDlgItem(dialog, 0x3ee);
+  HWND pads = GetDlgItem(dialog, kPadCombo);
   for (int i = 0; i < pad_count_; ++i) {
     sprintf(g_text_buffer, "%d", i + 1);
     SendMessageA(pads, CB_ADDSTRING, 0,
@@ -138,31 +138,33 @@ void HLDevice::InitDialog(HWND dialog) {
   }
   pad_ = 0;
   if (app_->flags & AppSettings::kFullScreen) {
-    CheckRadioButton(dialog, 0x3e9, 0x3ea, 0x3ea);
+    CheckRadioButton(dialog, kWindowModeButton, kFullScreenButton,
+                     kFullScreenButton);
     if (!(app_->options & AppSettings::kScreenChoice)) {
-      EnableWindow(GetDlgItem(dialog, 0x3e9), FALSE);
+      EnableWindow(GetDlgItem(dialog, kWindowModeButton), FALSE);
     }
   } else {
-    CheckRadioButton(dialog, 0x3e9, 0x3ea, 0x3e9);
+    CheckRadioButton(dialog, kWindowModeButton, kFullScreenButton,
+                     kWindowModeButton);
     if (!(app_->options & AppSettings::kScreenChoice)) {
-      EnableWindow(GetDlgItem(dialog, 0x3ea), FALSE);
+      EnableWindow(GetDlgItem(dialog, kFullScreenButton), FALSE);
     }
   }
   if (flags_ & kFlagRemember) {
-    CheckDlgButton(dialog, 0x3ef, BST_CHECKED);
+    CheckDlgButton(dialog, kDontShowCheck, BST_CHECKED);
   }
 }
 
 // 0x4045e0
 void HLDevice::ReadDialog(HWND dialog) {
-  graphics_.ReadSelection(GetDlgItem(dialog, 0x3eb));
-  sound_.ReadSelection(GetDlgItem(dialog, 0x3ed));
-  if (IsDlgButtonChecked(dialog, 0x3ea) == BST_CHECKED) {
+  graphics_.ReadSelection(GetDlgItem(dialog, kGraphicsCombo));
+  sound_.ReadSelection(GetDlgItem(dialog, kSoundCombo));
+  if (IsDlgButtonChecked(dialog, kFullScreenButton) == BST_CHECKED) {
     app_->flags |= AppSettings::kFullScreen;
   } else {
     app_->flags &= ~AppSettings::kFullScreen;
   }
-  if (IsDlgButtonChecked(dialog, 0x3ef) == BST_CHECKED) {
+  if (IsDlgButtonChecked(dialog, kDontShowCheck) == BST_CHECKED) {
     flags_ |= kFlagRemember;
   } else {
     flags_ &= ~kFlagRemember;
@@ -232,7 +234,7 @@ INT_PTR CALLBACK HLDevice::DialogProc(HWND dialog, UINT message, WPARAM wparam,
         case IDCANCEL:
           EndDialog(dialog, 0);
           return TRUE;
-        case 0x3ec:
+        case kInputCombo:
           if (HIWORD(wparam) == CBN_SELCHANGE) {
             device->pads_[device->pad_].Select(
                 static_cast<unsigned char>(SendMessageA(
@@ -240,12 +242,13 @@ INT_PTR CALLBACK HLDevice::DialogProc(HWND dialog, UINT message, WPARAM wparam,
             return TRUE;
           }
           // Falls through (to no effect).
-        case 0x3ee:
+        case kPadCombo:
           if (HIWORD(wparam) == CBN_SELCHANGE) {
             device->pad_ = static_cast<unsigned short>(SendMessageA(
                 reinterpret_cast<HWND>(lparam), CB_GETCURSEL, 0, 0));
             WPARAM selected = device->pads_[device->pad_].selected_;
-            SendMessageA(GetDlgItem(dialog, 0x3ec), CB_SETCURSEL, selected, 0);
+            SendMessageA(GetDlgItem(dialog, kInputCombo), CB_SETCURSEL,
+                         selected, 0);
             return TRUE;
           }
           break;

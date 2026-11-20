@@ -195,7 +195,7 @@ LRESULT CALLBACK HLWindow::WndProc(HWND hwnd, UINT msg, WPARAM wparam,
     case WM_SIZE:
       app->graphics->UpdateWindowRect(hwnd);
       break;
-    case WM_USER + 0x1000:
+    case WM_USER + 0x1000:  // nothing in the exe sends it
       app->flags &= ~Application::kSkipFrame;
       break;
     case WM_SYSCOMMAND:

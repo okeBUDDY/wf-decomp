@@ -102,7 +102,7 @@ class HLDevSet : public Object {
 class HLDevice : public System {
  public:
   enum Flags {
-    kFlagRemember = 0x1,  // the dialog's check box 0x3ef
+    kFlagRemember = 0x1,  // the dialog's kDontShowCheck
   };
 
   HLDevice();                                // 0x404840
@@ -113,6 +113,19 @@ class HLDevice : public System {
   virtual void Resume() {}
 
  private:
+  // The start-up dialog and its controls (IDD_CONFIG and the IDC_ names of
+  // res/resource.h).
+  enum DialogIds {
+    kDialog = 101,
+    kWindowModeButton = 1001,
+    kFullScreenButton = 1002,
+    kGraphicsCombo = 1003,
+    kInputCombo = 1004,  // the device of the pad shown
+    kSoundCombo = 1005,
+    kPadCombo = 1006,  // the pad shown
+    kDontShowCheck = 1007,
+  };
+
   // Returns 0 (with a warning on `window`) when the desktop has 256 colors
   // and the game runs in a window; else takes its depth.
   int CheckDisplay(HWND window);  // 0x4043f0

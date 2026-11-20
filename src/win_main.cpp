@@ -19,7 +19,7 @@ namespace {
 
 const char kTitle[] = "WARNING FOREVER v1.07";
 const char kName[] = "wf";
-const int kIcon = 103;
+const int kIcon = 103;  // IDI_WF (res/resource.h)
 
 }  // namespace
 

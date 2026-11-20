@@ -45,8 +45,9 @@ int HLDevice::Initialize(Application* app) {
   for (;;) {
     if ((app_->options & AppSettings::kDeviceDialog) &&
         !(flags_ & kFlagRemember)) {
-      if (!DialogBoxParam(app_->instance, MAKEINTRESOURCE(101), app_->window,
-                          DialogProc, reinterpret_cast<LPARAM>(this))) {
+      if (!DialogBoxParam(app_->instance, MAKEINTRESOURCE(kDialog),
+                          app_->window, DialogProc,
+                          reinterpret_cast<LPARAM>(this))) {
         Log("ﾕｰｻﾞｰによるｷｬﾝｾﾙ");
         return 0;
       }
