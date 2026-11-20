@@ -13,7 +13,9 @@ The current state:
   the rebuilt libraries, libcmt and the SDK import libraries. Every section (`.text`,
   `.rdata` with the import table, `.data`, `.rsrc`) is byte-identical; only the Rich header
   and the link timestamp differ (listed below).
-* There is a per-function compare pipeline for decompiled C++ (`tools/compare.py`, `objdiff.json`).
+* All 678 game functions are decompiled to C++ in `src/` and match byte for byte; the
+  relinked exe takes every game function from the compiled source (`tools/compare.py`,
+  `objdiff.json`).
 
 ## Setup
 
@@ -160,8 +162,8 @@ sections 0.
 | headers | Rich header entry order: `Implib710 2067` is first seen after `Utc13_C 9466` instead of right after the dxguid entry | (in the 124) | Not examined; probably the newer dxguid.lib too |
 | headers | TimeDateStamp | 4 | Only by the post-link stamp |
 
-The `CheckSum` is 0 in both files. Every game function links from source (step 47). The Rich `Import` (173) and `Implib` counts equal the
-original's since step 27 (from the import fix).
+The `CheckSum` is 0 in both files. Every game function links from source. The Rich `Import` (173) and `Implib` counts equal the
+original's (from the import fix).
 
 **The missing libcmt object.** The original pulled 151 libcmt C objects (`Utc1310_C 3077`),
 the relink 150. The extra one left no bytes in the exe, so it was pulled by discarded game
@@ -256,9 +258,19 @@ each):
 | Enemy generator (boss design) | `enm_param.cpp` 28/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 72/72 |
 | Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 5/5 | 44/44 |
 
+### Names
+
+The names in `src/` are our own: the exe has no symbols. Classes, functions and members are
+named from what the code does. Conventions: classes and functions `CamelCase`,
+members `trailing_` (plain structs without the underscore), constants `kName`, globals
+`g_name`, and each declaration notes its address. A member named `unused_XX_` (XX the
+offset) is one that no code in the exe reads; the code that used it was discarded by
+`/OPT:REF`. Rename a function, class or global together with its decorated name in
+`config/symbols.txt`.
+
 Known compiler behaviour worth remembering:
 
-* **Short temps rotate through eax, ecx, edx; inline parameters do not count (step 46).**
+* **Short temps rotate through eax, ecx, edx; inline parameters do not count.**
   VC7.1 gives a short-lived temp (a load that is stored, pushed or used as an address) the
   first free register at or after the one following the previous such temp's register. One
   extra temp anywhere earlier in the function moves a later one from eax to ecx, two to edx,
@@ -267,7 +279,7 @@ Known compiler behaviour worth remembering:
   `TaskList::AddBack()` wrapper call was replaced by the direct `Add(task, priority,
   TASK_APPEND)` call, whose argument load is such a temp. When a lone late temp has the wrong one of eax/ecx/edx, look
   for an inline wrapper (or a missing one) anywhere earlier in the function.
-* **`|` copies the later-defined operand; a parameter counts as defined first (step 44).**
+* **`|` copies the later-defined operand; a parameter counts as defined first.**
   For `a | b` VC copies the value defined later into the result register and ors the other
   in, whatever the spelling. `CEnmParam::Grow` built its child codes as `base | count`
   with `base` a local computed after `count`; the original copies the count. Reassigning
@@ -276,7 +288,7 @@ Known compiler behaviour worth remembering:
   `base` defined before `count` changed the rest of the allocation. When an operand order
   is reversed, try reusing a parameter (or the earliest variable) for the operand that
   should be defined first.
-* **Single-use locals are forward-substituted (step 41).** VC moves a local that is used once
+* **Single-use locals are forward-substituted.** VC moves a local that is used once
   to its use, which reorders x87 work: in `CEnmParam::Plan` a `float travel` read once was
   computed after `rate`; used twice (`__min(static_cast<int>(travel), 50)`) it is computed in
   statement order, which forces the original's spill of `rate`. When the original evaluates
@@ -284,7 +296,7 @@ Known compiler behaviour worth remembering:
   its argument). Also, the stack slot of a spilled local follows liveness in IL order: `rate`
   shared the dead `score` parameter's slot until `count` (the last use of `score`) was moved
   after it.
-* **A local reference changes register choices (step 41).** `const short& from =
+* **A local reference changes register choices.** `const short& from =
   actor->angle;` instead of a copy, `const unsigned int& new_count = ++count;`, and `const
   EnmSideStats& first = state_.sides[0];` each fixed an operand or CSE choice that no value
   form reached (`BossBodyControl::RunTurnProgram`, `SoundSystem::Pause`, `CEnmParam::Plan`). A
@@ -300,14 +312,14 @@ Known compiler behaviour worth remembering:
   other pointers; a global one is (`kNameChars` in `game_hud_name_entry.cpp`).
 * Transforms are built with the inline helpers `ScaleTransform`/`TranslateTransform`
   (`hl_3d.h`): their arguments are loaded before the body, which fixes the FPU order.
-* `Lerp(int*)` is inlined at some call sites only (`MoveGameOver` step 4); try it when a
+* `Lerp(int*)` is inlined at some call sites only (`MoveGameOver`); try it when a
   "if (time >= frames) ... else (to - from) * time / frames" shape shows up.
 * Header inlines can blow the inline budget of a big function; a small helper that the
   original inlines in every case may need `__forceinline` (`CSndFileSEQ::Play`).
 * A ternary (`x = c > 0 ? c : -1`) and an `if`/`else` with two stores compile differently;
   try both. So do "assign, then reassign under a test" and an `if`/`else` that assigns in
   both arms: the forms leave the same instructions but shift the scratch registers or swap
-  esi/edi (step 38: `HLSurface::InitTextureFormats` and `HLSTxtSys::Measure` matched this
+  esi/edi (`HLSurface::InitTextureFormats` and `HLSTxtSys::Measure` matched this
   way). When a draft differs only in register names, rewrite every conditional assignment
   in it the other way. The branch order of `if (a <= 0) ... else ...` decides which side falls through.
 * A value the original keeps in a register across a test (for example a constant used by a
@@ -405,49 +417,22 @@ Known compiler behaviour worth remembering:
 * A member pointer kept as `add edi, 0xc` (the address of `device_`) and reloaded after the
   call is an inline member using `this->device_` twice: `HL3D::SetPointFilter()` in
   `DrawResult`/`DrawNameEntry`, where an explicit `d3d->device_->...` pair keeps `d3d` instead.
-* **A block placed after the function's return tail is made by jump threading (step 47).**
+* **A block placed after the function's return tail is made by jump threading.**
   `FnGame::RateGame` keeps its shared `g_rating` tail right after the first case and the
   grade-1 case as a lone `mov eax, 1; jmp` block at the very end. That is a `bool titled`
   flag set by the grade 5/6 cases and `int title = titled ? <first word> - 13 : 0;` after
   the chain: VC threads every case's jump through the flag test (the 5/6 cases get their own
   copy of the title load, the others jump to the `title = 0` block), and the threaded copy
   for the grade-1 case is created late and placed last. Every per-case `title = ...` form
-  (steps 36-46) left the tail at the end. An `if (titled) { title = ...; }` after an `int
-  title = 0;` is not threaded (34). `CEnmParam::Plan` matched the same way: its kinds loop
+  left the tail at the end. An `if (titled) { title = ...; }` after an `int
+  title = 0;` is not threaded. `CEnmParam::Plan` matched the same way: its kinds loop
   sets only `side->mode` in each case and then resets the count once with `if (side->mode
   != 0) { side->rapid_kills = 0; }`. VC threads that test (it knows the stored mode) into
   the per-case `mov word ptr [eax], K; jmp` blocks and the shared count store, but the test
   still counts for the allocator, which then keeps 0x20000 in ebp for the flags test and
-  `AddTactic(17)`, as the dead arm of step 42 did by accident. Lesson: when only an
+  `AddTactic(17)`, as an unnatural dead `else` arm had done by accident. Lesson: when only an
   unnatural duplicate fixes the allocation, look for a natural test or flag that VC
   threads away after the weights are taken.
-  (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
-  in step 38.)
-  (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
-  in step 38.)
-  (`SoundSystem::Pause` and `BossBodyControl::RunTurnProgram` matched in step 41, see there.)
-  `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
-  setter's operand order, `count + 1`, a separate `++count`, `count++` in the test, a
-  function-scope `count`, a `const unsigned int&` to the flags, `&=`/`|=` statements in the
-  setter and a bitfield do not change it; the permuter's fix takes `&count`, so `count` may
-  have gone through a by-reference helper.
-  `CEnmParam::Plan` is the original size; it spills `rate` in the prologue (the 0x20000 in
-  ebp was fixed in step 41). (`FnGame::Initialize` matched in step 46.)
-  `BossBodyControl::RunTurnProgram` (15 instructions): only case 0x20004 is left. The
-  original adds the turn into `from`'s register (`add ebx, eax; push ebx`), so the push of
-  case 0x20001 stays its own; here it is `add eax, ebx; push eax` and the two pushes are
-  cross-jumped. An `int from` gives the right add but loads `from` with `movsx` instead of
-  `mov bx`; `short`/`unsigned short` `from` and `off` in every combination, `from += off`,
-  `off + from`, a `short`/`int` result local, a `WrapAngle()` inline, function-scope
-  `from`/`off` and an `unsigned short` StartTurn parameter all give `add eax, ebx` (a probe
-  TU shows VC canonicalizes all of them the same). A 45-minute permuter run found nothing.
-  `CEnmParam::Plan`: the original
-  computes `rate` between the travel average and its conversion (and so spills it); every
-  order of the `count`, `add` and `rate` lines and a float `travel` local compute `rate`
-  either before or after the `_ftol`. `CEnmParam::Grow`: `code` reused as `base`, `index` as
-  the first loop's counter, and `base`/`count` computed before the hits check do not help;
-  a 45-minute permuter run only got from 1880 to 1485 with an unnatural `code << 3`
-  temporary computed before the hits check.
 * An empty user-declared destructor changes the code of the implicit destructor that contains
   the class: `~HLSTxtSys() {}` made the inlined member destruction in `~Fonts` (0x401f80)
   match.
@@ -543,7 +528,7 @@ Known compiler behaviour worth remembering:
   is a local declared in each branch (`float left = -offset;` in `PlayerControl::Fire`): VC
   hoists the two negations and stores `offset` with `fstp`/`fld`; one local before the `if`
   keeps it with `fst`, and `-offset + x` written in both branches becomes `x - offset`.
-* **Same-TU escape analysis; the draw helpers are header inlines (step 34).** VC7.1 lets a
+* **Same-TU escape analysis; the draw helpers are header inlines.** VC7.1 lets a
   load through a pointer pass stores to an address-taken local only when it can prove the
   pointer does not hold the local's address. It can when every function that receives the
   local's address has its body in the TU and lets the pointer go nowhere unknown (a probe
@@ -561,7 +546,7 @@ Known compiler behaviour worth remembering:
   extern global or member, the same pointer read again (CSE), a `do { } while (0)` macro, a
   reference, a `const` pointer, `register`, `__assume` and `/Oa` are not. A pointer
   *parameter*, or a named local set before the `{ }` block that declares the local, is
-  hoisted too (the step-33 finding), but no natural source form needed that. So when the
+  hoisted too, but no natural source form needed that. So when the
   original moves a load across stores to a local that a callee only reads, look for that
   callee's body being visible in the original TU (a header inline, or a shared TU).
 * **A named copy of a global pointer blocks CSE through it.** `FnOption::Move` keeps
@@ -573,7 +558,7 @@ Known compiler behaviour worth remembering:
   `input->pad(0)` as the same value as the earlier `g_application.input->pad(0)`. Reading
   `pressed()` through `input`, a `pad` local, or the global everywhere makes VC keep the pad
   (and moves the 0 constant into ebp). The same local does not fix `FnGame::Initialize`.
-* **Struct assignment pins base registers (step 35).** `chart_[6] = chart_[0]` (a
+* **Struct assignment pins base registers.** `chart_[6] = chart_[0]` (a
   `D3DVECTOR` copy) made VC keep `&chart_[0]` and `&chart_[6]` in registers and address
   every corner store off them (`lea eax, [ecx+0xb8]`, `add ecx, 0x100`, short
   displacements). Copying the three fields one by one, plus a `D3DVECTOR& corner =
@@ -581,17 +566,17 @@ Known compiler behaviour worth remembering:
   the original's `[ecx+disp32]` code: `GameHud::UpdateChart` matched. Look for this
   whenever the original addresses a member array with plain displacements and the draft
   rebases.
-* **Where a value is computed changes the whole allocation (step 35).** In
+* **Where a value is computed changes the whole allocation.** In
   `HLSurface::Load`, declaring `int width = image.width() / scale_x_;` after `src` instead
-  of before `height` took the draft from 172 to 70 differing instructions (the 888 case
-  matches now; 12 after step 36, 9 after step 37), and one `int pad;` shared by all cases from 184 to 172. In
+  of before `height` took the draft from 172 to 70 differing instructions, and one
+  `int pad;` shared by all cases from 184 to 172 (it matches now). In
   `CEnmParam::Grow`, reading the side from `code` instead of `base`
   (`(code & kSideMask) == 0x80000000`) moved `this` into ebp (85 -> 68), but that value
-  differs from the original's when bits 27-28 of `code` are set, so step 38 went back to
-  `base`.
+  differs from the original's when bits 27-28 of `code` are set, so the source went back
+  to `base`.
   When a draft's registers are permuted, try moving each computation to its first use and
   try reading an equal value from another variable.
-* **Callee visibility, checked for every remaining draft (step 35), changed none:**
+* **Callee visibility, checked for every remaining draft, changed none:**
   `HLSurface::Lock` and `HL3D::SetTexture` (0x407820/0x407880, in obj19 after
   `HLSHitImage`) are not header inlines (their callers come later in link order, so a
   COMDAT would sit in a later object); the `HLImage` constructor, `Load` and `Release`
@@ -600,7 +585,7 @@ Known compiler behaviour worth remembering:
   `AddTactic`, leave `Grow` and `Plan` unchanged; `SetRating` as a plain `static` or
   external function leaves `RateGame` unchanged; a `Channel::Suspend()` inline (body in
   the header or in the TU) leaves `Pause` unchanged.
-* **`SoundSystem::Pause` in a probe TU (step 35).** `tools/fas.py --print` on a copy of
+* **`SoundSystem::Pause` in a probe TU.** `tools/fas.py --print` on a copy of
   `Pause` that includes `snd_sys.h` reproduces the draft in a second. Removing any one
   other statement (the list loop, the critical section, `thread_.Suspend()`, the state
   test) turns `or edi, edx` into the original's `or edx, edi`, so the operand choice is
@@ -608,570 +593,3 @@ Known compiler behaviour worth remembering:
   comes before `and edx, 0xffff0000` the or goes into edi, when it comes after, into
   edx; the original has the inc first and the or into edx. Twenty forms of the
   increment, setter, list access and loop declarations all keep that coupling.
-* **Step 38 (2 new matches: `HLSurface::InitTextureFormats`, `HLSTxtSys::Measure`).**
-  * **Conditional assignment form moves registers.** `InitTextureFormats` matched with the
-    opaque kind chosen by `if (depth == 16) { width_ = format_codes_[0] != k555; } else {
-    width_ = 2; }` instead of the ternary: the ternary allocated one more scratch register,
-    which shifted the vtable loads of both `EnumTextureFormats` calls (eax/ecx for ecx/edx)
-    and the `Log()` arguments by one. With that, restoring `width_` before `height_` gives
-    the original's slots. `Measure` matched by building the double-byte code in an
-    `if`/`else` (`code = (text[0] << 8) + text[1]` in one arm, `code = *text` in the other)
-    instead of assigning the first byte before the test, which had swapped esi/edi
-    (`text` and `first_char_`) and eax/edx.
-  * **`CEnmParam::Grow` behaviour fix.** The draft read the side from `code`, which differs
-    from the original's `(base & kSideMask) == 0x80000000` when bits 27-28 of `code` are set.
-    It reads `base` again (87 differing instructions, was 55), with a `char weapon` local
-    for the totals. Findings: removing any one of the three option blocks puts `this` in ebp,
-    so this is a balance of use weights. Computing `count` and `base` at the top of the
-    else block, before the hits check, gives the original's allocation exactly (`this`
-    ebp, `code` ecx, `base` ebx, `count`/`index` edi) but moves those instructions before
-    the hits check (113). The original's tail keeps the weapon total in edi, so edi is
-    pushed in the prologue. Reusing the `kind` parameter or a `kind`/`hits`/`flags` local
-    for the hits check, an if/else chain or a ternary for `limit`, the three orders of the
-    `slot == NULL`/`flags & 2` chain, `ChildBase()`, a function-scope `base`, an `EnmSideStats&`
-    or an `int side` local, and a `short` mode leave it at 87. A 60-minute permuter run found
-    only an unnatural `code << 3` temporary before the hits check and semantic changes.
-  * Ruled out this round: in `SoundSystem::Pause`, `count + 1` at the declaration with an
-    `== 1` test, a flags local, reference or pointer, a named `next`, a `short`/`int` count,
-    a buffer local, a `while` loop and a function-scope channel. In `HLSurface::Load`, a
-    `BytesPerPixel()`/`RowBytes()`/`RowSkip()` inline helper (every form), a `bits` local and
-    `scale_y_ * x - x`: all keep the product order, and every named raw width still flips the
-    allocation (191). In `BossBodyControl::RunTurnProgram`, if/else forms of `off`, of the case
-    0x20001 turn and of the final angle. In `CEnmParam::Plan`, if/else forms of the
-    `AddTactic()` cost index and of the travel clamp, `rate` split into two statements or
-    declared at the top, and `/Op` (69). In `FnGame::Initialize`, removing any one case,
-    `SetState()` or the HUD add keeps eax for the input pointer. In `FnGame::RateGame`, an
-    early `SetRating(0, 0); return;` puts the first case first but with its own tail (28),
-    and wrapping the other cases in `if (sides[0].mode != 0 || sides[1].mode != 0)` (the first case as its `else`) changes nothing.
-* **Step 39 (drafts only, no new matches).** Mostly probe work; `tools/fas_variants.py`
-  runs edit sets on a probe TU in 0.3 s each.
-  * **Product operand order is fragile in VC.** VC reassociates `a * b * c` through named
-    locals (`int row_bytes = w * bytes; ... (sy - 1) * row_bytes` is also reordered). The
-    order it picks depends on the leaf kinds and even on the field offsets: in a
-    probe with `image.bits() / 8` written inline, shifting the image's fields by 4 bytes
-    flips the order. A narrow local (`short bits = image.bits();` with `(bits / 8)`
-    inline, or a `short`/`char` `bytes`) gives the original's `((scale_y_ - 1) * bytes) *
-    width` with `sar` scheduled first. That works in a reduced copy of `HLSurface::Load`
-    and in the full function with any one 16-bit case removed, but not in the full function
-    (9). A `short`/`char` `bytes` gives the order with a `movsx`/`movzx` (22). Ruled out
-    together with `short bits`: `bits == 24` tests, every order of the setup lines, a `pad`
-    per case (46), and `*out++` in the 24-bit loops (13). So the order is decided by the
-    allocator's pressure, as in `Pause`.
-  * `CEnmParam::Grow`: the declaration order of `count`, `base`, `index` and `mode` (all 26
-    orders, C-style at the top of the else block) changes nothing (87). `base` before
-    `count` gives 85, with the same allocation. Also ruled out: a `__forceinline` helper for
-    the whole else block (87; inlining is transparent), an inline `GrowOptions()` for the
-    three option loops (124/135), an inline totals helper (87), the base expression written
-    into each loop for LICM (110), `base` initialized at the function top (122/132), and all
-    combinations of six earlier toggles (85 at best). The structural hint is still the
-    tail: the original keeps the weapon total in edi, so edi is pushed in the prologue,
-    while ebx (`base`) is pushed only in the else block.
-  * `FnGame::Initialize`: VC sinks a load into the `if` that uses it (an `input` local
-    after the switch gives the same code). A probe of the tail reproduces eax for every
-    form tried: a `bool`/`short`/`char` pause, a direct store, an accessor, an
-    `Application` member setter, `pause ? 0x8000 : 0` inside the `if` (VC folds it),
-    `goto`/`do while (0)`, and a result local. An `input` local before the switch hoists
-    the load (edx). A 45-minute permuter run found nothing.
-  * `SoundSystem::Pause`: an `unsigned short` getter or setter, `int` in both, an unsigned
-    mask enum and a literal `0xffff0000` mask: none fixes it (2 bytes or worse).
-  * `BossBodyControl::RunTurnProgram`: a probe shows VC canonicalizes every expression form of `from
-    + off` (casts, `off += from`, a `to` local, a ternary for `off`). Only an int-typed
-    `from` adds into from's register. A 45-minute permuter run found only `unsigned int
-    from`, which is the known int case (12, with `movsx`).
-  * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
-    `AddClampedRate(short*, float)`) leave it at 64.
-* **Step 47 (2 new matches: `FnGame::RateGame`, `CEnmParam::Plan`; 678/678).**
-  * `RateGame` matched with a `titled` flag and the title computed by a ternary after the
-    chain (see the compiler note above). Behaviour is unchanged: grades 5 and 6 record the
-    title's first word minus 13, the others 0. How it was found: the hoisted `grade = 1`
-    (step 46) and a `grade = 1;` at the top of the `else` after the both-zero case both put
-    the tail after the first case, but `mov eax, 1` then sits before the either-zero test
-    (the modes move to cx/dx), and VC pushes esi rather than sink a constant copy onto an
-    edge. So the original's last block had to be a copy VC creates late; jump threading of
-    a test after the chain does that. An `int` flag matches too; an `if` instead of the
-    ternary does not (34).
-  * `CEnmParam::Plan` matched with plain `state_.sides[0]` reads (the `first` reference is
-    gone) and the count reset after the kinds switch (see the compiler note above). Same
-    behaviour: every case that sets a mode sets a nonzero one and clears the count. A
-    `chosen` flag (`bool` or `int`) set next to each mode store also matches; an `int mode`
-    local stored once after the switch threads the test but keeps one shared `mov [ecx],
-    ax` store (59). Found by applying the RateGame finding. Probes before that, with the
-    plain reads (49): the use that keeps 0x20000 out
-    of a register is the kinds switch's `case 0x20000` compare inside the kinds loop.
-    Changing that label (probe only) gets `mov ebp, 0x20000` for the flags test and
-    `AddTactic(17)` with the plain reads, and moves `AddTactic(10)`'s 0x400 out of edi. Without
-    the mode0 `[ebp]` read the zero constant takes ebp for the `AddTactic` code instead. The
-    dead-arm fix of step 42 needs both `side->mode = 2;` and `side->rapid_kills = 0;` in the
-    copy (one of them alone: 49). No change (49): an `inline`/`__forceinline` `AddTactic`,
-    `1u << id`, `0x20000u`, a flags local, `1 << 17`, `static_cast<int>` switch operands,
-    case order, `default: break;`, a `continue` for `mode != 0` or after the mode-4 case, a
-    `case 0:` label in the progress switch, a `__forceinline` member `ChooseMode(side,
-    kind)` for the kinds switch (also with `first`: 2 bytes), and `side = state_.sides;`
-    resets before the mode reads or the mode-3 loop (VC folds them back).
-* **Step 46 (1 new match: `FnGame::Initialize`).**
-  * `FnGame::Initialize` matched by calling `TaskList::Add(background_, 2, TASK_APPEND)`
-    directly (`TASK_APPEND` in `task_list.h` names the `(Task*)1` sentinel). The other
-    `AddBack()` callers (`cglobal.cpp`, `fn_title.cpp`, `hl_input.cpp`, `FnOption`) match
-    either way and keep the wrapper.
-    How it was found: inserting one store of a loaded value anywhere in the function (even
-    before `ClearStage()`) moved the input pointer to ecx, two to edx, and the inserted temp
-    itself took the register after the previous such temp's. The wrapper's parameter copy of
-    the reloaded `background_` is not counted, the direct call's argument load is.
-    Probe results on the way: dead locals, unused inline parameters, `bool`/`short`/`char`
-    pause forms, a flags copy, a function compiled before `Init` (the rotation is per
-    function) and every code-neutral respelling of the cases do not shift the rotation.
-  * `FnGame::RateGame`: a permuter run found `int grade = 1;` hoisted above the chain (the
-    either-zero arm keeps only `title = 0`): the shared `xor ecx, ecx` + stores tail then sits
-    right after case 0 as in the original, but `mov eax, 1` moves to the top (365 from 420;
-    full file 22 instructions). So the tail follows case 0 once the grade-1 arm stops being
-    a fall-through predecessor of it; the original keeps that arm as a separate
-    `mov eax, 1; jmp` block at the end. Also tried: `title = 0` initializer with every
-    `title = 0` arm removed (27), `grade = 0` initializer (27), per-arm `SetRating(); return;`
-    (immediate stores), goto labels inside case 0 (laid out last).
-  * `CEnmParam::Plan`: with plain `state_.sides[0]` reads, splitting the `0x20000 && modes`
-    test, a flags copy, a `progress0` local and a written-out `AddClamped()` stay at 49; with
-    the `first` reference at 2 bytes. A 60-minute permuter run (pointer form of `first`)
-    found nothing.
-* **Step 45 (drafts only, no new matches).** Probe work on the three drafts.
-  * `FnGame::RateGame`: VC7.1 duplicates a return tail into its predecessors only when it
-    is tiny: three register stores (19 bytes, plus the `xor ecx, ecx` block, 21) are
-    duplicated, three stores with an immediate or a fourth store (the `g_global.stage`
-    load) are not, whatever the types (`char` stage, `char` grade/title). Duplicated
-    copies that end in `ret` are never cross-jumped afterwards (all copies stay), and
-    identical source-level tails are merged before allocation and placed last, so
-    "duplicate, then cross-jump back into case 0" cannot be the original's mechanism.
-    Per-branch `grade = ..; title = ..; <stores>; return;` copies are constant-propagated
-    (immediate stores). Also last: the tail after `do { ... break; } while (0)` and
-    `for (;;)` forms, `title = 0` hoisted before the chain with the title assignment
-    shared by the 6/5 arms, `grade = title = 0` initializers with the whole chain inside
-    `if (m0 != 0 || m1 != 0)` (VC hoists the zeroing), and `int`/`bool` return values. A
-    scan of the original for backward `jmp`s into a straight `ret` tail finds only
-    `RateGame` and `HL3D::Initialize` among game functions (the latter is the shared
-    EH epilogue placed after the first `return`).
-  * `FnGame::Initialize` (probe TU): the input pointer goes to ecx as soon as `pause` (eax)
-    stays live after the store (`g_bgm = pause;` after or inside the `if`,
-    `set_mask(pause)`, `return pause | 1`), so the original's ecx probably means eax was
-    taken there. Still eax: an inline free or member helper for the pause test, `if
-    (!pause) return 1;`, an `App&` local, testing the flags directly, `mode_ != 2 &&
-    pause` with `break` in case 2, removing any case or the `Add` call; in the full file
-    an `Application*`/`Application&` local for every `g_application` use, `return 1;`
-    inside the `if`, and `default: break;` (all 14). The store helper out of the class,
-    `__forceinline`, an `int` or `const&` parameter, returning `*this` or a static free
-    function keep eax too.
-  * `CEnmParam::Plan`: a `first` reference read only at offset 0 (the mode, even twice:
-    the top `mode != 0` test and `mode0`) leaves 0x20000 out of a register (49) like the
-    plain form; any read at another offset gets 0x20000 into ebp but that read then comes
-    off ebp: `first.progress` (the committed form), `(&first)[1].mode` for `mode1` with a
-    plain progress read (also 2 bytes, `[ebp + 0xa]` for `[esi + 0x16]`), `first.progress`
-    in the `>= 100` test. The dead `score` parameter reused for the flags, `mode0`,
-    `mode1` or the progress, `mode1` declared first, the two progress tests swapped,
-    if/else or interleaved mode forms, the mode locals before `AddTactic(1)`/`AddTactic(6)`,
-    a `side = state_.sides;` reset or a `sides` pointer for `mode0`, and `(&first)[i]` in
-    the mode-3 loop are 2 bytes or worse (37-343 instructions).
-* **Step 44 (2 new matches: `CEnmParam::Grow`, `HLSurface::Load`).**
-  * `Grow` matched by building the child codes in the `code` parameter instead of a `base`
-    local (see the compiler note above); step 38 had tried `code` reused as `base` before
-    the early-return/`short`/`++count` forms existed, when it did not help.
-  * `HLSurface::Load` matched with a local copy of the vertical scale: `int scale_y =
-    scale_y_;` then `int width = image.width();` before `bytes`, `row_skip = (scale_y - 1) *
-    bytes * width`, `step`, `width /= scale_x_;`, `height = image.height() / scale_y`. The
-    named width gave the original's product since step 42, but with the width divided
-    first VC spilled `this` and reloaded `scale_x_` (191); the `scale_y` copy (a narrow
-    `unsigned char` copy does not do it, nor an `int scale_x` copy) keeps the original's
-    allocation. Lesson: when a fix of one expression wrecks the allocation, try a local copy
-    of each member the nearby code reads.
-  * `FnGame::Initialize` in a probe TU (`tools/fas.py` on a 30-line copy of the switch and the
-    pause tail reproduces the draft's `mov eax, [input]`): the tail after the switch takes the
-    original's ecx only when the switch's default edge does not reach it (a `default:` arm
-    holding its own copy of the pause test and `return 1;`). With the default edge into the
-    tail it is eax for every form tried: if/else chains, case orders, `default: break;`, an
-    `int mode` copy before or after `pause`, a `bool`/`unsigned` pause, no pause local, a
-    direct field store, an `Input*` or `App*` local, `pause = 0; break;` in case 2. In the
-    full file the `default:` copy form is 19 (the two copies are not merged); copies in cases
-    0 and 1 are 30; `int result = 1` returns stay at 14.
-  * `FnGame::RateGame` in a probe TU: the tail stays last for a `goto` label right after the
-    first case (VC lays out the join block itself), `int title = 0`/`grade = 0`
-    initializers, a `char` grade/title, direct stores instead of `SetRating`, and with the
-    first case's grade 1 arm moved or removed. Storing `g_rating.stage` before the chain
-    makes VC duplicate the two-store tail into every branch (no cross-jumping), which is
-    the only form seen so far that moves the tail at all (a constant stage store does the
-    same for the 6/5/1 arms); the original's tail is the full three-store one, cross-jumped
-    into the first case. Lead: find what makes VC duplicate (then cross-jump) that tail. Full file: `char`/`short`
-    grade/title locals, mode/progress locals (`int`, `short`) and an early return in the
-    first case (constant stores) are 20-54.
-  * `CEnmParam::Plan`: `short`/`unsigned short`/`char` mode0/mode1, ternaries or `if
-    (progress >= 65)` forms for the modes, both modes read before the 0x10000 test, a
-    `mode[2]` loop, copies of `g_global.stage`, `state_.flags` (before either test),
-    `state_.weapon_count`, `player_samples_`, `plan_.kind_counts_[0..2]` or a `counts`
-    pointer in the kinds loop, a `side1` reference, local copies in the progress cases
-    (forward-substituted), and a `side` pointer declared before the top test and reused by
-    the loops (side 1 through it: `[ebp + 0xa]` again; through `state_.sides[1]`: 49) all
-    stay at 2 bytes or worse.
-* **Step 43 (drafts only, no new matches; `CEnmParam::Grow` 87 -> 6).**
-  * **A shared tail written once after an if/else chain and the same tail written in each
-    branch with an early return allocate differently, even when cross-jumping merges the
-    copies back into one.** `Grow` counted the part once after `if (slot == NULL) {...} else
-    if (!(flags & 2)) {...} else {...; return;}`; the original has `if (slot == NULL) {...;
-    CountPart(slot); return; } if (!(flags & 2)) {...; CountPart(slot); return; }` and the
-    child planning at the function end. VC merges the two copies (and the `ChooseWeapon()`
-    call before them, as the original does), but allocates each copy before that: `this`
-    moves to ebp, `code` to ecx, the flags to edx and the weapon total to edi, as in the
-    original. The tail must index with `slot->weapon` directly (a `char`/`int` weapon local
-    gives 72-95) and keep the weapon/part/power order. Probes that led there: deleting the
-    tail, or all of it but one member update, already put `code` in ecx; deleting the
-    second option block gave the original prologue. Left: in the option loops the original
-    keeps `mode` in ecx and the option count in eax (here swapped), and computes `base |
-    index` into ecx/eax/edx in the three loops (here eax in all three). `short`/`unsigned
-    short`/`char` modes, C-style declarations at the top, a `side` local, five loop forms
-    (`while (n-- > 0)`, `for (; n > 0; --n)`, `index | base`, ...) stay at 63-84.
-  * **`Grow` 63 -> 10: `short n` for the option counts** (the fields are `short`). A
-    dead-arm probe (`if (state_.sides != NULL) { S } else { S }` around each statement)
-    showed that more weight on the first two loop bodies flips `mode` to ecx and the counts
-    to eax; the narrow count type does that naturally (`char`/`unsigned short`: 13). Left:
-    the original pushes the kind before `mov ecx, edi; or ecx, ebx` (ecx, eax, edx in the
-    three loops); here `mov eax, edi` is scheduled first in all three. Ruled out on the
-    `short` base: `index++ | base`, a `child` local (28), `while (n-- > 0)`/`for (; n > 0;
-    --n)` (69), `++index` in the loop header or as a statement (47), `index + i` (82), a
-    `short i` (69), `base + index++` (60).
-  * **`Grow` 10 -> 6: `Grow(slot, base | count, kind); ++count;`.** With the increment as its
-    own statement the push of the kind comes first and the three loops use ecx, eax and edx
-    as in the original, but a separate `index = count` variable moves `this` to edi (47);
-    reusing `count` as the running index keeps the original's callee-saved registers. Left:
-    the original copies the count and ors `base` in (`mov ecx, edi; or ecx, ebx`); VC here
-    copies `base`. VC orders the operands of `|` by definition, not by spelling: the
-    later-defined value is copied (`index++` and a separate `index` defined after `base` both
-    give the count first). `count | base`, casts, `int base`, an `unsigned` count, a
-    `ChildCode()` helper in either parameter order, a `child` local or `|=`, C-style
-    declarations, and splitting the count's sum around `base` (17) do not; `base` computed
-    before `count` copies the count but changes the first loop (13).
-    Split `base` forms (`base = code & kSideMask; base |= code << 3;`, either order) and
-    `child_count + extra_child_count` give 13; a permuter run (~730 iterations) from the 6-instruction
-    form found nothing below its base score. `Plan`, `HLSurface::Load`, `FnGame::RateGame`
-    and `FnGame::Initialize` are unchanged from step 42.
-* **Step 42 (drafts only, no new matches).**
-  * **`CEnmParam::Plan`: the 2 bytes are a register choice for a constant, not the progress
-    read.** With plain `state_.sides[0].mode` and `state_.sides[0].progress` (no `first`),
-    VC already reads the mode as `[ebp]` (the `&state_.sides[0]` CSE left over from the side
-    loops) and the progress off esi, as the original does. Only `0x20000` is not loaded into
-    ebp (the original shares it between the flags test and `AddTactic(17)`), and so 0x400 is
-    not loaded into edi either (49 instructions). Every form that gets the constant into a
-    register keeps a variable for `&state_.sides[0]` in ebp past the mode read: `first.progress`,
-    or `const EnmSideStats (&sides)[2] = state_.sides;` used only for side 1's progress
-    (`[ebp + 0x10]`, also 2 bytes). A permuter run from the plain form reached 0 only through a
-    dead arm: `case 2: if (state_.sides != NULL) { <body> } else { <body> }` in the progress
-    switch, or the same around `side->mode = 2; side->rapid_kills = 0;` in the 0x10000 case
-    of the kinds loop. VC folds `state_.sides != NULL` late, so the uses in the dead copy
-    still count for the allocator. `true`, `this != NULL`, `side` and `plan_.kind_counts_ !=
-    NULL` as the condition, or the `if` without the `else`, do not do it; the dead arm around
-    case 1 gives 2 other bytes, around any other statement 49-51. Not natural, so not
-    committed. Ruled out: the order of the case labels (all 120; it reorders the jump table), an
-    inline `Percent(n, total)` for the four cases, an `int total` local, `100 * n`, swapped
-    divisor operands and a `continue` in case 2, a `mode` local for the switch,
-    `&state_.sides[i]` or `state_.sides[i].` in the progress or kinds loop, `side <
-    state_.sides + 2` and `side != state_.sides + 2` loop tests, `side = &first` loop starts
-    (62-103), `first` used for the top `mode != 0` check, a `const short&` to the side 0
-    progress, flags locals or references for the 0x10000/0x20000 tests, and
-    `first.mode != 0 ? first.mode : 0`.
-  * **A late-folded dead arm is a cheap probe of allocator weights.** Wrapping a statement in
-    `if (<member array> != NULL) { S } else { S }` compiles to `S` but changes the register
-    allocation. It is not a fix (no natural source would contain it), but it shows which
-    statements' weights matter. In `Grow` the scan over every statement never moves `this` to
-    ebp (best 60 with the flags reference, around the second option loop's `Grow` call); in
-    `Initialize` it does not move the input pointer; in `HLSurface::Load` it does not change
-    the product order.
-  * `CEnmParam::Grow`: a flags reference declared before the `flags & 2` test (with the if/else
-    nested in a plain `else`), used for the `& 8` test only or for both tests, a pointer
-    instead, a non-const reference used for the `|= 8`/`0x1000`/`0x2000`/`0x4000` stores (all
-    16 combinations; the later uses fold to `[esi + 8]`), and a function-scope `count` or `index`
-    reused for the tail's weapon total (VC allocates webs, so it changes nothing) stay at 71-90.
-    A 40-minute permuter run from the flags-pointer form (71) found only semantic changes.
-  * `FnGame::Initialize`: `pause` declared before `SetState()` (19) or before the HUD add (53),
-    `unsigned`/`const`/`bool` pauses, `pause != 0`, an `HLInput*` local in the `if`, a
-    `result` local for both returns and `if (!pause) { return 1; }` keep eax (14).
-  * `FnGame::RateGame`: `grade = title = 0;` (and `title = grade = 0;`), the both-zero test
-    nested inside the either-zero test (also as a ternary), the either-zero case split into two
-    `else if`s, and `short` mode locals keep the shared tail at the end (20-31).
-  * **Resumed run.** `CEnmParam::Plan`: a natural pointer local gets 0x20000 into ebp from the
-    plain form too: `EnmSideStats* sides = state_.sides; if (sides[0].mode != 0 &&
-    sides[1].mode != 0)` for the test before the second `CountDestroyed()` gives the original
-    code except that this test reads side 1's mode as `[ebp + 0xa]` (the original: `[esi +
-    0x16]`). The pointer needs two uses close together: `sides[0]` with `state_.sides[1]` is
-    forward-substituted (49), `sides[0]` at the test plus `sides[0].mode` for `mode0` or a
-    `sides[i]` mode-3 loop is 49, `sides[0].progress` in the `>= 100` test gives the 0x20000
-    too but reads that progress off ebp, and `side = sides` loop starts break the loops
-    (53-93). Every field other than `mode` read through the pointer comes off ebp, so no
-    pointer form found gives 0. Also no help: the progress switch as an inline
-    `UpdateProgress(side, counts)` (`__forceinline` keeps the code, plain `inline` is not
-    inlined), a `kind` local for the kinds switch, a `counts` pointer for `plan_.kind_counts_`,
-    `side` pointers in the mode-3 loop or the `>= 100` test, `state_.sides[i]` reads inside
-    the side loops (111-121). Permuter runs from both pointer forms (the test form 40 minutes, about
-    4600 iterations; the progress form 35 minutes) found nothing better.
-  * `HLSurface::Load`: every spelling of the `row_skip` product (operand order, parentheses,
-    `scale_y_ * a - a`, a split `*=`) canonicalizes to the same 9; a `const`, `short`
-    (22) or split `bits` bytes local changes nothing. All 729 orders of the statements
-    `int width = image.width();`, `bytes`, `row_skip` (from `width` or `image.width()`),
-    `step`, `width /= scale_x_;` and `height` (one statement, or declared then divided) give 9
-    at best: with `row_skip` taken from the named width (declared before `bytes`) the product
-    is the original's, but the division of the width must then come after the height's
-    (17, the divisions swapped) or `this` gets spilled (191).
-  * `FnGame::RateGame`: the either-zero case moved last (`else if (both nonzero) {...} else
-    {grade 1}`, 28), the zero case in an `else` after a `!= 0 ||` test, and the whole chain in an
-    inline `GradeSides()` with returns (34-52) keep the tail last. `FnGame::Initialize`: a free
-    inline helper for the store, a `mask` local and `unsigned short`/`char` pauses (14-35)
-    keep eax. `CEnmParam::Grow`: `base` from `slot->code` or a copy of `code`, and five more tail
-    forms (`int parts = ++...`, `weapon_parts_[weapon]++`, an `int&`, an `int*`) stay at 87; the
-    original keeps the tail's incremented count in edi (pushed in the prologue, with `this`
-    in ebp and ebx pushed only in the else block), here edx.
-* **Step 41 (2 new matches: `SoundSystem::Pause`, `BossBodyControl::RunTurnProgram`; `CEnmParam::Plan` at 2 bytes).**
-  * **A local reference changes the destination of a commutative operation.** Both drafts
-    had VC write `a op b` into the right operand's register where the original used the
-    left one. `Pause` matched with `const unsigned int& new_count = ++count;
-    channel->set_pause_count(new_count);` (a non-const `unsigned int& c = count;`, or a
-    pointer to `count`, gives the same code; an inline helper taking `unsigned int&` does
-    not). `RunTurnProgram` matched with `const short& from = actor->angle;` in case 0x20004
-    instead of an `unsigned short` copy (`const unsigned short& to = from += off;` and
-    `unsigned short& to = from; to += off;` also give `add ebx, eax`). `StartTurn` takes a
-    `short` and `off` is masked, so neither change alters behaviour. References to locals
-    that are only read (`const int& p = pause;`) are pure aliases and change nothing.
-  * **`CEnmParam::Plan` 64 -> 2 bytes.** (1) A permuter run (835 from 1770) found that a
-    pointer to `state_.sides[0]` before the `state_.flags & 0x10000` test, written as `const
-    EnmSideStats& first = state_.sides[0];` with `mode0 = first.mode` and `first.progress <
-    65`, keeps `&state_.sides[0]` in ebp up to the mode read as in the original, which frees
-    ebp for the 0x20000 constant shared by the flags test and `AddTactic(17)`. Reading only the
-    mode through `first` loses it (VC folds a single use back into `[esi + 0xc]`), and so does
-    declaring it anywhere earlier. (2) The `kinds` loop steps the same `side` pointer as the
-    progress loop (one variable for both): `mov eax, ebp` before `xor edx, edx`. (3)
-    `kinds[0] = kinds[1] = 0;` stores `kinds[1]` first like the original (`= {0, 0}`, `= {}`,
-    `memset` and a loop do not). (4) **The rate spill:** a value used once is forward-substituted
-    to its use, so VC computes `rate` first and keeps it in st1 across `__ftol2`. With `travel`
-    used twice, `int add = __min(static_cast<int>(travel), 50);` (or an explicit second
-    `static_cast<int>(travel)` in the test), VC computes the travel quotient first and spills
-    `rate`, as the original does (a probe TU shows the same: an fp local with two uses is
-    evaluated in statement order). (5) `rate`'s home then shared the dead `score` slot;
-    computing `count` after `rate` keeps `score` live across it, so `rate` shares `kinds[0]`'s
-    slot as in the original. Left: the first progress read is `[ebp + 6]`, the original's is
-    `[esi + 0x12]`; using `state_.sides[0].progress` there drops the ebp CSE (49), and a
-    `const short&` to the mode, a second reference for side 1, ternaries for the modes, an
-    indexed `side[i]` in both loops and `state_.sides->progress` do not help.
-    A 45-minute permuter run from the 2-byte state (score 5, about 4700 iterations) found
-    nothing. Ruled out for the rate before that: references to `rate`, `add`, `count` or the members,
-    `/Op` (rounds every conversion), a `volatile` rate, every statement order of single-use
-    `travel`/`rate`.
-  * `CEnmParam::Grow`: `const short& mode = state_.sides[...].mode` (re-read after each
-    loop, so wrong code) gives the original's `this` ebp / `base` ebx, and a `const unsigned
-    int& flags = slot->flags` at the top of the else block puts `code` in ecx (71) but
-    re-reads the flags for the `& 8` test. Pure alias references (`int& count = count_v;`,
-    for `slot`, `count`, `base`, `index`, `mode`, `n`, `i`, `weapon`, `limit`), references in
-    the tail (`int& parts`, `const int& total = ++parts;`, `part_total_`), an `EnmSlot& s`
-    for the else block or the tail, a `CEnmParam& self`, and nine spellings of the side
-    index (`(state_.sides + side)->mode`, `this->`, `? 1 : 0`, ...) leave it at 87; a ternary
-    picking `state_.sides[1].mode` or `[0].mode` is the original size but 82. Combining the
-    flags reference with `int i = 0` or a `part` local at the top of the else block (92-121),
-    and three more tail forms (`weapon_parts_[w] = weapon_parts_[w] + 1`, an `int parts`
-    temporary, a `short power` local) do not help either.
-  * `FnGame::Initialize`, `HLSurface::Load`, `FnGame::RateGame`: reference forms (`HLInput*&`
-    / `HLInput&` / `Application&` locals, `int& pause`, `const unsigned int& flags`, `const
-    short& w = image.width()`, `const HLImage& img`, `const unsigned char&` scale factors)
-    change nothing (a reference to `scale_y_` re-reads it: 267). `RateGame`: a
-    `SetRating(grade, title); return;` in every branch but the first is not cross-jumped
-    (74, 0x113 bytes); swapping the `grade`/`title` assignments or declarations, `char`
-    SetRating parameters and a hoisted `title = 0` are 20-31.
-* **Step 40 (drafts only, no new matches).** Probes with `tools/fas_variants.py` and
-  `tools/multi_variants.py` (and a 1-hour permuter run on `HLSurface::Load` from the
-  `short bits` form, which found nothing).
-  * **`CEnmParam::Grow`: the `this`/`base` swap is pressure across the hits check.** Any
-    value live across the hits block puts `this` in ebp and `base` in ebx, as in the
-    original: `int i = 0;` declared at the top of the else block (with `for (; i < count;
-    ++i)`), a `const EnmPlanPart* part = slot->part;` there, or `code & kSideMask` /
-    `code << 3` computed there. All of them also move that instruction above the hits check
-    (99-118). `code` then still sits in edx (the original loads it into ecx right after
-    `mov ebp, ecx`), and edi is still pushed only in the else block. `base | (index + i)`
-    with `index += n` after each option loop flips it as well but changes the loops (113).
-    The tail with `power_total_ +=` before `++part_total_` puts the weapon total in edi
-    like the original (81) but reverses the two stores. Ruled out: `int`/`char`/no weapon
-    local, `int&`/`int*` to the weapon total, a `weapon_parts_[w] = ... + 1` form, an
-    `AddTotals()` inline (slot or weapon/power parameters), reusing `count` or `index` for
-    the hits or the limit, a `flags` local, an uninitialized `i`, `base`, or `mode` at the top of the else block, a
-    copy of `code`, the three `slot != NULL && (flags & 2)` / `else if (flags & 2)` / nested
-    orders of the if chain (126-146), and five option-loop forms (`for (n = ...; n > 0; --n)`,
-    `while (n-- > 0)`, `for (i = n; i > 0; --i)`, `while (--n >= 0)`, `++i, ++index`).
-  * **`HLSurface::Load`:** rewrites of the 16-bit pixel expressions that compile to the
-    same code (operand and `|` orders, groupings, shift/mask forms, alone and in all 31
-    combinations of five of them) never flip the product order, even those that renumber
-    the compiler temporaries. Only real code changes in a 16-bit case flip it (for example
-    the 565 or 4444/5551 32-bit expression replaced by `src[0]`). `int` getters for
-    `bits()`, `width()`, `height()` (with and without `short bits`), function-scope `x`/`y`
-    loop counters and counting `y` down change nothing (or are much worse).
-  * **`SoundSystem::Pause`:** the two-state coupling holds in 34 more combinations: `list`
-    local, none, C-style declarations at the top, the buffer pointer set before the channel
-    loop; `Suspend()` inline, written out, through a `Thread*` local; `++count`,
-    `count++` in the test, `count + 1`, a separate `++count`, a nested `if`, `count + 1` at
-    the declaration with `== 1`; the setter written out in six forms (`&=`/`|=`, a
-    `flags` local, `0xffff0000`, operand orders, `count += 1`); a `CSndBufList::SuspendAll()`
-    inline (like `ReleaseAll()`). It is always inc-first with `or edi, edx`, or
-    and-first with `or edx, edi`. `Resume` shows the original's operand choice when the
-    count changes in an earlier block (`--count` in the condition). A 20-minute permuter
-    run from the and-first form (no `list` local) found nothing.
-  * **`CEnmParam::Plan`:** VC never stores `rate` to the stack. It keeps it on the x87
-    stack, before or after the `_ftol` (every order of `count`, a float `travel`, `rate`
-    and `add`). Ruled out: double-precision forms (`static_cast<double>` on either
-    quotient, `* 1.0`, a `double rate`), `rate * 100` at the declaration, a ternary clamp,
-    a `Percent(const float&)` helper, `*&rate`, a block around the `add`/`rate` lines,
-    `kinds` declared at the top, and `rate` in a one-element array.
-  * **`FnGame::RateGame`:** a `do { ... break; } while (0)`, an inline `Grade()` with
-    returns (title through a pointer or chosen from the grade), a `goto` from the first
-    case, and the grade-1 case as the final `else` (also nested, and with `title = 0`
-    hoisted) all keep the shared tail at the end.
-  * **`FnGame::Initialize`:** deleting any one statement of the function (19 variants,
-    including the `break`s and `MuteGroup()`) keeps eax for the input pointer. `tools/fas.py`
-    hangs on `fn_game.cpp`, so use `multi_variants.py` or a clone's `compare.py` with
-    `fdiff.py` for it.
-  * **`BossBodyControl::RunTurnProgram`:** a `Wrap(short&)` helper, a `Turn(const unsigned
-    short&, const short&)` helper, and `*&from`/`*&off` all canonicalize to `add eax, ebx`.
-  * **Leads.** `Grow`: look for a value that is live from the function entry or the top
-    of the else block in the original without code there (it would also explain `code` in
-    ecx). Start from `int i = 0;` at the top of the else block, which gives the right
-    `this`/`base` registers, and look for a form that keeps the zero store after the count
-    test. `Pause`/`RunTurnProgram`: in both, the original's `or`/`add` destination is the
-    left operand. `Resume` gets that when the right operand changed in an earlier block,
-    so look for a form where the increment (or `off`) is computed before the merge.
-* **Step 37 (drafts only, no new matches).**
-  * **Variable sharing changes another case's allocation.** In `HLSurface::Load` the 565 case
-    takes the original's `(((src[2] & 0xf8) << 5 | (src[1] & 0xfc)) << 3) | src[0] >> 3` form
-    once the four 16-bit cases share one `unsigned short* out` declared next to `pad` (one per
-    case made VC load `src[2]` first and spill the width inside the loop): 12 -> 9 differing
-    instructions, only the `row_skip` product is left. It was found by ablation: deleting
-    whole cases from a copy of the function (compiled with `tools/fas.py`) showed that the 565
-    loop compiles right without the 4444 or the 5551 case, so the cases' combined use counts
-    decide it. When one case of a switch is off, try cutting the others to find which one
-    pushes it.
-  * **Operand order of a product.** VC sorts the leaves of `a * b * c` (every grouping and
-    order is the same to it): of two named locals, the one assigned later is multiplied first,
-    and a CSE'd member read (`image.width()` used twice) counts as the newest. A probe with a
-    local `HLImage` reproduces the draft's `((scale_y_ - 1) * width) * bytes`; the original's
-    `((scale_y_ - 1) * bytes) * width` needs a named width assigned before `bytes`
-    (`int width = image.width();` ... `width /= scale_x_;`, or a separate `src_width`).
-    In the full function that gives the right product, but then either the height is divided
-    before the width (height computed first in the source, 17 instructions) or, with the width
-    divided first, the whole function's allocation flips (`this` to ebp, the result to ebx,
-    `scale_x_` read twice; 191). All 294 dependency-respecting orders of the seven setup lines,
-    184 orders with a named raw height too, 720 C-style declaration orders, the positions of
-    `pad`/`out`, a switch-value local, a `scale_x` copy and `short`/`const`/`unsigned` widths
-    keep one of the two (a `short` width loses the product order). Inline `image.bits() / 8`
-    instead of `bytes` fixes the product in a probe with a reference parameter but not with a
-    local image. Permuter runs from the 20-, 17- and 191-instruction variants (about 45, 70 and 50
-    minutes) found only unnatural temporaries (`result = format_;`, the height computed into
-    `result`, a copy of `scale_x_` read before `Create()`) and `bytes` computed before `Lock()`,
-    which is worse when ported (48).
-  * `CEnmParam::Grow`: the original computes the side as `mov eax, ebx; and eax, 0xc0000000;
-    sub eax, 0x80000000; neg; sbb; inc` from `base` (ebx), which is what VC emits for
-    `(base & kSideMask) == 0x80000000` (the `code` form gives `cmp`/`sete` from a spilled
-    `code & kSideMask`), so the original does read the side from `base`. With it `this` goes to
-    ebx and `base` to ebp (82 instructions, 0x19 bytes short); a `char weapon` local gives the
-    original's load/`inc`/store for `++weapon_parts_[weapon]` (the int local gives `inc dword
-    ptr`) but not its edi. Count/base order, `ChildBase()`, operand order and a written-out
-    `FindSlot()` (a `NULL` result or a `goto`) do not move `this` back to ebp. A 50-minute
-    permuter run on the `base` form found only semantic changes.
-  * `SoundSystem::Pause`: the `or` destination follows liveness. In a probe, a use of `count`
-    after `set_pause_count(++count)` (a store to a global) gives exactly the original's
-    `inc edi; and edx, 0xffff0000; or edx, edi`: VC overwrites the operand that dies, so in the
-    original `count` was still live after the store (the permuter's `&count` does the same).
-    The original has no later use of it, so look for a construct that keeps it live without
-    code: a variable that outlives the loop body, or one the optimizer drops only after
-    register allocation. A function-scope `count` (with or without `= 0`), `count + 1` or
-    `count += 1` as the argument, a `const unsigned int&` setter parameter, a reference to the
-    flags at the top of the loop (flips both), a buffer local and a nested `if` do not; a
-    20-minute permuter run found nothing.
-  * `CEnmParam::Plan`: a `float travel` local makes VC compute `rate` first and keep it on the
-    x87 stack (same 64 instructions). Note that `rate` shares its stack slot with `kinds[0]` in
-    the original (the frame is only the 8 bytes of `kinds`).
-  * `HLSurface::InitTextureFormats` has two more differences besides the slots: the vtable of
-    the two `EnumTextureFormats` calls is loaded into ecx/edx (eax/ecx here) and the `Log()`
-    arguments use the registers shifted by one, as if one more temporary had been allocated
-    before them. A `kind` local, an `HRESULT` local, `SUCCEEDED()`, `!hr` and the store order
-    of `width_`/`height_` do not change it; neither does any order of the two saved locals and
-    `result`. A 30-minute permuter run (after hand-fixing the `D3DDEVICEDESC7`/`DDCAPS`
-    stubs in `base.c`) found nothing.
-  * `BossBodyControl::RunTurnProgram` and `Pause` look alike: in both, the original puts the result of
-    a commutative operation (`from + off`, `(flags & ~mask) | count`) into the left operand's
-    register where VC, with both operands dying, reuses the right one's. In `Pause` a later use
-    of the right operand flips VC to the left; in `RunTurnProgram` a test store of `off` after the
-    call rearranges the whole case, so it says nothing there.
-  * `RateGame`: an `else if (both modes != 0) { ... } else { grade = 1; }` chain, `grade = 0,
-    title = 0` initializers and the stores written out keep the shared tail at the end.
-  * The probe setups are cheap: `tools/fas.py --print` on a probe TU takes 0.3 s. Do not run it
-    (or any compile) while a `compare.py` in the same tree rewrites `build/src-sjis`: cl then
-    hung at 100% CPU twice. A second clone of the repo (with `orig/wf.exe` linked and
-    `build/analysis.json`/`build/lib` copied) runs compare and the permuter independently.
-* **Step 36 (drafts only, no new matches).**
-  * `HLSurface::Load` 70 -> 12 differing instructions: the declaration order `src`, `bytes`,
-    `row_skip`, `step`, `width`, `height` (all 120 orders tried), `result = 1` before `Log()`,
-    and `*out = ...; src += step; ++out;` (the increment after the source step) in the 24-bit
-    4444 and 5551 loops. Left: the original multiplies `row_skip` as
-    `((scale_y_ - 1) * bytes) * width`, VC as `((scale_y_ - 1) * width) * bytes` for every
-    operand order, grouping, split statement, local copy and type of `bytes`/the width (a probe
-    TU gives the same); and the 565 green channel is `src[1] & 0xfc` in the original. That
-    form gives the original's code in a probe TU with just the loop, but in the full function
-    VC loads `src[2]` first and needs a third temporary (49 instructions), so the draft keeps
-    the equivalent `((src[2] >> 3) << 6 | src[1] >> 2) << 5` form. VC canonicalizes every `|`
-    order and grouping, `<<`/`*`/`&`-after-shift forms and masks like `~3`/`0xfffc`.
-  * `CEnmParam::Grow` 68 -> 55: an `int weapon = slot->weapon;` local for the closing totals
-    (the original then pushes edi in the prologue), and `count` declared before `base`. Left:
-    `code` in edx instead of ecx (so the flags take ecx and the ChooseWeapon calls are not
-    fully tail-merged); the side read from `base` and a signed `base` are worse, `ChildBase()`,
-    parameter types, `FindSlot` loop forms and `if` shapes change nothing.
-  * `SoundSystem::Pause` probes: a reference to the flags (`unsigned int& flags =
-    channel->flags_;`) or a copy of the channel pointer gives the original's `or edx, edi`, but
-    then the `inc` moves after the `and`. The coupling also holds under `/G5` and `/G7`.
-  * `CEnmParam::Plan`: VC keeps `rate` on the x87 stack across `_ftol` (in st1) where the
-    original spills it; `1 << 17`, `1u << id`, a `bit` local in `AddTactic`, a flags local, `!= 0`
-    and the operand order of the `0x20000` test do not put the constant in a register.
-  * `HLSTxtSys::Measure`: Print's forms (function-scope `code`, `code -= first_char_`), a
-    `first` local, `*++text`, and a separate iteration pointer change nothing.
-    `FnGame::Initialize`: no `pause` local, a `bool`/`unsigned` one, an early return and an
-    `input` local inside the `if` change nothing.
-  * The permuter's `base.c` can get `int const;` stub members from words in comments, which
-    pycparser rejects; rename them by hand. The permuter compiles candidates spliced into the
-    live source file, so do not edit that file (or run `multi_variants.py` on it) while it runs.
-* A single-file `compare.py` run (also through `multi_variants.py`/`try_variants.py`) rewrites
-  `objdiff.json` with one unit; run the full compare before committing, and stage files by
-  name rather than with `git add -A`.
-* `build/obj/src/` keeps objects of deleted or merged sources (`fn_option.obj`, ...);
-  `fdiff.py` may read such a stale object, so delete them after renaming a file.
-
-Flags: the game uses `/O2` with its default `/Ob2`. `Object()` is inlined into
-`TaskList()`, and `Remove` into `RemoveUpTo`/`RemoveFrom`, which `/Ob1` would not do.
-`/G5` vs `/G6` has not been told apart by any function yet.
-`WF_EXTRA_CFLAGS` (environment) adds flags to every game compile of `compare.py` and the
-permuter, for experiments only; no per-file flag is needed so far. A sweep of the 17 files with
-nonmatching functions over `/Ob1 /Oy- /G5 /G7 /Op /J /Oa /Ow /EHa /Os /Zp4 /GR /Oi- /QIfist
-/arch:SSE /Ox /Gs0` fixed nothing (`/G5` gives the same code as the default everywhere; `/Zi`
-hangs cl under Wine when run in parallel). With `/Ob1` only `enm_param.cpp` still compiles its
-other functions the same, and it gains nothing. Moving each draft to the end of its file
-(definition order) changes none of them.
-
-Tools for decompiling:
-* `tools/disasm.py <addr|name|unit>`: disassembly with symbol, string and float annotations.
-* `tools/fdiff.py [-n] <addr|name>`: side-by-side diff of the compiled and the original
-  function; `-n` aligns without offsets and branch targets and counts the differing
-  instructions, which `try_variants.py` and `perm_lines.py` report as well (a finer score
-  than differing bytes, which a shifted block inflates).
-* `tools/try_variants.py <src> <addr> [--compile <cpp>]`: applies listed source edits one at a
-  time and reports each result (`--compile` tests a header edit through a .cpp); `tools/perm_lines.py <src> <addr>` tries every single-line move inside a block.
-* `tools/fas.py [--print] <src>` compiles one file with `/FAs` into `build/fas/<name>.asm` (the
-  stack-slot table sits above each PROC); the file may be a standalone probe TU outside `src/`
-  (it still includes `src/` headers), and `--print` prints just the PROC bodies; `tools/fas_slots.py <src> <func> < variants` prints that table for
-  each try_variants-style variant; `tools/multi_variants.py <src> <addr,...> <variants.py>` applies
-  several edits per variant (`V = [[(old, new), ...], ...]`, or `(path, old, new)` for a header)
-  and scores several functions; `tools/fas_variants.py <probe.cpp> <variants.py> [--grep RE]`
-  applies edit sets (`V = [(label, [(old, new), ...]), ...]`) to a probe TU and prints the
-  matching instructions of each variant on one line, for ablation.
-* `tools/permuter/`: runs [decomp-permuter](https://github.com/simonlindholm/decomp-permuter) on
-  one C++ function through a C rendering that is turned back into C++ and compiled in its real
-  TU for every candidate (see `tools/permuter/README.md`).
-
-Code style: explicit braces everywhere and the repo `.clang-format` (Google, left pointer
-alignment). Use structs and named fields instead of raw offsets, and recover classes with
-their vtables and inheritance. Fields not recovered yet are padding arrays named after their
-offset. Name decompiled functions by their MSVC-mangled names in `config/symbols.txt`;
-`gensyms.py` keeps manual names.
