@@ -67,7 +67,7 @@ int FnTitle::Initialize() {
   background->app_ = &g_application;
   background->color_ = 0xff004030;
   background->speed_ = 8.0f;
-  g_application.tasks.AddBack(background, 2);
+  g_application.tasks.Add(background, 2, reinterpret_cast<Task*>(1));
   texts_[0] = g_fonts.text.Create(0x20, NULL);
   texts_[1] = g_fonts.text.Create(0x40, NULL);
   texts_[2] = g_fonts.small_text.Create(0x200, NULL);

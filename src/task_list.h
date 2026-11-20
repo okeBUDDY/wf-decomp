@@ -33,10 +33,6 @@ class TaskList : public Object {
   // Inserts `task` at the front (`after` == 0), at the back (`after` == 1)
   // or after the task `after`.
   void Add(Task* task, unsigned short priority, Task* after);  // 0x4039f0
-  // Appends `task` at the back of its priority.
-  void AddBack(Task* task, unsigned short priority) {
-    Add(task, priority, reinterpret_cast<Task*>(1));
-  }
   // Unlinks and deletes `task`; returns the task that followed it.
   Task* Remove(Task* task);  // 0x403aa0
   // Deletes every unprotected task with priority <= `priority`.

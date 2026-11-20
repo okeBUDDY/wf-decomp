@@ -160,7 +160,7 @@ sections 0.
 | headers | Rich header entry order: `Implib710 2067` is first seen after `Utc13_C 9466` instead of right after the dxguid entry | (in the 124) | Not examined; probably the newer dxguid.lib too |
 | headers | TimeDateStamp | 4 | Only by the post-link stamp |
 
-The `CheckSum` is 0 in both files. No difference comes from the 15 unmatched game functions:
+The `CheckSum` is 0 in both files. No difference comes from the 2 unmatched game functions:
 they link from the original bytes. The Rich `Import` (173) and `Implib` counts equal the
 original's since step 27 (from the import fix).
 
@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-675 of 678 game functions match (97.56% of the 128586 game code bytes; `tools/compare.py`),
+676 of 678 game functions match (97.86% of the 128586 game code bytes; `tools/compare.py`),
 and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -249,7 +249,7 @@ emitted in several files, such as header inlines, count in each):
 | Area | Files | Matched |
 |---|---|---|
 | Core objects | `object.cpp` 13/13, `task.cpp` 9/9, `task_list_delete.cpp` 1/1, `thread.cpp` 2/2, `file.cpp` 6/6, `pack.cpp` 8/8, `path_util.cpp` 2/2, `profile.cpp` 2/2 | 43/43 |
-| Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 34/35 (with FnOption), `fn_title.cpp` 11/11, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 13/13, `game_hud_name_entry.cpp` 9/9, `game_hud_result.cpp` 5/5, `graphics.cpp` 13/13 | 161/162 |
+| Application, globals, stages | `win_main.cpp` 7/7, `application.cpp` 16/16, `cglobal.cpp` 34/34, `game.cpp` 10/10, `fn_game.cpp` 35/35 (with FnOption), `fn_title.cpp` 11/11, `game_hud.cpp` 9/9, `game_hud_game_over.cpp` 13/13, `game_hud_name_entry.cpp` 9/9, `game_hud_result.cpp` 5/5, `graphics.cpp` 13/13 | 162/162 |
 | HL library (device, input, 3D, camera, images, surfaces) | `hl_device.cpp` 21/21, `hl_device_init.cpp` 5/5, `hl_window.cpp` 13/13, `hl_sync.cpp` 17/17, `hl_input.cpp` 19/19, `hl_3d.cpp` 16/16, `hl_camera.cpp` 6/6, `hl_camera_init.cpp` 1/1, `hl_math.cpp` 5/5, `hl_image.cpp` 23/23, `hl_surface.cpp` 14/14, `sprite.cpp` 8/8, `line_sprites.cpp` 10/10 | 158/158 |
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 18/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 81/81 |
 | Sound | `snd_sys.cpp` 29/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 146/146 |
@@ -259,6 +259,15 @@ emitted in several files, such as header inlines, count in each):
 
 Known compiler behaviour worth remembering:
 
+* **Short temps rotate through eax, ecx, edx; inline parameters do not count (step 46).**
+  VC7.1 gives a short-lived temp (a load that is stored, pushed or used as an address) the
+  first free register at or after the one following the previous such temp's register. One
+  extra temp anywhere earlier in the function moves a later one from eax to ecx, two to edx,
+  while the registers of longer-lived values stay. A parameter copy of an inline wrapper does
+  not take part: `FnGame::Initialize` loaded `g_application.input` into eax until the
+  `TaskList::AddBack()` wrapper was replaced by the direct `Add(task, priority, 1)` call, whose
+  argument load is such a temp. When a lone late temp has the wrong one of eax/ecx/edx, look
+  for an inline wrapper (or a missing one) anywhere earlier in the function.
 * **`|` copies the later-defined operand; a parameter counts as defined first (step 44).**
   For `a | b` VC copies the value defined later into the result register and ors the other
   in, whatever the spelling. `CEnmParam::Grow` built its child codes as `base | count`
@@ -411,10 +420,7 @@ Known compiler behaviour worth remembering:
   setter and a bitfield do not change it; the permuter's fix takes `&count`, so `count` may
   have gone through a by-reference helper.
   `CEnmParam::Plan` is the original size; it spills `rate` in the prologue (the 0x20000 in
-  ebp was fixed in step 41). `FnGame::Initialize` uses ecx for `g_application.input` where
-  this picks eax; the parameter type of `set_time_stop_mask`, a `bool` or `unsigned` flag, an
-  `input` local, an inverted test, a `mode` local, a `default:` case and moving the flag read
-  do not change it (the permuter found nothing either).
+  ebp was fixed in step 41). (`FnGame::Initialize` matched in step 46.)
   `Control32::RunProgramB0` (15 instructions): only case 0x20004 is left. The
   original adds the turn into `from`'s register (`add ebx, eax; push ebx`), so the push of
   case 0x20001 stays its own; here it is `add eax, ebx; push eax` and the two pushes are
@@ -662,6 +668,17 @@ Known compiler behaviour worth remembering:
     from`, which is the known int case (12, with `movsx`).
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
+* **Step 46 (1 new match: `FnGame::Initialize`).**
+  * `FnGame::Initialize` matched by calling `TaskList::Add(background_, 2, (Task*)1)`
+    directly; the `AddBack()` inline wrapper is gone (every caller, in `cglobal.cpp`,
+    `fn_title.cpp`, `hl_input.cpp` and both `fn_game.cpp` stages, matches either way).
+    How it was found: inserting one store of a loaded value anywhere in the function (even
+    before `ClearStage()`) moved the input pointer to ecx, two to edx, and the inserted temp
+    itself took the register after the previous such temp's. The wrapper's parameter copy of
+    the reloaded `background_` is not counted, the direct call's argument load is.
+    Probe results on the way: dead locals, unused inline parameters, `bool`/`short`/`char`
+    pause forms, a flags copy, a function compiled before `Init` (the rotation is per
+    function) and every code-neutral respelling of the cases do not shift the rotation.
 * **Step 45 (drafts only, no new matches).** Probe work on the three drafts.
   * `FnGame::RateGame`: VC7.1 duplicates a return tail into its predecessors only when it
     is tiny: three register stores (19 bytes, plus the `xor ecx, ecx` block, 21) are

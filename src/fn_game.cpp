@@ -250,8 +250,9 @@ void FnGame::Move() {
 }
 
 // 0x41bf50
-// TODO: nonmatching: the original loads g_application.input into ecx
-// (eax, which held `pause`, here).
+// TaskList::Add is called directly (`after` 1 appends): an inline wrapper's
+// parameter copy shifts VC's register rotation, and the input pointer at the
+// end then lands in eax instead of ecx.
 int FnGame::Initialize() {
   g_global.ClearStage();
   g_global.ResetGame();
@@ -270,7 +271,7 @@ int FnGame::Initialize() {
   background->app_ = &g_application;
   background->color_ = 0xff004030;
   background->speed_ = 8.0f;
-  g_application.tasks.AddBack(background_, 2);
+  g_application.tasks.Add(background_, 2, reinterpret_cast<Task*>(1));
   GameHud* hud = new GameHud;
   hud_ = hud;
   if (hud == NULL) {
@@ -780,7 +781,7 @@ int FnOption::Initialize() {
   background->app_ = &g_application;
   background->color_ = 0xff004030;
   background->speed_ = 8.0f;
-  g_application.tasks.AddBack(background_, 2);
+  g_application.tasks.Add(background_, 2, reinterpret_cast<Task*>(1));
   SetPreset(values_[kGameMode]);
   for (int i = 0; i < kItems; ++i) {
     items_[i] = g_fonts.small_text.Create(0x40, NULL);

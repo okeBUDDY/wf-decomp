@@ -451,7 +451,7 @@ int HLInput::Initialize(Application* app) {
     return 0;
   }
   task_->input_ = this;
-  app_->tasks.AddBack(task_, 0);
+  app_->tasks.Add(task_, 0, reinterpret_cast<Task*>(1));
   return 1;
 }
 
