@@ -288,7 +288,7 @@ int cGlobal::Initialize(Application* app) {
     return 0;
   }
   screen_fade->app_ = &g_application;
-  g_application.overlays.Add(screen_fade, 1, reinterpret_cast<Task*>(1));
+  g_application.overlays.AddBack(screen_fade, 1);
   InitRecords();
   return 1;
 }

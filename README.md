@@ -265,8 +265,8 @@ Known compiler behaviour worth remembering:
   extra temp anywhere earlier in the function moves a later one from eax to ecx, two to edx,
   while the registers of longer-lived values stay. A parameter copy of an inline wrapper does
   not take part: `FnGame::Initialize` loaded `g_application.input` into eax until the
-  `TaskList::AddBack()` wrapper was replaced by the direct `Add(task, priority, 1)` call, whose
-  argument load is such a temp. When a lone late temp has the wrong one of eax/ecx/edx, look
+  `TaskList::AddBack()` wrapper call was replaced by the direct `Add(task, priority,
+  TASK_APPEND)` call, whose argument load is such a temp. When a lone late temp has the wrong one of eax/ecx/edx, look
   for an inline wrapper (or a missing one) anywhere earlier in the function.
 * **`|` copies the later-defined operand; a parameter counts as defined first (step 44).**
   For `a | b` VC copies the value defined later into the result register and ors the other
@@ -669,9 +669,10 @@ Known compiler behaviour worth remembering:
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
 * **Step 46 (1 new match: `FnGame::Initialize`).**
-  * `FnGame::Initialize` matched by calling `TaskList::Add(background_, 2, (Task*)1)`
-    directly; the `AddBack()` inline wrapper is gone (every caller, in `cglobal.cpp`,
-    `fn_title.cpp`, `hl_input.cpp` and both `fn_game.cpp` stages, matches either way).
+  * `FnGame::Initialize` matched by calling `TaskList::Add(background_, 2, TASK_APPEND)`
+    directly (`TASK_APPEND` in `task_list.h` names the `(Task*)1` sentinel). The other
+    `AddBack()` callers (`cglobal.cpp`, `fn_title.cpp`, `hl_input.cpp`, `FnOption`) match
+    either way and keep the wrapper.
     How it was found: inserting one store of a loaded value anywhere in the function (even
     before `ClearStage()`) moved the input pointer to ecx, two to edx, and the inserted temp
     itself took the register after the previous such temp's. The wrapper's parameter copy of
@@ -679,6 +680,18 @@ Known compiler behaviour worth remembering:
     Probe results on the way: dead locals, unused inline parameters, `bool`/`short`/`char`
     pause forms, a flags copy, a function compiled before `Init` (the rotation is per
     function) and every code-neutral respelling of the cases do not shift the rotation.
+  * `FnGame::RateGame`: a permuter run found `int grade = 1;` hoisted above the chain (the
+    either-zero arm keeps only `title = 0`): the shared `xor ecx, ecx` + stores tail then sits
+    right after case 0 as in the original, but `mov eax, 1` moves to the top (365 from 420;
+    full file 22 instructions). So the tail follows case 0 once the grade-1 arm stops being
+    a fall-through predecessor of it; the original keeps that arm as a separate
+    `mov eax, 1; jmp` block at the end. Also tried: `title = 0` initializer with every
+    `title = 0` arm removed (27), `grade = 0` initializer (27), per-arm `SetRating(); return;`
+    (immediate stores), goto labels inside case 0 (laid out last).
+  * `CEnmParam::Plan`: with plain `state_.sides[0]` reads, splitting the `0x20000 && modes`
+    test, a flags copy, a `progress0` local and a written-out `AddClamped()` stay at 49; with
+    the `first` reference at 2 bytes. A 60-minute permuter run (pointer form of `first`)
+    found nothing.
 * **Step 45 (drafts only, no new matches).** Probe work on the three drafts.
   * `FnGame::RateGame`: VC7.1 duplicates a return tail into its predecessors only when it
     is tiny: three register stores (19 bytes, plus the `xor ecx, ecx` block, 21) are
