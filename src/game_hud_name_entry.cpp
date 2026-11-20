@@ -217,6 +217,7 @@ int GameHud::MoveNameEntry() {
       dirs_time_ = 0;
       flags_ |= kFlagNameCursor;
       step_ = 11;
+      // Falls through.
     case 11:
       if (EnterName()) {
         flags_ &= ~kFlagNameCursor;
