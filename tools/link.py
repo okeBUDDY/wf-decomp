@@ -10,7 +10,7 @@ import os
 import sys
 
 from splits import load_splits
-from wfcommon import BUILD, CONFIG, VC71, run_wine, wine_env, winpath
+from wfcommon import BUILD, CONFIG, VC71, expand_dirs, run_wine, wine_env, winpath
 
 
 def unit_objects():
@@ -36,8 +36,8 @@ def link(out=None, extra=()):
             args += [winpath(o) for o in unit_objects()]
         elif line == "wf.res":
             args.append(winpath(os.path.join(BUILD, "wf.res")))
-        elif line.startswith("{VC71}"):
-            args.append(winpath(VC71 + line[len("{VC71}"):]))
+        elif line.startswith("{"):
+            args.append(winpath(expand_dirs(line)))
         else:
             args.append(line)
     args += ["/OUT:" + winpath(out), "/MAP:" + winpath(os.path.splitext(out)[0] + ".map")]

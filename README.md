@@ -16,8 +16,8 @@ The current state:
   libpng 1.2.5) are rebuilt from source and match byte for byte.
 * The whole exe is relinked with the original LINK from game "blob" objects,
   the rebuilt libraries, libcmt and the SDK import libraries. Every section (`.text`,
-  `.rdata` with the import table, `.data`, `.rsrc`) is byte-identical; only the Rich header
-  and the link timestamp differ (listed below).
+  `.rdata` with the import table, `.data`, `.rsrc`) is byte-identical, and so is the Rich
+  header; only the link timestamp differs (see below).
 * All 678 game functions are decompiled to C++ in `src/` and match byte for byte; the
   relinked exe takes every game function from the compiled source (`tools/compare.py`,
   `objdiff.json`).
@@ -30,6 +30,13 @@ The current state:
     including `PlatformSDK/`). Default: `/root/wf/tools/vc71/Vc7`.
   * `WF_VC70` is the VS.NET 2002 `Vc7` directory (cl 13.00.9466), used only for the
     libraries. Default: `/root/wf/tools/vc70`.
+  * `WF_DXSDK` is a DirectX SDK April 2005 directory (`dxsdkver.h`: 9.06.168), used only
+    for `Lib/x86/dxguid.lib` (3 objects, cl 13.10.4035, Rich `Utc1310_CPP 4035`;
+    `config/link.txt` names it as `{DXSDK}/Lib/x86/dxguid.lib`). The VS.NET 2003 PlatformSDK's
+    `dxguid.lib` (cl 13.00.9178) gives the same bytes but a different Rich header. The SDK
+    is the DirectX 9.0c SDK April 2005 release; only that one file is needed (SHA-1
+    `d9c7e86a243fb043d87c23f496b15742ec7c328e`). Default:
+    `/root/wf/tools/dxsdk/apr2005`.
   * `WINEPREFIX` defaults to `/root/.wine-wf`.
 * Put the original `wf.exe` (from the game's download, see above) in `orig/`, or point
   `WF_ORIG` at it. Its SHA-1 is in
@@ -112,7 +119,8 @@ mangled with warning C4129.
   undefined-symbol list (see `tools/linksim.py`). The blob writes its undefined externals sorted
   by the original target address. `extern` lines in `splits.txt` reproduce references from code
   that the original `/OPT:REF` discarded: `_png_create_write_struct`, `_png_set_IHDR`,
-  `__fltused`, `__except_list`, `___security_cookie` and `_atof`.
+  `__fltused`, `__except_list`, `___security_cookie`, `_atof` and `__vsnprintf` (the last one
+  is a stand-in, see "Remaining differences").
 * **Shared COMDATs.** The first definition of a select-any COMDAT wins, so a float constant
   or string that the game shares with a library must be defined by the blob as a COMDAT.
   Several names at one address each get their own copy, and `/OPT:ICF` folds them back
@@ -156,33 +164,28 @@ compares each resource that `rc` writes with the original's data. The symbolic n
 
 ## Remaining differences of build/wf.exe
 
-Baseline (differing bytes): headers 128, `.text` 0, `.rdata` 0, `.data` 0, `.rsrc` 0 (the
-header count can drop by a byte or so when a byte of the link time happens to equal the original's).
-With the optional `tools/postlink.py` stamp (`build/wf-stamped.exe`): headers 124, all
-sections 0.
+Baseline (differing bytes): headers 4 (the `TimeDateStamp`), `.text` 0, `.rdata` 0, `.data` 0,
+`.rsrc` 0 (the count can drop when a byte of the link time happens to equal the original's).
+With the optional `tools/postlink.py` stamp (`build/wf-stamped.exe`) the exe is
+byte-identical.
 
-| Section | Cause | Bytes | Fixable |
-|---|---|---|---|
-| headers | Rich header: `Utc13_CPP 9178` (PSDK `dxguid.lib`) vs `Utc1310_CPP 4035` (a newer DirectX SDK's `dxguid.lib`, built with cl 13.10.4035). Every Rich DWORD is XORed with a key that sums all entries, so this one entry changes all 124 bytes | 124 | No: that SDK is not in the toolchain; the data it adds already matches |
-| headers | Rich header: `Utc1310_C 3077` 150 vs 151 (one more libcmt C object, see below) | (in the 124) | Known how, but it makes the header worse until dxguid matches |
-| headers | Rich header entry order: `Implib710 2067` is first seen after `Utc13_C 9466` instead of right after the dxguid entry | (in the 124) | Not examined; probably the newer dxguid.lib too |
-| headers | TimeDateStamp | 4 | Only by the post-link stamp |
+The Rich header equals the original's (every entry, count and the entry order). The
+`CheckSum` is 0 in both files. What it took:
 
-The `CheckSum` is 0 in both files. The Rich `Import` (173) and `Implib` counts equal the
-original's.
-
-**The missing libcmt object.** The original pulled 151 libcmt C objects (`Utc1310_C 3077`),
-the relink 150. The extra one left no bytes in the exe, so it was pulled by discarded game
-code, has only COMDAT code (no `.data`/`.bss`/`.CRT$` contributions) and needs nothing that is
-not already linked. 116 libcmt members qualify (`__vsnprintf`, `_strtok`, `__snprintf`,
-`_strlwr`, the `_mbs*` functions, ...), so it cannot be identified. An `extern __vsnprintf`
-(a debug trace next to `OutputDebugStringA` would fit) gives 151 and leaves every section
-identical, but it moves the PE header from 0x110 to 0x108 (headers 128 -> 289), so it is not
-applied. The reason is in LINK (`link.exe` 7.10 at 0x4591b0): the Rich buffer is
-`entries * 8 + 0x20 + 8 * ((key >> 5) % 3)` bytes, so the zero padding after `Rich` (and with
-it `e_lfanew`) depends on the XOR key. The key is a checksum over the DOS header and all
-entries, so with our dxguid entry, 150 objects happen to give the original's padding (16) and
-151 give 8. Once the dxguid entry matches, the extern should be added with it.
+* **dxguid.lib from the DirectX SDK April 2005** (`Utc1310_CPP 4035`, see Setup); one of its
+  three objects is pulled.
+* **The 151st libcmt object** (`Utc1310_C 3077`). It left no bytes in the exe, so it was
+  pulled by game code that `/OPT:REF` discarded and has only COMDAT code. 116 libcmt members
+  qualify, so the actual one cannot be identified; `extern __vsnprintf` in `splits.txt` (a
+  debug trace next to `OutputDebugStringA` would fit) is a guess. The count matters beyond
+  its own entry: LINK (`link.exe` 7.10 at 0x4591b0) sizes the Rich buffer as
+  `entries * 8 + 0x20 + 8 * ((key >> 5) % 3)` bytes, so the zero padding after `Rich` (and
+  with it `e_lfanew`) depends on the XOR key, a checksum over the DOS header and all entries.
+* **Library order.** LINK lists Rich entries in reverse order of first use. `Implib710 2067`
+  (the USER32 import descriptor) sits between the dxguid and uuid entries, so `user32.lib`
+  is searched before `uuid.lib`: `config/link.txt` has `kernel32 user32 gdi32` before
+  `uuid png vorbisfile` (VS.NET 2003's default library list also has uuid after gdi32). The
+  IAT and every section stay the same.
 
 **Post-link stamp (optional, separate).** `python3 tools/postlink.py` copies `build/wf.exe` to
 `build/wf-stamped.exe`, writes the `TimeDateStamp` and `CheckSum` from `config/postlink.txt`

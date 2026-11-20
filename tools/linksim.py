@@ -18,7 +18,7 @@ import os
 import re
 import struct
 
-from wfcommon import BUILD, VC71, Coff, ar_members
+from wfcommon import BUILD, VC71, Coff, ar_members, expand_dirs
 
 LIBDIRS = [os.path.join(BUILD, "lib"), f"{VC71}/lib", f"{VC71}/PlatformSDK/Lib"]
 
@@ -78,9 +78,9 @@ _LIBS = {}
 
 
 def find_lib(name):
-    """A library name searched in LIBDIRS, or a path ({VC71}/... as in link.txt)."""
-    if name.startswith("{VC71}"):
-        return VC71 + name[len("{VC71}"):]
+    """A library name searched in LIBDIRS, or a path ({VC71}/..., {DXSDK}/... as in link.txt)."""
+    if name.startswith("{"):
+        return expand_dirs(name)
     if "/" in name:
         return name
     n = name.lower() if name.lower().endswith(".lib") else name.lower() + ".lib"

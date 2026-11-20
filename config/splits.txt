@@ -23,6 +23,7 @@ unit obj00_401000
     extern __except_list 0x431f3c
     extern ___security_cookie 0x432c7c
     extern _atof 0x432c7d
+    extern __vsnprintf 0x432c7e
 
 unit obj01_4010d0   # guess cut=0
     .text     0x4010d0 0x401a10

@@ -9,6 +9,7 @@ BUILD = os.path.join(ROOT, "build")
 ORIG_EXE = os.environ.get("WF_ORIG", os.path.join(ROOT, "orig", "wf.exe"))
 # Toolchain roots (not committed). See README.
 VC71 = os.environ.get("WF_VC71", "/root/wf/tools/vc71/Vc7")
+DXSDK = os.environ.get("WF_DXSDK", "/root/wf/tools/dxsdk/apr2005")
 VC70 = os.environ.get("WF_VC70", "/root/wf/tools/vc70")
 THIRDPARTY = os.environ.get("WF_THIRDPARTY", "/root/wf/thirdparty")
 
@@ -223,3 +224,11 @@ def import_symbols(lib_path):
                 imp = imp.lstrip("?@_") if ntype == 2 else imp.lstrip("?@_").split("@")[0]
         out.append((sym, dll.decode(), imp, ntype))
     return out
+
+
+def expand_dirs(s):
+    """Expand a {VC71}/... or {DXSDK}/... path prefix as used in config/link.txt."""
+    for k, v in (("{VC71}", VC71), ("{DXSDK}", DXSDK)):
+        if s.startswith(k):
+            return v + s[len(k):]
+    return s
