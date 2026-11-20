@@ -99,6 +99,35 @@ extern int g_core_controls[7];
 // The debris controls by size (0x45d938).
 extern int g_debris_controls[4];
 
+// The registration ids of the controls (Actor::id). ActorSystem::Create()
+// takes them negated to allow any slot of the pool.
+enum ControlIds {
+  kControlPlayer = 1,
+  kControlEffect = 8,
+  kControlPlayerExplosion = 16,
+  kControlSmallExplosion = 17,
+  kControlMediumExplosion = 18,
+  kControlLargeExplosion = 19,
+  kControlBossExplosion = 20,
+  kControlSmoke = 21,
+  kControlGlow = 22,
+  kControlFlare = 23,
+  kControlBossBody = 32,
+  kControlBossArm = 33,
+  kControlJointPart = 34,
+  kControlTurret = 35,
+  kControlBulletCore = 40,
+  kControlShellCore = 41,
+  kControlLaserCore = 42,
+  kControlLaser = 43,
+  kControlHomingCore = 44,
+  kControlHomingMissile = 45,
+  kControlSparkCore = 46,
+  kControlMissileCore = 47,
+  kControlMissile = 48,
+  kControlStreamCore = 49,
+};
+
 class ActorControl {
  public:
   ActorControl() {}

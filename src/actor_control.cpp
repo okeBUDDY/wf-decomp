@@ -28,76 +28,82 @@ ActorControl::~ActorControl() {}
 
 // 0x40ff00
 int cGlobal::RegisterActorControls() {
-  if (!g_actor_system.Register(1, new PlayerControl)) {
+  if (!g_actor_system.Register(kControlPlayer, new PlayerControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(8, new EffectControl)) {
+  if (!g_actor_system.Register(kControlEffect, new EffectControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(16, new PlayerExplosionControl)) {
+  if (!g_actor_system.Register(kControlPlayerExplosion,
+                               new PlayerExplosionControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(17, new SmallExplosionControl)) {
+  if (!g_actor_system.Register(kControlSmallExplosion,
+                               new SmallExplosionControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(18, new MediumExplosionControl)) {
+  if (!g_actor_system.Register(kControlMediumExplosion,
+                               new MediumExplosionControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(19, new LargeExplosionControl)) {
+  if (!g_actor_system.Register(kControlLargeExplosion,
+                               new LargeExplosionControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(20, new BossExplosionControl)) {
+  if (!g_actor_system.Register(kControlBossExplosion,
+                               new BossExplosionControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(21, new SmokeControl)) {
+  if (!g_actor_system.Register(kControlSmoke, new SmokeControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(22, new GlowControl)) {
+  if (!g_actor_system.Register(kControlGlow, new GlowControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(23, new FlareControl)) {
+  if (!g_actor_system.Register(kControlFlare, new FlareControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(35, new TurretControl)) {
+  if (!g_actor_system.Register(kControlTurret, new TurretControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(43, new LaserControl)) {
+  if (!g_actor_system.Register(kControlLaser, new LaserControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(32, new BossBodyControl)) {
+  if (!g_actor_system.Register(kControlBossBody, new BossBodyControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(33, new BossArmControl)) {
+  if (!g_actor_system.Register(kControlBossArm, new BossArmControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(34, new JointPartControl)) {
+  if (!g_actor_system.Register(kControlJointPart, new JointPartControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(40, new BulletCoreControl)) {
+  if (!g_actor_system.Register(kControlBulletCore, new BulletCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(41, new ShellCoreControl)) {
+  if (!g_actor_system.Register(kControlShellCore, new ShellCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(42, new LaserCoreControl)) {
+  if (!g_actor_system.Register(kControlLaserCore, new LaserCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(44, new HomingCoreControl)) {
+  if (!g_actor_system.Register(kControlHomingCore, new HomingCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(47, new MissileCoreControl)) {
+  if (!g_actor_system.Register(kControlMissileCore, new MissileCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(46, new SparkCoreControl)) {
+  if (!g_actor_system.Register(kControlSparkCore, new SparkCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(49, new StreamCoreControl)) {
+  if (!g_actor_system.Register(kControlStreamCore, new StreamCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(45, new HomingMissileControl)) {
+  if (!g_actor_system.Register(kControlHomingMissile,
+                               new HomingMissileControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(48, new MissileControl)) {
+  if (!g_actor_system.Register(kControlMissile, new MissileControl)) {
     return 0;
   }
   return 1;
@@ -214,8 +220,12 @@ Actor* BossBodyControl::boss_;
 int BossBodyControl::weapons_[7];
 int CorePartControl::max_volley_time_;
 
-int g_core_controls[7] = {40, 41, 42, 44, 46, 47, 49};
-int g_debris_controls[4] = {0, 17, 18, 19};
+int g_core_controls[7] = {kControlBulletCore, kControlShellCore,
+                          kControlLaserCore,  kControlHomingCore,
+                          kControlSparkCore,  kControlMissileCore,
+                          kControlStreamCore};
+int g_debris_controls[4] = {0, kControlSmallExplosion, kControlMediumExplosion,
+                            kControlLargeExplosion};
 
 // 0x418c40
 int ScoredControl::Prepare(Actor* actor, void* param) {
@@ -293,8 +303,8 @@ int LinkedPartControl::SpawnChildren(Actor* actor, unsigned int base,
                                   slot->part->x1, slot->part->y1, 6, 0, slot);
         break;
       default:
-        child = g_actor_system.Create(34, actor, slot->part->x, slot->part->y,
-                                      4, 0, slot);
+        child = g_actor_system.Create(kControlJointPart, actor, slot->part->x,
+                                      slot->part->y, 4, 0, slot);
         break;
     }
     if (child != NULL) {
@@ -480,10 +490,11 @@ void LinkedPartControl::OnChildDestroyed(Actor* parent, Actor* child) {
         parent->hit_points = 1;
       }
       if (work->level == 1) {
-        g_actor_system.Create(35, parent, 0.0f, 0.0f, 4, 0, work->slot);
+        g_actor_system.Create(kControlTurret, parent, 0.0f, 0.0f, 4, 0,
+                              work->slot);
       }
     }
-    if (parent->id != 32) {
+    if (parent->id != kControlBossBody) {
       parent->parent->control->OnChildDestroyed(parent->parent, child);
     }
   }
@@ -600,7 +611,7 @@ void PartControl::SpawnFlare(Actor* actor) {
         angle = 0x200 - angle;
       }
     }
-    g_actor_system.Create(23, actor, 0.0f, 0.0f, 1, angle, NULL);
+    g_actor_system.Create(kControlFlare, actor, 0.0f, 0.0f, 1, angle, NULL);
     ++g_enm_param.flare_count_;
   }
 }

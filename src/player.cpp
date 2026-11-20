@@ -82,7 +82,7 @@ int PlayerControl::Initialize() {
   HLSObject* sprite = g_pats.sys[0].Get(2);
   shot_.sprite = sprite;
   shot_.team = 8;
-  shot_.debris = 8;
+  shot_.debris = kControlEffect;
   shot_.flags = Actor::kAdditive | Actor::kFaceStart;
   shot_.hit_points = 1;
   shot_.speed = 16.0f;
@@ -184,7 +184,7 @@ void PlayerControl::Fire(Actor* actor) {
   }
   g_muzzle_effect.angle_min = angle + 0x138;
   g_muzzle_effect.angle_max = angle + 0x2c8;
-  g_actor_system.Create(8, NULL, actor->transform->m[2][0],
+  g_actor_system.Create(kControlEffect, NULL, actor->transform->m[2][0],
                         actor->transform->m[2][1], 3, 0, &g_muzzle_effect);
   if (work->shots % 3 == 0) {
     g_application.sound->channel(16)->Assign(&g_sounds[kSndFireMe], 0, 1.0f);
@@ -213,7 +213,7 @@ int PlayerControl::OnCreate(Actor* actor, void* param) {
   PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
   actor->hit_points = 1;
   actor->team = 0x60;
-  actor->debris = 16;
+  actor->debris = kControlPlayerExplosion;
   actor->SetLayer(2);
   actor->SetSprite(g_pats.sys[0].Get(1));
   ActorDesc desc;

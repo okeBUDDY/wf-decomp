@@ -160,8 +160,9 @@ int FlareControl::OnMove(Actor* actor) {
     g_flare_trail.sprite = sprite;
     g_flare_trail.scale_min = g_flare_trail.scale_max = work->scale;
     g_flare_trail.angle_min = g_flare_trail.angle_max = actor->ScreenAngle();
-    g_actor_system.Create(8, NULL, actor->screen.m[2][0], actor->screen.m[2][1],
-                          actor->layer, 0, &g_flare_trail);
+    g_actor_system.Create(kControlEffect, NULL, actor->screen.m[2][0],
+                          actor->screen.m[2][1], actor->layer, 0,
+                          &g_flare_trail);
   }
   return 1;
 }

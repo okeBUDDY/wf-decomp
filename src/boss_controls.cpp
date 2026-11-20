@@ -77,24 +77,24 @@ int BossBodyControl::OnCreate(Actor* actor, void* param) {
   InitLinked(actor, param);
   actor->hit_points = g_enm_param.state_.body_hit_points;
   actor->team = 0x21;
-  actor->debris = 20;
+  actor->debris = kControlBossExplosion;
   actor->SetSprite(g_pats.enemy[0].Get(1));
   actor->bounds = &bounds_;
   reinterpret_cast<PartWork*>(actor->work)->max_hit_points = actor->hit_points;
   EnmSlot* slot = g_enm_param.FindSlot(0x40000000);
   const EnmPlanPart* part = slot->part;
-  work->arms[0] =
-      g_actor_system.Create(33, actor, part->x, part->y, 4, 0, slot);
-  work->arms[1] =
-      g_actor_system.Create(33, actor, -1 - part->x, part->y, 4, 0, slot);
+  work->arms[0] = g_actor_system.Create(kControlBossArm, actor, part->x,
+                                        part->y, 4, 0, slot);
+  work->arms[1] = g_actor_system.Create(kControlBossArm, actor, -1 - part->x,
+                                        part->y, 4, 0, slot);
   Mirror(work->arms[1], Actor::kMirrorX);
   slot = g_enm_param.FindSlot(0x80000000);
   part = slot->part;
-  work->arms[2] =
-      g_actor_system.Create(33, actor, part->x1, part->y1, 4, 0, slot);
+  work->arms[2] = g_actor_system.Create(kControlBossArm, actor, part->x1,
+                                        part->y1, 4, 0, slot);
   Mirror(work->arms[2], Actor::kMirrorY);
-  work->arms[3] =
-      g_actor_system.Create(33, actor, -1 - part->x1, part->y1, 4, 0, slot);
+  work->arms[3] = g_actor_system.Create(kControlBossArm, actor, -1 - part->x1,
+                                        part->y1, 4, 0, slot);
   Mirror(work->arms[3], Actor::kMirrorX);
   Mirror(work->arms[3], Actor::kMirrorY);
   for (int i = 0; i < 4; ++i) {

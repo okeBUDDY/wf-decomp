@@ -62,8 +62,9 @@ int PlayerExplosionControl::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
   ++g_explosion_depth;
-  g_actor_system.Create(18, NULL, actor->transform->m[2][0],
-                        actor->transform->m[2][1], 8, 0, NULL);
+  g_actor_system.Create(kControlMediumExplosion, NULL,
+                        actor->transform->m[2][0], actor->transform->m[2][1], 8,
+                        0, NULL);
   --g_explosion_depth;
   g_spark_desc.x = actor->transform->m[2][0];
   g_spark_desc.y = actor->transform->m[2][1];
@@ -87,7 +88,7 @@ int SmallExplosionControl::OnCreate(Actor* actor, void* param) {
   actor->SetLayer(9);
   int count = g_actor_system.count() >= 700 ? 2 : 8;
   for (; count > 0; --count) {
-    g_actor_system.Create(8, NULL, actor->transform->m[2][0],
+    g_actor_system.Create(kControlEffect, NULL, actor->transform->m[2][0],
                           actor->transform->m[2][1], 9, 0, &g_smoke_effect);
   }
   if (g_explosion_depth == 0) {
@@ -102,7 +103,7 @@ int MediumExplosionControl::OnCreate(Actor* actor, void* param) {
   actor->team = 0;
   actor->SetLayer(8);
   ++g_explosion_depth;
-  g_actor_system.Create(17, NULL, actor->transform->m[2][0],
+  g_actor_system.Create(kControlSmallExplosion, NULL, actor->transform->m[2][0],
                         actor->transform->m[2][1], 9, 0, NULL);
   if (--g_explosion_depth == 0) {
     g_application.sound->channel(1)->Assign(&g_sounds[kSndBomb2], 0, 1.0f);
@@ -138,7 +139,8 @@ int LargeExplosionControl::OnMove(Actor* actor) {
       ++g_explosion_depth;
       float y = actor->transform->m[2][1];
       float x = actor->transform->m[2][0];
-      g_actor_system.Create(18, NULL, x + ((rand() & 0x7f) - 64),
+      g_actor_system.Create(kControlMediumExplosion, NULL,
+                            x + ((rand() & 0x7f) - 64),
                             y + ((rand() & 0x7f) - 64), 8, 0, NULL);
       --g_explosion_depth;
       break;
@@ -158,7 +160,8 @@ int MediumExplosionControl::OnMove(Actor* actor) {
       ++g_explosion_depth;
       float y = actor->transform->m[2][1];
       float x = actor->transform->m[2][0];
-      g_actor_system.Create(17, NULL, x + ((rand() & 0x7f) - 64),
+      g_actor_system.Create(kControlSmallExplosion, NULL,
+                            x + ((rand() & 0x7f) - 64),
                             y + ((rand() & 0x7f) - 64), 9, 0, NULL);
       --g_explosion_depth;
       break;
@@ -209,8 +212,9 @@ int LargeExplosionControl::OnCreate(Actor* actor, void* param) {
   }
   work->alpha = 0x7e;
   ++g_explosion_depth;
-  g_actor_system.Create(18, NULL, actor->transform->m[2][0],
-                        actor->transform->m[2][1], 8, 0, NULL);
+  g_actor_system.Create(kControlMediumExplosion, NULL,
+                        actor->transform->m[2][0], actor->transform->m[2][1], 8,
+                        0, NULL);
   if (--g_explosion_depth == 0) {
     g_application.sound->channel(2)->Assign(&g_sounds[kSndBomb3], 0, 1.0f);
   }
@@ -266,7 +270,8 @@ int BossExplosionControl::OnMove(Actor* actor) {
       actor->start_angle = (rand() & 0x1ff) + 0x100;
       actor->speed = 2.0f;
       actor->acceleration = -0.02f;
-      g_actor_system.Create(18, NULL, actor->transform->m[2][0],
+      g_actor_system.Create(kControlMediumExplosion, NULL,
+                            actor->transform->m[2][0],
                             actor->transform->m[2][1], 8, 0, NULL);
       break;
     case 90:
@@ -305,7 +310,8 @@ int BossExplosionControl::OnMove(Actor* actor) {
       work->core->Destroy(1, 1);
       actor->SetSprite(NULL);
       ++g_explosion_depth;
-      g_actor_system.Create(19, NULL, actor->transform->m[2][0],
+      g_actor_system.Create(kControlLargeExplosion, NULL,
+                            actor->transform->m[2][0],
                             actor->transform->m[2][1], 8, 0, NULL);
       --g_explosion_depth;
       g_global.screen_fade->SetColor(0xff, 0xff, 0xff, 0xff);
@@ -319,7 +325,8 @@ int BossExplosionControl::OnMove(Actor* actor) {
       ++g_explosion_depth;
       float y = actor->transform->m[2][1];
       float x = actor->transform->m[2][0];
-      g_actor_system.Create(19, NULL, x + ((rand() & 0x7f) - 64),
+      g_actor_system.Create(kControlLargeExplosion, NULL,
+                            x + ((rand() & 0x7f) - 64),
                             y + ((rand() & 0x7f) - 64), 8, 0, NULL);
       --g_explosion_depth;
       break;
@@ -333,7 +340,8 @@ int BossExplosionControl::OnMove(Actor* actor) {
     if ((rand() & 7) == 0) {
       float y = actor->transform->m[2][1];
       float x = actor->transform->m[2][0];
-      g_actor_system.Create(17, NULL, x + ((rand() & 0x3f) - 31),
+      g_actor_system.Create(kControlSmallExplosion, NULL,
+                            x + ((rand() & 0x3f) - 31),
                             y + ((rand() & 0x7f) - 64), 9, 0, NULL);
     }
     if (actor->age > 90) {

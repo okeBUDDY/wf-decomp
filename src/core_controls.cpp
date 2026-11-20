@@ -93,7 +93,7 @@ int BulletCoreControl::Initialize() {
 int BulletCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(48));
-  actor->debris = 17;
+  actor->debris = kControlSmallExplosion;
   OnDamage(actor, kEventAim);
   return 1;
 }
@@ -147,7 +147,7 @@ void MissileCoreControl::Setup(Actor* actor, int rank) {
 int MissileCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(53));
-  actor->debris = 17;
+  actor->debris = kControlSmallExplosion;
   OnDamage(actor, kEventAim);
   return 1;
 }
@@ -158,8 +158,8 @@ int MissileCoreControl::OnMove(Actor* actor) {
   if (work->state != kEventFire) {
     return MovePart(actor);
   }
-  g_actor_system.Create(48, NULL, actor->screen.m[2][0], actor->screen.m[2][1],
-                        11, actor->ScreenAngle(), work);
+  g_actor_system.Create(kControlMissile, NULL, actor->screen.m[2][0],
+                        actor->screen.m[2][1], 11, actor->ScreenAngle(), work);
   g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0, 1.0f);
   Schedule(actor, work->delay, kEventAim);
   return 1;
@@ -177,7 +177,7 @@ int MissileControl::OnCreate(Actor* actor, void* param) {
   MissileWork* work = reinterpret_cast<MissileWork*>(actor->work);
   work->launcher = static_cast<MissileCoreWork*>(param);
   actor->team = 0x61;
-  actor->debris = 19;
+  actor->debris = kControlLargeExplosion;
   actor->SetSprite(g_pats.sys[0].Get(67));
   actor->angle = actor->start_angle;
   actor->acceleration = -0.05f;
@@ -225,7 +225,7 @@ int ShellCoreControl::Initialize() {
 int ShellCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(49));
-  actor->debris = 17;
+  actor->debris = kControlSmallExplosion;
   OnDamage(actor, kEventAim);
   return 1;
 }
@@ -298,7 +298,7 @@ int LaserCoreControl::Initialize() {
 int LaserCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(50));
-  actor->debris = 17;
+  actor->debris = kControlSmallExplosion;
   OnDamage(actor, kEventAim);
   return 1;
 }
@@ -311,7 +311,8 @@ int LaserCoreControl::OnMove(Actor* actor) {
   }
   switch (work->step) {
     case 0:
-      work->laser = g_actor_system.Create(43, actor, 0.0f, -16.0f, 6, 0, work);
+      work->laser =
+          g_actor_system.Create(kControlLaser, actor, 0.0f, -16.0f, 6, 0, work);
       if (work->laser == NULL) {
         OnDamage(actor, kEventAim);
         return 1;
@@ -358,7 +359,7 @@ int HomingCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   reinterpret_cast<PartWork*>(actor->work)->flags &= ~PartWork::kAims;
   actor->SetSprite(g_pats.sys[0].Get(51));
-  actor->debris = 17;
+  actor->debris = kControlSmallExplosion;
   OnDamage(actor, kEventIdle);
   return 1;
 }
@@ -376,9 +377,9 @@ int HomingCoreControl::OnMove(Actor* actor) {
       // Fall through.
     case 1:
       if (!(work->timer & 7) && g_actor_system.count() < 700) {
-        g_actor_system.Create(45, NULL, actor->screen.m[2][0],
-                              actor->screen.m[2][1], 11, actor->ScreenAngle(),
-                              work);
+        g_actor_system.Create(kControlHomingMissile, NULL,
+                              actor->screen.m[2][0], actor->screen.m[2][1], 11,
+                              actor->ScreenAngle(), work);
         g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0,
                                                  1.0f);
       }
@@ -404,7 +405,7 @@ int HomingMissileControl::OnCreate(Actor* actor, void* param) {
   HomingMissileWork* work = reinterpret_cast<HomingMissileWork*>(actor->work);
   work->launcher = static_cast<PartWork*>(param);
   actor->team = 0x61;
-  actor->debris = 17;
+  actor->debris = kControlSmallExplosion;
   actor->SetSprite(g_pats.sys[0].Get(72));
   actor->speed = work->launcher->rank * 0.014285714f + 4.0f;
   actor->angle = actor->start_angle;
@@ -425,7 +426,7 @@ int HomingMissileControl::OnMove(Actor* actor) {
     work->homing = 0;
   }
   if (actor->age & 1) {
-    g_actor_system.Create(21, NULL, actor->screen.m[2][0],
+    g_actor_system.Create(kControlSmoke, NULL, actor->screen.m[2][0],
                           actor->screen.m[2][1], 12, 0, NULL);
   }
   return 1;
@@ -519,7 +520,7 @@ int SparkCoreControl::Initialize() {
 int SparkCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(52));
-  actor->debris = 17;
+  actor->debris = kControlSmallExplosion;
   OnDamage(actor, kEventAim);
   return 1;
 }
@@ -583,7 +584,7 @@ int StreamCoreControl::Initialize() {
 int StreamCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(54));
-  actor->debris = 17;
+  actor->debris = kControlSmallExplosion;
   StreamCoreWork* work = reinterpret_cast<StreamCoreWork*>(actor->work);
   work->flags &= ~PartWork::kAims;
   work->amplitude = (work->high - work->low) / 2;

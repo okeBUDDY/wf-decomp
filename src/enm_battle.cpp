@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "actor.h"
+#include "actor_control.h"
 #include "actor_system.h"
 #include "enm_param.h"
 #include "hl_3d.h"
@@ -55,7 +56,8 @@ Actor* CEnmParam::StartBattle(Actor* player) {
   parts_alive_[0] = parts_alive_[1] = 0;
   armored_parts_[0] = armored_parts_[1] = 0;
   transform_parts_[0] = transform_parts_[1] = 0;
-  Actor* boss = g_actor_system.Create(-32, NULL, 320.0f, -480.0f, 4, 0, core);
+  Actor* boss = g_actor_system.Create(-kControlBossBody, NULL, 320.0f, -480.0f,
+                                      4, 0, core);
   --parts_alive_[0];
   core_total_ = core_count_;
   start_parts_[0] = parts_alive_[0];
