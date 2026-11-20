@@ -160,8 +160,7 @@ sections 0.
 | headers | Rich header entry order: `Implib710 2067` is first seen after `Utc13_C 9466` instead of right after the dxguid entry | (in the 124) | Not examined; probably the newer dxguid.lib too |
 | headers | TimeDateStamp | 4 | Only by the post-link stamp |
 
-The `CheckSum` is 0 in both files. No difference comes from the 2 unmatched game functions:
-they link from the original bytes. The Rich `Import` (173) and `Implib` counts equal the
+The `CheckSum` is 0 in both files. Every game function links from source (step 47). The Rich `Import` (173) and `Implib` counts equal the
 original's since step 27 (from the import fix).
 
 **The missing libcmt object.** The original pulled 151 libcmt C objects (`Utc1310_C 3077`),
@@ -233,7 +232,7 @@ matches.
 
 ## Decompiled code
 
-677 of 678 game functions match (98.02% of the 128586 game code bytes; `tools/compare.py`),
+All 678 game functions match (100% of the 128586 game code bytes; `tools/compare.py`),
 and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -242,9 +241,9 @@ placed by its parent's push of `__ehhandler$<parent>`, so it is checked at its e
 address; a `.text$yc`/`$yd` thunk counts when it equals a stub of its size whose named
 relocation targets agree. Matched stubs still link from the blob.
 
-Every game function now has source; all matching ones are linked into `build/wf.exe` from
-source. Per file (matched/compiled; the rest are `// TODO: nonmatching` drafts; functions
-emitted in several files, such as header inlines, count in each):
+Every game function has source and links into `build/wf.exe` from it. Per file
+(matched/compiled; functions emitted in several files, such as header inlines, count in
+each):
 
 | Area | Files | Matched |
 |---|---|---|
@@ -254,7 +253,7 @@ emitted in several files, such as header inlines, count in each):
 | HL sprite systems | `hls_anm.cpp` 16/16, `hls_pat.cpp` 37/37, `hls_txt.cpp` 18/18, `hls_txt_print.cpp` 2/2, `hls_hit_image.cpp` 8/8 | 81/81 |
 | Sound | `snd_sys.cpp` 29/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 146/146 |
 | Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 17/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 10/10, `background.cpp` 10/10 | 195/195 |
-| Enemy generator (boss design) | `enm_param.cpp` 26/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 70/72 |
+| Enemy generator (boss design) | `enm_param.cpp` 28/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 72/72 |
 | Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 5/5 | 44/44 |
 
 Known compiler behaviour worth remembering:
@@ -414,8 +413,14 @@ Known compiler behaviour worth remembering:
   copy of the title load, the others jump to the `title = 0` block), and the threaded copy
   for the grade-1 case is created late and placed last. Every per-case `title = ...` form
   (steps 36-46) left the tail at the end. An `if (titled) { title = ...; }` after an `int
-  title = 0;` is not threaded (34). Lead for other drafts: a block laid out after a `ret`
-  that the source has in the middle may be a threaded copy of a flag or ternary test.
+  title = 0;` is not threaded (34). `CEnmParam::Plan` matched the same way: its kinds loop
+  sets only `side->mode` in each case and then resets the count once with `if (side->mode
+  != 0) { side->unknown_08_ = 0; }`. VC threads that test (it knows the stored mode) into
+  the per-case `mov word ptr [eax], K; jmp` blocks and the shared count store, but the test
+  still counts for the allocator, which then keeps 0x20000 in ebp for the flags test and
+  `AddStep(17)`, as the dead arm of step 42 did by accident. Lesson: when only an
+  unnatural duplicate fixes the allocation, look for a natural test or flag that VC
+  threads away after the weights are taken.
   (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
   in step 38.)
   (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
@@ -675,7 +680,7 @@ Known compiler behaviour worth remembering:
     from`, which is the known int case (12, with `movsx`).
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
-* **Step 47 (1 new match: `FnGame::RateGame`).**
+* **Step 47 (2 new matches: `FnGame::RateGame`, `CEnmParam::Plan`; 678/678).**
   * `RateGame` matched with a `titled` flag and the title computed by a ternary after the
     chain (see the compiler note above). Behaviour is unchanged: grades 5 and 6 record the
     title's first word minus 13, the others 0. How it was found: the hoisted `grade = 1`
@@ -685,7 +690,13 @@ Known compiler behaviour worth remembering:
     edge. So the original's last block had to be a copy VC creates late; jump threading of
     a test after the chain does that. An `int` flag matches too; an `if` instead of the
     ternary does not (34).
-  * `CEnmParam::Plan` (plain `state_.sides[0]` reads, 49): the use that keeps 0x20000 out
+  * `CEnmParam::Plan` matched with plain `state_.sides[0]` reads (the `first` reference is
+    gone) and the count reset after the kinds switch (see the compiler note above). Same
+    behaviour: every case that sets a mode sets a nonzero one and clears the count. A
+    `chosen` flag (`bool` or `int`) set next to each mode store also matches; an `int mode`
+    local stored once after the switch threads the test but keeps one shared `mov [ecx],
+    ax` store (59). Found by applying the RateGame finding. Probes before that, with the
+    plain reads (49): the use that keeps 0x20000 out
     of a register is the kinds switch's `case 0x20000` compare inside the kinds loop.
     Changing that label (probe only) gets `mov ebp, 0x20000` for the flags test and
     `AddStep(17)` with the plain reads, and moves `AddStep(10)`'s 0x400 out of edi. Without

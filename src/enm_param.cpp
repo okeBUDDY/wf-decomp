@@ -455,14 +455,6 @@ void CEnmParam::AddStep(int id) {
 }
 
 // 0x41abc0
-// TODO: nonmatching (2 bytes: the original reads the first side's progress
-// off `this`, [esi + 0x12], not off `first`). The `first` reference keeps
-// &state_.sides[0] in ebp up to the mode reads, which frees ebp for 0x20000
-// as in the original; the chained `kinds` assignment stores kinds[1] first.
-// Plain state_.sides[0] reads give the right mode/progress addressing but
-// leave 0x20000 out of a register (49); an `EnmSideStats* sides` pointer for
-// the sides[0]/sides[1] mode test before CountDestroyed() also frees ebp for
-// 0x20000 but reads side 1's mode off ebp there; see README step 42.
 // `travel` is used twice (through __min), so VC computes it before `rate`
 // and spills `rate` across the _ftol; `count` after `rate` keeps `rate` out
 // of the dead `score` slot.
@@ -534,28 +526,27 @@ void CEnmParam::Plan(int score) {
     if (side->mode == 0) {
       if (side->unknown_08_ >= plan_.kind_counts_[2]) {
         side->mode = 4;
-        side->unknown_08_ = 0;
       } else {
         switch (kinds[i] & 0xff0000) {
           case 0x10000:
             if (side->unknown_02_ >= plan_.kind_counts_[0]) {
               side->mode = 1;
-              side->unknown_08_ = 0;
             } else if (side->unknown_04_ >= plan_.kind_counts_[1]) {
               side->mode = 2;
-              side->unknown_08_ = 0;
             }
             break;
           case 0x20000:
             if (side->unknown_04_ >= plan_.kind_counts_[1]) {
               side->mode = 2;
-              side->unknown_08_ = 0;
             } else if (side->unknown_02_ >= plan_.kind_counts_[0]) {
               side->mode = 1;
-              side->unknown_08_ = 0;
             }
             break;
         }
+      }
+      if (side->mode != 0) {
+        // A new mode starts its own count.
+        side->unknown_08_ = 0;
       }
     }
   }
@@ -598,13 +589,12 @@ void CEnmParam::Plan(int score) {
   if (g_global.stage >= 1) {
     AddStep(1);
   }
-  const EnmSideStats& first = state_.sides[0];
   if (state_.flags & 0x10000) {
     AddStep(6);
   }
-  int mode0 = first.mode;
+  int mode0 = state_.sides[0].mode;
   int mode1 = state_.sides[1].mode;
-  if (first.progress < 65) {
+  if (state_.sides[0].progress < 65) {
     mode0 = 0;
   }
   if (state_.sides[1].progress < 65) {
