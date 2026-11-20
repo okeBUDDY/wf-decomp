@@ -275,14 +275,11 @@ int CEnmParam::Load(File* file) {
 }
 
 // 0x41a820
-// The two early returns, each counting the part, give the original's
-// registers for `this` (ebp), `code` (ecx), the slot flags (edx) and the
-// totals (edi), and its shared ChooseWeapon() call; `short` option counts
-// (the type of the fields) put `mode` in ecx and the counts in eax; `++count`
-// after each call keeps the push of the kind first. The child codes are built
-// in `code` itself: VC copies the later-defined operand of `|`, so with the
-// parameter as the base the count is copied first (`mov ecx, edi; or ecx,
-// ebx`), as in the original.
+// Matching notes: the two early returns (each counting the part) give the
+// original's registers and its shared ChooseWeapon() call; the `short`
+// option counts put `mode` in ecx; `++count` after each call keeps the push
+// of the kind first; building the child codes in the `code` parameter makes
+// VC copy the count first for `|` (it copies the later-defined operand).
 void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   EnmSlot* slot = FindSlot(code);
   if (slot == NULL) {

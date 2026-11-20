@@ -429,7 +429,6 @@ int Actor::Damage(int amount, Actor* source) {
 }
 
 // 0x4085c0
-// TODO: draft, not compared yet.
 int Actor::Move() {
   if (flags & kDebris) {
     return 0;
