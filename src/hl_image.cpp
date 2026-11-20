@@ -61,16 +61,29 @@ int HLImage::LoadBmp(File* file) {
   return 1;
 }
 
+// The 18-byte header of a TGA file.
+struct TgaHeader {
+  unsigned char id_length;    // 0x00
+  unsigned char color_map;    // 0x01
+  unsigned char image_type;   // 0x02
+  unsigned char map_spec[5];  // 0x03
+  short x_origin;             // 0x08
+  short y_origin;             // 0x0a
+  short width;                // 0x0c
+  short height;               // 0x0e
+  unsigned char bits;         // 0x10, per pixel
+  unsigned char descriptor;   // 0x11
+};
+
 // 0x40d6e0
 int HLImage::LoadTga(File* file) {
-  // The 18-byte TGA header: the size at 12 and 14, the bits at 16.
-  unsigned char header[18];
-  if (file->Read(header, sizeof(header)) != sizeof(header)) {
+  TgaHeader header;
+  if (file->Read(&header, sizeof(header)) != sizeof(header)) {
     return 0;
   }
-  width_ = *reinterpret_cast<short*>(&header[12]);
-  height_ = *reinterpret_cast<short*>(&header[14]);
-  bits_ = header[16];
+  width_ = header.width;
+  height_ = header.height;
+  bits_ = header.bits;
   if (!Alloc()) {
     return 0;
   }

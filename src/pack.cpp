@@ -3,8 +3,13 @@
 
 #include "file.h"
 
+// A directory entry. In the file the name is an offset into the name
+// block; OpenPack() turns it into a pointer.
 struct PackEntry {
-  char* name;
+  union {
+    char* name;
+    long name_offset;
+  };
   long offset;
   long size;
 };
@@ -79,10 +84,8 @@ int OpenPack(const char* path) {
       file.Read(pack_entries, pack_count * sizeof(PackEntry));
       file.Read(pack_names, header.names_size);
       strcpy(pack_path, path);
-      // The directory stores name offsets into the name block.
       for (int i = 0; i < pack_count; i++) {
-        pack_entries[i].name =
-            pack_names + reinterpret_cast<long>(pack_entries[i].name);
+        pack_entries[i].name = pack_names + pack_entries[i].name_offset;
       }
       return 1;
     }
