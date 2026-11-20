@@ -15,35 +15,32 @@ void TransformPoint(D3DTLVERTEX* out, const Transform* transform,
   out->sz = point->z;
 }
 
-// The rotation the RotateTransform*() functions build.
-static inline Transform* Rotation() { return &g_matrix_work->rotation; }
-
 // 0x402550
 void RotateTransformX(Transform* transform, float radians) {
-  SetIdentity(Rotation());
-  Rotation()->m[1][2] = static_cast<float>(sin(radians));
-  Rotation()->m[2][1] = -Rotation()->m[1][2];
-  Rotation()->m[2][2] = static_cast<float>(cos(radians));
-  Rotation()->m[1][1] = Rotation()->m[2][2];
-  MultiplyTransform(transform, Rotation(), transform);
+  SetIdentity(&g_matrix_work->rotation);
+  g_matrix_work->rotation.m[1][2] = static_cast<float>(sin(radians));
+  g_matrix_work->rotation.m[2][1] = -g_matrix_work->rotation.m[1][2];
+  g_matrix_work->rotation.m[2][2] = static_cast<float>(cos(radians));
+  g_matrix_work->rotation.m[1][1] = g_matrix_work->rotation.m[2][2];
+  MultiplyTransform(transform, &g_matrix_work->rotation, transform);
 }
 
 // 0x4025e0
 void RotateTransformY(Transform* transform, float radians) {
-  SetIdentity(Rotation());
-  Rotation()->m[2][0] = static_cast<float>(sin(radians));
-  Rotation()->m[0][2] = -Rotation()->m[2][0];
-  Rotation()->m[2][2] = static_cast<float>(cos(radians));
-  Rotation()->m[0][0] = Rotation()->m[2][2];
-  MultiplyTransform(transform, Rotation(), transform);
+  SetIdentity(&g_matrix_work->rotation);
+  g_matrix_work->rotation.m[2][0] = static_cast<float>(sin(radians));
+  g_matrix_work->rotation.m[0][2] = -g_matrix_work->rotation.m[2][0];
+  g_matrix_work->rotation.m[2][2] = static_cast<float>(cos(radians));
+  g_matrix_work->rotation.m[0][0] = g_matrix_work->rotation.m[2][2];
+  MultiplyTransform(transform, &g_matrix_work->rotation, transform);
 }
 
 // 0x402670
 void RotateTransformZ(Transform* transform, float radians) {
-  SetIdentity(Rotation());
-  Rotation()->m[0][1] = static_cast<float>(sin(radians));
-  Rotation()->m[1][0] = -Rotation()->m[0][1];
-  Rotation()->m[1][1] = static_cast<float>(cos(radians));
-  Rotation()->m[0][0] = Rotation()->m[1][1];
-  MultiplyTransform(transform, Rotation(), transform);
+  SetIdentity(&g_matrix_work->rotation);
+  g_matrix_work->rotation.m[0][1] = static_cast<float>(sin(radians));
+  g_matrix_work->rotation.m[1][0] = -g_matrix_work->rotation.m[0][1];
+  g_matrix_work->rotation.m[1][1] = static_cast<float>(cos(radians));
+  g_matrix_work->rotation.m[0][0] = g_matrix_work->rotation.m[1][1];
+  MultiplyTransform(transform, &g_matrix_work->rotation, transform);
 }
