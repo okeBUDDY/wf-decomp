@@ -1,4 +1,4 @@
-// HLDevice: the system at Application+0xa0 (vtable 0x451848) that lets the
+// HLDevice: the system in Application::device (vtable 0x451848) that lets the
 // player pick the graphics, sound and input devices and the screen mode in
 // the start-up dialog, and keeps the choices.
 #ifndef WF_HL_DEVICE_H_

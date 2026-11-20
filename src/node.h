@@ -37,16 +37,15 @@ class Node : public Object {
   Vector3 rotation_;             // 0x14
   Vector3 scale_;                // 0x20
   char unused_2c_[0xac - 0x2c];  // never accessed
-  int mode_;                     // 0xac, meaning unknown
-  unsigned char flag_b0_;        // 0xb0, meaning unknown
+  int mode_;                     // 0xac, set by SetMode(), never read
+  unsigned char flag_b0_;        // 0xb0, only cleared
   char unused_b1_[0xcf - 0xb1];  // never accessed
-  unsigned char
-      visible_;        // 0xcf, set to 1 by the constructor (name unverified)
-  Node* parent_;       // 0xd0
-  Node* first_child_;  // 0xd4
-  Node* last_child_;   // 0xd8
-  Node* prev_;         // 0xdc
-  Node* next_;         // 0xe0
+  unsigned char visible_;        // 0xcf, only set to 1 (the name is a guess)
+  Node* parent_;                 // 0xd0
+  Node* first_child_;            // 0xd4
+  Node* last_child_;             // 0xd8
+  Node* prev_;                   // 0xdc
+  Node* next_;                   // 0xe0
 };
 
 #endif  // WF_NODE_H_

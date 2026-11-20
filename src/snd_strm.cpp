@@ -58,14 +58,14 @@ CSndStrm::CSndStrm() {
 }
 
 // 0x40f9e0
-int CSndStrm::Load(const char* path, unsigned int flags, unsigned int channel) {
+int CSndStrm::Load(const char* path, unsigned int flags, unsigned int group) {
   if (flags_ != 0) {
     Release();
   }
-  if (channel >= 4) {
-    channel = 0;
+  if (group >= 4) {
+    group = 0;
   }
-  flags_ = (flags & kUserFlags) | channel | kLoaded;
+  flags_ = (flags & kUserFlags) | group | kLoaded;
   g_snd_buf_list->Add(this);
   WAVEFORMATEX format;
   file_ = OpenSndFile(path, &format);

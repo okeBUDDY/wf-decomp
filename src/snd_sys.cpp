@@ -385,7 +385,7 @@ void SoundSystem::MuteGroup(int mute, int group) {
       if (channel->sound_->group() == group && channel->buffer_ != NULL) {
         if (mute) {
           channel->buffer_->Stop();
-        } else if (channel->flags_ & 0x1) {  // bit 0: meaning unknown
+        } else if (channel->flags_ & 0x1) {  // bit 0 of the pause count
           channel->Play();
         }
       }

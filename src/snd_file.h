@@ -82,7 +82,7 @@ class CSndFileOGG : public CSndFile {
   virtual void Seek(int position);           // 0x40e790
 
  private:
-  int reserved_;           // 0x0c
+  int unused_0c_;          // 0x0c, never accessed
   OggVorbis_File vorbis_;  // 0x10
   int block_align_;        // 0x2e0
   int position_;           // 0x2e4

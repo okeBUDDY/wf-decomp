@@ -199,14 +199,14 @@ int CSndBuf::SetPath(const char* path, CSndFile* file, WAVEFORMATEX* format) {
 }
 
 // 0x40e610
-int CSndBuf::Load(const char* path, unsigned int flags, unsigned int channel) {
+int CSndBuf::Load(const char* path, unsigned int flags, unsigned int group) {
   if (flags_ != 0) {
     Release();
   }
-  if (channel >= 4) {
-    channel = 0;
+  if (group >= 4) {
+    group = 0;
   }
-  flags_ = (flags & kUserFlags) | channel | kLoaded;
+  flags_ = (flags & kUserFlags) | group | kLoaded;
   g_snd_buf_list->Add(this);
   WAVEFORMATEX format;
   CSndFile* file = OpenSndFile(path, &format);

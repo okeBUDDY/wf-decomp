@@ -14,7 +14,7 @@ class CSndStrm : public CSndBuf {
   virtual void Release();  // 0x40fb00
   virtual void Restore();  // 0x40fb90
   virtual int Load(const char* path, unsigned int flags,
-                   unsigned int channel);  // 0x40f9e0
+                   unsigned int group);  // 0x40f9e0
   // The path of the playing SEQ piece, or of the file.
   virtual const char* GetPath();  // 0x40fc10
   // The buffer can be played by one channel at a time.

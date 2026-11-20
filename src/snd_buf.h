@@ -36,7 +36,7 @@ class CSndBufLink : public Object {
 class CSndBuf : public CSndBufLink {
  public:
   enum Flags {
-    kChannelMask = 0x3,
+    kGroupMask = 0x3,  // the volume group
     kLoaded = 0x100,
     kBufferInUse = 0x200,  // buffer_ handed out by GetBuffer()
     kLoop = 0x400,         // CSndStrm: the file restarts at its end
@@ -54,9 +54,9 @@ class CSndBuf : public CSndBufLink {
   virtual void Suspend() {}
   // Reloads the samples after the buffer was lost.
   virtual void Restore();  // 0x40e720
-  // Loads `path` into a new buffer; `channel` (0..3) is kept in the flags.
+  // Loads `path` into a new buffer in the volume group `group` (0..3).
   virtual int Load(const char* path, unsigned int flags,
-                   unsigned int channel);  // 0x40e610
+                   unsigned int group);  // 0x40e610
   // 0x40e220
   virtual const char* GetPath() { return path_ != NULL ? path_ : ""; }
   // Returns the buffer, or a duplicate when it is already in use.
