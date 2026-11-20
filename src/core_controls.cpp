@@ -58,7 +58,7 @@ struct Control40Work : PartWork {
   short interval;             // 0x54, frames of firing
   unsigned short fire_angle;  // 0x56
   short delay;                // 0x58, until the next round
-  short unknown_2a_;          // 0x5a
+                              // 0x5a: padding
   float speed;                // 0x5c, of the bullets
 };
 
@@ -72,7 +72,7 @@ void Control40::Setup(Actor* actor, int rank) {
     work->speed = (rank - 50) * 0.0625f + 4.0f;
   }
   work->delay = 50 - rank * 30 / 100;
-  work->unknown_22_ = interval;
+  work->volley_time = interval;
 }
 
 // 0x413a40
@@ -94,25 +94,25 @@ int Control40::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(48));
   actor->debris = 17;
-  OnDamage(actor, 6);
+  OnDamage(actor, kEventAim);
   return 1;
 }
 
 // 0x413b00
 int Control40::OnMove(Actor* actor) {
   Control40Work* work = reinterpret_cast<Control40Work*>(actor->work);
-  if (work->state != 5) {
+  if (work->state != kEventFire) {
     return MovePart(actor);
   }
-  short step = work->state_time;
+  short step = work->step;
   switch (step) {
     case 0:
       work->fire_angle = actor->ScreenAngle();
-      work->unknown_1e_ = work->interval;
-      work->state_time = ++step;
+      work->timer = work->interval;
+      work->step = ++step;
       // Fall through.
     case 1:
-      if (!(work->unknown_1e_ & 3)) {
+      if (!(work->timer & 3)) {
         desc_.x = actor->screen.m[2][0];
         desc_.y = actor->screen.m[2][1];
         desc_.start_angle = work->fire_angle;
@@ -122,8 +122,8 @@ int Control40::OnMove(Actor* actor) {
         g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0,
                                                  1.0f);
       }
-      if (--work->unknown_1e_ <= 0) {
-        Schedule(actor, work->delay, 6);
+      if (--work->timer <= 0) {
+        Schedule(actor, work->delay, kEventAim);
       }
       break;
   }
@@ -148,26 +148,27 @@ int Control47::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(53));
   actor->debris = 17;
-  OnDamage(actor, 6);
+  OnDamage(actor, kEventAim);
   return 1;
 }
 
 // 0x413cc0
 int Control47::OnMove(Actor* actor) {
   Control47Work* work = reinterpret_cast<Control47Work*>(actor->work);
-  if (work->state != 5) {
+  if (work->state != kEventFire) {
     return MovePart(actor);
   }
   g_actor_system.Create(48, NULL, actor->screen.m[2][0], actor->screen.m[2][1],
                         11, actor->ScreenAngle(), work);
   g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0, 1.0f);
-  Schedule(actor, work->delay, 6);
+  Schedule(actor, work->delay, kEventAim);
   return 1;
 }
 
 // Actor::work of control 48.
 struct Control48Work {
-  int unknown_00_[2];       // 0x30
+  int unused[2];            // 0x30, not set: a missile carries no EnmSlot
+                            // in work[0], unlike the bullets
   Control47Work* launcher;  // 0x38
 };
 
@@ -189,7 +190,7 @@ struct Control41Work : PartWork {
   short interval;  // 0x54
   short count;     // 0x56, shells in the fan
   short spread;    // 0x58, angle between two shells
-  short unknown_2a_;
+                   // 0x5a: padding
   float speed;  // 0x5c
 };
 
@@ -225,14 +226,14 @@ int Control41::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(49));
   actor->debris = 17;
-  OnDamage(actor, 6);
+  OnDamage(actor, kEventAim);
   return 1;
 }
 
 // 0x413f00
 int Control41::OnMove(Actor* actor) {
   Control41Work* work = reinterpret_cast<Control41Work*>(actor->work);
-  if (work->state != 5) {
+  if (work->state != kEventFire) {
     return MovePart(actor);
   }
   desc_.x = actor->screen.m[2][0];
@@ -248,7 +249,7 @@ int Control41::OnMove(Actor* actor) {
     angle += work->spread;
   }
   g_application.sound->channel(18)->Assign(&g_sounds[kSndFireCn], 0, 1.0f);
-  Schedule(actor, work->interval, 6);
+  Schedule(actor, work->interval, kEventAim);
   return 1;
 }
 
@@ -271,7 +272,7 @@ void Control42::Setup(Actor* actor, int rank) {
   work->duration = (rank / 10 + 3) * 20;
   work->laser = NULL;
   work->delay = 180 - rank * 90 / 100;
-  work->unknown_22_ = work->duration + 10;
+  work->volley_time = work->duration + 10;
 }
 
 // 0x414040
@@ -298,39 +299,39 @@ int Control42::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(50));
   actor->debris = 17;
-  OnDamage(actor, 6);
+  OnDamage(actor, kEventAim);
   return 1;
 }
 
 // 0x414130
 int Control42::OnMove(Actor* actor) {
   Control42Work* work = reinterpret_cast<Control42Work*>(actor->work);
-  if (work->state != 5) {
+  if (work->state != kEventFire) {
     return MovePart(actor);
   }
-  switch (work->state_time) {
+  switch (work->step) {
     case 0:
       work->laser = g_actor_system.Create(43, actor, 0.0f, -16.0f, 6, 0, work);
       if (work->laser == NULL) {
-        OnDamage(actor, 6);
+        OnDamage(actor, kEventAim);
         return 1;
       }
-      ++work->state_time;
-      work->unknown_1e_ = work->duration;
+      ++work->step;
+      work->timer = work->duration;
       // Fall through.
     case 1:
-      if (--work->unknown_1e_ <= 0) {
+      if (--work->timer <= 0) {
         if (work->laser->control != NULL) {
           work->laser->control->OnEvent(work->laser, 2, 0);
         }
-        ++work->state_time;
+        ++work->step;
         work->laser = NULL;
-        work->unknown_1e_ = 10;
+        work->timer = 10;
       }
       break;
     case 2:
-      if (--work->unknown_1e_ <= 0) {
-        Schedule(actor, work->delay, 6);
+      if (--work->timer <= 0) {
+        Schedule(actor, work->delay, kEventAim);
       }
       break;
   }
@@ -349,40 +350,40 @@ void Control44::Setup(Actor* actor, int rank) {
   short interval = rank / 35 * 8 + 8;
   work->interval = interval;
   work->delay = 120 - rank * 60 / 100;
-  work->unknown_22_ = interval;
+  work->volley_time = interval;
 }
 
 // 0x414700
 int Control44::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
-  reinterpret_cast<PartWork*>(actor->work)->flags &= ~0x10000;
+  reinterpret_cast<PartWork*>(actor->work)->flags &= ~PartWork::kAims;
   actor->SetSprite(g_pats.sys[0].Get(51));
   actor->debris = 17;
-  OnDamage(actor, 0);
+  OnDamage(actor, kEventIdle);
   return 1;
 }
 
 // 0x414760
 int Control44::OnMove(Actor* actor) {
   Control44Work* work = reinterpret_cast<Control44Work*>(actor->work);
-  if (work->state != 5) {
+  if (work->state != kEventFire) {
     return MovePart(actor);
   }
-  switch (work->state_time) {
+  switch (work->step) {
     case 0:
-      work->unknown_1e_ = work->interval;
-      ++work->state_time;
+      work->timer = work->interval;
+      ++work->step;
       // Fall through.
     case 1:
-      if (!(work->unknown_1e_ & 7) && g_actor_system.count() < 700) {
+      if (!(work->timer & 7) && g_actor_system.count() < 700) {
         g_actor_system.Create(45, NULL, actor->screen.m[2][0],
                               actor->screen.m[2][1], 11, actor->ScreenAngle(),
                               work);
         g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0,
                                                  1.0f);
       }
-      if (--work->unknown_1e_ <= 0) {
-        Schedule(actor, work->delay, 0);
+      if (--work->timer <= 0) {
+        Schedule(actor, work->delay, kEventIdle);
       }
       break;
   }
@@ -433,7 +434,7 @@ int Control45::OnMove(Actor* actor) {
 // Actor::work of control 21, the smoke of a missile.
 struct SmokeWork {
   short alpha;  // 0x30
-  short unknown_02_;
+                // 0x32: padding
   float scale;  // 0x34
 };
 
@@ -519,14 +520,14 @@ int Control46::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(52));
   actor->debris = 17;
-  OnDamage(actor, 6);
+  OnDamage(actor, kEventAim);
   return 1;
 }
 
 // 0x414c70
 int Control46::OnMove(Actor* actor) {
   Control46Work* work = reinterpret_cast<Control46Work*>(actor->work);
-  if (work->state != 5) {
+  if (work->state != kEventFire) {
     return MovePart(actor);
   }
   if (g_actor_system.count() < 700) {
@@ -543,7 +544,7 @@ int Control46::OnMove(Actor* actor) {
     }
     g_application.sound->channel(22)->Assign(&g_sounds[kSndFireMs], 0, 1.0f);
   }
-  Schedule(actor, work->delay, 6);
+  Schedule(actor, work->delay, kEventAim);
   return 1;
 }
 
@@ -561,7 +562,7 @@ void Control49::Setup(Actor* actor, int rank) {
   short sweep = rank * 240 / 100 + 120;
   work->sweep = sweep;
   work->delay = 180 - rank * 120 / 100;
-  work->unknown_22_ = sweep;
+  work->volley_time = sweep;
 }
 
 // 0x414e20
@@ -584,26 +585,26 @@ int Control49::OnCreate(Actor* actor, void* param) {
   actor->SetSprite(g_pats.sys[0].Get(54));
   actor->debris = 17;
   Control49Work* work = reinterpret_cast<Control49Work*>(actor->work);
-  work->flags &= ~0x10000;
+  work->flags &= ~PartWork::kAims;
   work->amplitude = (work->high - work->low) / 2;
   work->angle = work->low + work->amplitude;
   work->turret->start_angle = work->angle;
   work->turret->angle = work->turret->start_angle;
-  OnDamage(actor, 0);
+  OnDamage(actor, kEventIdle);
   return 1;
 }
 
 // 0x414f20
 int Control49::OnMove(Actor* actor) {
   Control49Work* work = reinterpret_cast<Control49Work*>(actor->work);
-  if (work->state != 5) {
+  if (work->state != kEventFire) {
     return MovePart(actor);
   }
-  switch (work->state_time) {
+  switch (work->step) {
     case 0:
       work->start = actor->age;
-      work->unknown_1e_ = work->sweep;
-      ++work->state_time;
+      work->timer = work->sweep;
+      ++work->step;
       // Fall through.
     case 1:
       work->turret->angle =
@@ -611,7 +612,7 @@ int Control49::OnMove(Actor* actor) {
               work->amplitude *
               g_sin_table[((actor->age - work->start) * 2) & 0x3ff]) +
           work->angle;
-      if (!(work->unknown_1e_ & 7) && g_actor_system.count() < 700) {
+      if (!(work->timer & 7) && g_actor_system.count() < 700) {
         desc_.x = actor->screen.m[2][0];
         desc_.y = actor->screen.m[2][1];
         desc_.start_angle = actor->ScreenAngle();
@@ -620,9 +621,9 @@ int Control49::OnMove(Actor* actor) {
         g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0,
                                                  1.0f);
       }
-      if (--work->unknown_1e_ <= 0) {
-        OnDamage(actor, 3);
-        work->unknown_1e_ = work->delay;
+      if (--work->timer <= 0) {
+        OnDamage(actor, kEventReturn);
+        work->timer = work->delay;
       }
       break;
   }

@@ -2867,5 +2867,5 @@
 00469264 DAT_00469264 0 data
 0046926a DAT_0046926a 0 data
 00469270 ?boss_@Control32@@2PAVActor@@A 0 data
-00469274 ?max_unknown_22_@CorePartControl@@2HA 0 data
+00469274 ?max_volley_time_@CorePartControl@@2HA 0 data
 00469278 ?g_title_background@@3PAVTask@@A 0 data

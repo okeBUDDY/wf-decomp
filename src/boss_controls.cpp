@@ -188,10 +188,10 @@ int Control32::Dash(Actor* actor, EnmProgram* program, float x, float y,
       g_enm_param.dash_angle_ = actor->start_angle;
       g_enm_param.flare_time_ = work->brake_time;
       g_enm_param.flare_size_ = power;
-      SendEvent(work->arms[0], 9, 0x110a);
-      SendEvent(work->arms[1], 9, 0x110a);
-      SendEvent(work->arms[2], 9, 0x110a);
-      SendEvent(work->arms[3], 9, 0x110a);
+      SendEvent(work->arms[0], PartControl::kEventFlare, 0x110a);
+      SendEvent(work->arms[1], PartControl::kEventFlare, 0x110a);
+      SendEvent(work->arms[2], PartControl::kEventFlare, 0x110a);
+      SendEvent(work->arms[3], PartControl::kEventFlare, 0x110a);
       if (power > 1.0f && work->brake_time > 90) {
         g_application.sound->channel(26)->Assign(&g_sounds[kSndBoost2], 0,
                                                  1.0f);
@@ -312,8 +312,10 @@ void Control32::RunFireProgram(Actor* actor, EnmProgram* program, int side) {
         return;
       }
       int weapon = weapons_[rand() % count];
-      SignalSide(actor, side, (rand() & 3) ? 5 : 7,
-                 (0x10000 << weapon) | 0x10a);
+      SignalSide(
+          actor, side,
+          (rand() & 3) ? PartControl::kEventFire : PartControl::kEventAimFire,
+          (0x10000 << weapon) | 0x10a);
       int add = g_enm_param.core_power_[side][weapon] * 10;
       if (program->arg > 0) {
         add = add * 100 / program->arg;
@@ -332,12 +334,13 @@ void Control32::RunFireProgram(Actor* actor, EnmProgram* program, int side) {
             program->op = 0;
             return;
           }
-          CorePartControl::max_unknown_22_ = 0;
-          SignalSide(actor, side, 5, (0x10000 << program->arg) | 0x10a);
+          CorePartControl::max_volley_time_ = 0;
+          SignalSide(actor, side, PartControl::kEventFire,
+                     (0x10000 << program->arg) | 0x10a);
           g_enm_param.fire_wait_[side] +=
               g_enm_param.core_power_[side][program->arg] * 10;
           program->time = program->op == EnmProgram::kFireWeaponWait
-                              ? CorePartControl::max_unknown_22_
+                              ? CorePartControl::max_volley_time_
                               : 0;
           ++program->step;
           break;
@@ -359,12 +362,13 @@ void Control32::RunFireProgram(Actor* actor, EnmProgram* program, int side) {
             program->op = 0;
             return;
           }
-          CorePartControl::max_unknown_22_ = 0;
-          SignalSide(actor, side, 5, (0x10000 << program->arg) | 0x90a);
+          CorePartControl::max_volley_time_ = 0;
+          SignalSide(actor, side, PartControl::kEventFire,
+                     (0x10000 << program->arg) | 0x90a);
           g_enm_param.fire_wait_[side] +=
               g_enm_param.core_power_[side][program->arg] * 10;
           program->time = program->op == EnmProgram::kFireBoostedWait
-                              ? CorePartControl::max_unknown_22_
+                              ? CorePartControl::max_volley_time_
                               : 0;
           ++program->step;
           break;
@@ -386,8 +390,8 @@ void Control32::RunFireProgram(Actor* actor, EnmProgram* program, int side) {
             program->op = 0;
             return;
           }
-          CorePartControl::max_unknown_22_ = 0;
-          SignalSide(actor, side, 5, 0xffff010a);
+          CorePartControl::max_volley_time_ = 0;
+          SignalSide(actor, side, PartControl::kEventFire, 0xffff010a);
           g_enm_param.fire_wait_[side] += (g_enm_param.core_power_[side][0] +
                                            g_enm_param.core_power_[side][1] +
                                            g_enm_param.core_power_[side][2] +
@@ -397,7 +401,7 @@ void Control32::RunFireProgram(Actor* actor, EnmProgram* program, int side) {
                                            g_enm_param.core_power_[side][6]) *
                                           10;
           program->time = program->op == EnmProgram::kFireAllWait
-                              ? CorePartControl::max_unknown_22_
+                              ? CorePartControl::max_volley_time_
                               : 0;
           ++program->step;
           break;

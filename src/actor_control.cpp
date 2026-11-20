@@ -212,7 +212,7 @@ void CEnmParam::ClearTitles() { title_count_ = 0; }
 
 Actor* Control32::boss_;
 int Control32::weapons_[7];
-int CorePartControl::max_unknown_22_;
+int CorePartControl::max_volley_time_;
 
 int g_core_controls[7] = {40, 41, 42, 44, 46, 47, 49};
 int g_debris_controls[4] = {0, 17, 18, 19};
@@ -229,16 +229,16 @@ int ScoredControl::Prepare(Actor* actor, void* param) {
 
 // 0x418c90
 void PartControl::Schedule(Actor* actor, int delay, int next) {
-  OnDamage(actor, 1);
+  OnDamage(actor, kEventWait);
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
-  work->unknown_1e_ = delay;
-  work->state_time = next;
+  work->timer = delay;
+  work->step = next;
 }
 
 // 0x418cc0
 void CorePartControl::OnEvent(Actor* actor, int x, int y) {
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
-  if (!(y & 0x2000) && !(work->flags & PartWork::kAlive)) {
+  if (!(y & 0x2000) && !(work->flags & PartWork::kReady)) {
     return;
   }
   if (!(y & (0x10000 << GetLevel()))) {
@@ -249,16 +249,16 @@ void CorePartControl::OnEvent(Actor* actor, int x, int y) {
   }
   if (x == 5) {
     if (y & 0x800) {
-      if (!(work->flags & 0x2000000)) {
+      if (!(work->flags & PartWork::kBoosted)) {
         Setup(actor, 100);
-        work->flags |= 0x2000000;
+        work->flags |= PartWork::kBoosted;
       }
-    } else if (work->flags & 0x2000000) {
+    } else if (work->flags & PartWork::kBoosted) {
       Setup(actor, work->rank);
-      work->flags &= ~0x2000000;
+      work->flags &= ~PartWork::kBoosted;
     }
-    if (work->unknown_22_ > max_unknown_22_) {
-      max_unknown_22_ = work->unknown_22_;
+    if (work->volley_time > max_volley_time_) {
+      max_volley_time_ = work->volley_time;
     }
   }
   OnDamage(actor, x);
@@ -387,25 +387,25 @@ int PartControl::InitPart(Actor* actor, void* param) {
   }
   work->angle = (part->flags & EnmPlanPart::kAimHigh) ? work->high : work->low;
   if ((work->slot->flags & 3) == 1) {
-    work->flags |= 0x10000;
+    work->flags |= PartWork::kAims;
   } else if (part->flags & 0x20) {
-    work->flags |= 0x20000;
+    work->flags |= PartWork::kTransforms;
   } else if (part->flags & 0x10) {
-    work->flags |= 0x10000;
+    work->flags |= PartWork::kAims;
   }
   work->turret->angle = work->angle;
   work->turret->start_angle = work->turret->angle;
   work->max_hit_points = actor->hit_points;
-  work->flags |= PartWork::kAlive;
+  work->flags |= PartWork::kReady;
   work->state = 0;
   int side = (work->slot->code & CEnmParam::kSideMask) == 0x80000000;
   ++g_enm_param.parts_alive_[side];
-  if (work->flags & 0x20000) {
+  if (work->flags & PartWork::kTransforms) {
     ++g_enm_param.transform_parts_[side];
   }
   if (work->slot->flags & 8) {
     ++g_enm_param.armored_parts_[side];
-    work->flags |= 0x40000;
+    work->flags |= PartWork::kArmored;
   }
   return 1;
 }
@@ -415,7 +415,7 @@ int CorePartControl::InitCore(Actor* actor, void* param) {
   InitPart(actor, param);
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
   work->rank = work->slot->power * 100 / 1024;
-  work->unknown_22_ = 0;
+  work->volley_time = 0;
   Setup(actor, work->rank);
   g_enm_param.core_power_[(work->slot->code & CEnmParam::kSideMask) ==
                           0x80000000][GetLevel()] += work->rank + 50;
@@ -440,9 +440,9 @@ int LinkedPartControl::InitLinked(Actor* actor, void* param) {
   }
   actor->SetSprite(PlanPatFile(part->pat_file)->Get(part->pat));
   if (part->flags & 0x10) {
-    OnDamage(actor, 6);
+    OnDamage(actor, kEventAim);
   } else {
-    OnDamage(actor, 0);
+    OnDamage(actor, kEventIdle);
   }
   return 1;
 }
@@ -452,7 +452,7 @@ void LinkedPartControl::OnEvent(Actor* actor, int x, int y) {
   int count = y & 0xff;
   if ((y & 0x1000) &&
       ((y & 0x2000) ||
-       (reinterpret_cast<PartWork*>(actor->work)->flags & PartWork::kAlive)) &&
+       (reinterpret_cast<PartWork*>(actor->work)->flags & PartWork::kReady)) &&
       ((y & 0x100) || count == 0)) {
     OnDamage(actor, x);
   }
@@ -553,10 +553,10 @@ void PartControl::OnDestroy(Actor* actor) {
   }
   int side = (work->slot->code & CEnmParam::kSideMask) == 0x80000000;
   --g_enm_param.parts_alive_[side];
-  if (work->flags & 0x20000) {
+  if (work->flags & PartWork::kTransforms) {
     --g_enm_param.transform_parts_[side];
   }
-  if (work->flags & 0x40000) {
+  if (work->flags & PartWork::kArmored) {
     --g_enm_param.armored_parts_[side];
   }
   int score = GetScore(actor);
@@ -609,22 +609,22 @@ void PartControl::SpawnFlare(Actor* actor) {
 void PartControl::OnDamage(Actor* actor, int how) {
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
   StopTrans(work, 1);
-  if (work->state == 1) {
+  if (work->state == kEventWait) {
     work->state = 0;
-    work->flags |= PartWork::kAlive;
+    work->flags |= PartWork::kReady;
   }
   const unsigned int& flags = work->flags;
   switch (how) {
-    case 6:
-      if (!(flags & 0x10000)) {
+    case kEventAim:
+      if (!(flags & PartWork::kAims)) {
         return;
       }
       // Fall through.
-    case 0:
-      work->flags |= PartWork::kAlive;
+    case kEventIdle:
+      work->flags |= PartWork::kReady;
       work->Enter(how);
       return;
-    case 5:
+    case kEventFire:
       if (IsOffScreen(actor)) {
         return;
       }
@@ -635,35 +635,35 @@ void PartControl::OnDamage(Actor* actor, int how) {
         work->slot->power = 0;
       }
       break;
-    case 7:
-      if (!(flags & 0x10000)) {
+    case kEventAimFire:
+      if (!(flags & PartWork::kAims)) {
         return;
       }
       break;
-    case 4:
-      if (!(flags & 0x20000)) {
+    case kEventTransform:
+      if (!(flags & PartWork::kTransforms)) {
         return;
       }
-      if (flags & 0x8000000) {
-        work->flags &= ~0x8000000;
+      if (flags & PartWork::kTransformed) {
+        work->flags &= ~PartWork::kTransformed;
         how = 3;
       } else {
-        work->flags |= 0x8000000;
+        work->flags |= PartWork::kTransformed;
       }
       PlayTrans(work);
       break;
-    case 8:
-      if (!(flags & 0x40000)) {
+    case kEventGlow:
+      if (!(flags & PartWork::kArmored)) {
         return;
       }
       break;
-    case 9:
+    case kEventFlare:
       if (work->slot->part->flags & 0x200) {
         SpawnFlare(actor);
       }
       return;
   }
-  work->flags &= ~PartWork::kAlive;
+  work->flags &= ~PartWork::kReady;
   work->Enter(how);
 }
 
@@ -672,26 +672,26 @@ int PartControl::MovePart(Actor* actor) {
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
   Actor* turret = work->turret;
   switch (work->state) {
-    case 1:
-      if (work->unknown_1e_ > 0 && --work->unknown_1e_ == 0) {
-        OnDamage(actor, work->state_time);
+    case kEventWait:
+      if (work->timer > 0 && --work->timer == 0) {
+        OnDamage(actor, work->step);
       }
       break;
-    case 6:
-    case 7: {
+    case kEventAim:
+    case kEventAimFire: {
       short old_angle = turret->angle;
       turret->TurnTo(g_player, g_enm_param.turn_speed_);
       turret->angle = turret->ClampAngle(turret->angle, work->low, work->high);
       if (old_angle == turret->angle) {
         g_enm_param.state_.flags |= EnmState::kAimed;
-        if (work->state == 7) {
-          OnDamage(actor, 5);
+        if (work->state == kEventAimFire) {
+          OnDamage(actor, kEventFire);
         }
       }
       break;
     }
-    case 3:
-      switch (work->state_time) {
+    case kEventReturn:
+      switch (work->step) {
         case 0: {
           unsigned short now = turret->angle;
           short offset = (work->angle - now) & 0x3ff;
@@ -701,7 +701,7 @@ int PartControl::MovePart(Actor* actor) {
           if (abs(offset) < g_enm_param.turn_speed_) {
             turret->angle += offset;
             StopTrans(work, 1);
-            ++work->state_time;
+            ++work->step;
           } else {
             if (offset < 0) {
               now -= g_enm_param.turn_speed_;
@@ -710,22 +710,22 @@ int PartControl::MovePart(Actor* actor) {
             }
             turret->angle = now;
           }
-          if (work->unknown_1e_ > 0) {
-            --work->unknown_1e_;
+          if (work->timer > 0) {
+            --work->timer;
           }
           break;
         }
         case 1:
-          if (--work->unknown_1e_ <= 0) {
-            OnDamage(actor, 0);
+          if (--work->timer <= 0) {
+            OnDamage(actor, kEventIdle);
           }
           break;
       }
       break;
-    case 4:
-      switch (work->state_time) {
+    case kEventTransform:
+      switch (work->step) {
         case 0:
-          ++work->state_time;
+          ++work->step;
           // Fall through.
         case 1: {
           short goal = (work->slot->part->flags & EnmPlanPart::kAimHigh)
@@ -739,7 +739,7 @@ int PartControl::MovePart(Actor* actor) {
           if (abs(offset) < g_enm_param.turn_speed_) {
             turret->angle += offset;
             StopTrans(work, 1);
-            OnDamage(actor, 0);
+            OnDamage(actor, kEventIdle);
           } else if (offset < 0) {
             turret->angle -= g_enm_param.turn_speed_;
           } else {
@@ -756,10 +756,10 @@ int PartControl::MovePart(Actor* actor) {
 // 0x419cc0
 int LinkedPartControl::OnMove(Actor* actor) {
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
-  if (work->state != 8) {
+  if (work->state != kEventGlow) {
     return MovePart(actor);
   }
-  switch (work->state_time) {
+  switch (work->step) {
     case 0:
       if (g_enm_param.glow_time_ < 120) {
         g_enm_param.glow_time_ = 120;
@@ -774,35 +774,33 @@ int LinkedPartControl::OnMove(Actor* actor) {
         }
       }
       g_application.sound->channel(24)->Assign(&g_sounds[kSndBarrier], 0, 1.0f);
-      ++work->state_time;
-      work->unknown_1e_ = 0;
+      ++work->step;
+      work->timer = 0;
       // Fall through.
     case 1:
-      ++work->unknown_1e_;
-      actor->LerpColor(g_enm_param.state_.color, 0xffffff00, work->unknown_1e_,
-                       60);
-      if (work->unknown_1e_ >= 60) {
+      ++work->timer;
+      actor->LerpColor(g_enm_param.state_.color, 0xffffff00, work->timer, 60);
+      if (work->timer >= 60) {
         if (actor->team == 0x61) {
           actor->team = 0xe1;
         }
-        work->unknown_1e_ = g_enm_param.glow_time_ - 120;
-        ++work->state_time;
+        work->timer = g_enm_param.glow_time_ - 120;
+        ++work->step;
       }
       break;
     case 2:
-      if (--work->unknown_1e_ <= 0) {
-        ++work->state_time;
+      if (--work->timer <= 0) {
+        ++work->step;
       }
       break;
     case 3:
-      ++work->unknown_1e_;
-      actor->LerpColor(0xffffff00, g_enm_param.state_.color, work->unknown_1e_,
-                       60);
-      if (work->unknown_1e_ >= 60) {
+      ++work->timer;
+      actor->LerpColor(0xffffff00, g_enm_param.state_.color, work->timer, 60);
+      if (work->timer >= 60) {
         if (actor->team == 0xe1) {
           actor->team = 0x61;
         }
-        OnDamage(actor, 0);
+        OnDamage(actor, kEventIdle);
       }
       break;
   }

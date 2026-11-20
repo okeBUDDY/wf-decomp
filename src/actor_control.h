@@ -29,8 +29,14 @@ class File;
 // Actor::work of the parts of the boss.
 struct PartWork {
   enum Flags {
-    kAlive = 0x1000000,
-    kTrans = 0x4000000,  // has played trans1
+    // Bits 0..15 are the control's own (Control32Work::Flags).
+    kAims = 0x10000,           // takes kEventAim/kEventAimFire (armed parts)
+    kTransforms = 0x20000,     // takes kEventTransform (plan flag 0x20)
+    kArmored = 0x40000,        // takes kEventGlow (EnmSlot flag 8)
+    kReady = 0x1000000,        // in kEventIdle (or aiming), takes events
+    kBoosted = 0x2000000,      // set up at rank 100 for this volley
+    kTrans = 0x4000000,        // has played trans1
+    kTransformed = 0x8000000,  // turned to the far angle by kEventTransform
   };
 
   EnmSlot* slot;       // 0x30
@@ -42,16 +48,17 @@ struct PartWork {
   short high;          // 0x44
   short angle;         // 0x46, where the turret starts
   int state;           // 0x48, the last event of OnDamage()
-  short state_time;    // 0x4c
-  short unknown_1e_;   // 0x4e
+  short step;          // 0x4c, within the state; in kEventWait, the event
+                       // to take when `timer` runs out
+  short timer;         // 0x4e, frames, counting down (or up) in the state
   short rank;          // 0x50, of a core: its power in percent
-  short unknown_22_;   // 0x52
+  short volley_time;   // 0x52, of a core: frames a volley lasts
 
   // Enters `new_state`.
   void Enter(int new_state) {
     state = new_state;
-    unknown_1e_ = 0;
-    state_time = 0;
+    timer = 0;
+    step = 0;
   }
 };
 
@@ -119,6 +126,24 @@ class ScoredControl : public ActorControl {
 
 class PartControl : public ScoredControl {
  public:
+  // The events of OnDamage() (the `x` of OnEvent()); the part enters the
+  // state of the same number. The `y` of OnEvent() selects the parts:
+  // bits 0..7 the depth to pass the event down to, 0x100 any depth,
+  // 0x200 / 0x400 skip side 1 / 0 (Control32), 0x800 at rank 100 (cores),
+  // 0x1000 linked parts, 0x2000 also parts that are not kReady, and
+  // 0x10000 << level the cores of each weapon level.
+  enum Events {
+    kEventIdle = 0,       // stays at its angle
+    kEventWait = 1,       // waits PartWork::timer frames, then takes `step`
+    kEventReturn = 3,     // turns back to its start angle, then idles
+    kEventTransform = 4,  // turns to the far end of its range (and back)
+    kEventFire = 5,       // a core fires a volley
+    kEventAim = 6,        // turns to follow the player
+    kEventAimFire = 7,    // the same, firing once it is on target
+    kEventGlow = 8,       // an armored part glows (CEnmParam::GlowArmor)
+    kEventFlare = 9,      // flares (CEnmParam::dash_angle_)
+  };
+
   virtual void OnDestroy(Actor* actor);          // 0x4195f0
   virtual void OnDamage(Actor* actor, int how);  // 0x4198e0
   // Scales the hit points by the level of the part.
@@ -172,8 +197,9 @@ class CorePartControl : public PartControl {
   // InitPart() plus the rank of the core.
   int InitCore(Actor* actor, void* param);  // 0x419220
 
-  // The largest PartWork::unknown_22_ of a core at event 5.
-  static int max_unknown_22_;  // 0x469274
+  // The longest PartWork::volley_time of the cores that took kEventFire
+  // since RunFireProgram() cleared it.
+  static int max_volley_time_;  // 0x469274
 };
 
 // Simple controls ---------------------------------------------------------

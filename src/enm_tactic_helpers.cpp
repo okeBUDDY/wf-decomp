@@ -74,7 +74,7 @@ int CEnmParam::GlowArmor(Actor* actor, int time) {
   }
   glow_time_ = time;
   if (actor->control != NULL) {
-    actor->control->OnEvent(actor, 8, 0x110a);
+    actor->control->OnEvent(actor, PartControl::kEventGlow, 0x110a);
   }
   return 1;
 }
@@ -85,7 +85,7 @@ int CEnmParam::StartTransform(Actor* actor) {
     return 0;
   }
   if (actor->control != NULL) {
-    actor->control->OnEvent(actor, 4, 0xffff310a);
+    actor->control->OnEvent(actor, PartControl::kEventTransform, 0xffff310a);
   }
   return 1;
 }
