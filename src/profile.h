@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// A scratch buffer for profile values and paths.
+// A scratch buffer for texts: profile values, paths, messages.
 extern char g_text_buffer[256];  // 0x468d90
 
 class Profile {
