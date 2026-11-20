@@ -320,7 +320,7 @@ Known compiler behaviour worth remembering:
 * Store scheduling follows the source order more than it seems: constant stores keep their
   order, but a register constant (0, 1.0f, `true`) is loaded early and its stores move up
   when its first store comes early in the source. Moving one assignment (`SetScale()` right
-  after the rotation in `Node::Node`, `unknown_18_ = 0` after the scale in `HLSurface()`,
+  after the rotation in `Node::Node`, `unused_18_ = 0` after the scale in `HLSurface()`,
   `team` before `angle` in `FlareControl::OnCreate`) fixed register and vtable-store order.
   Trying every single-line move of a block is cheap and often finds it.
 * A `memset` of a struct sits right before that struct's field stores; hoisting all the

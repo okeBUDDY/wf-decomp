@@ -46,6 +46,7 @@ int HLCamera::IsProtected() {
       RotateTransformZ(&transform, rotation_.z);
       TranslateTransform(&transform, target_.x, target_.y);
       eye_.x = eye_.y = eye_.z = 0;
+      // TransformPoint() writes sx, sy and sz: the x, y and z of eye_.
       TransformPoint(reinterpret_cast<D3DTLVERTEX*>(&eye_), &transform, &eye_);
     }
     SetIdentity(&transform);
@@ -53,6 +54,7 @@ int HLCamera::IsProtected() {
     RotateTransformZ(&transform, -rotation_.z);
     RotateTransformY(&transform, -rotation_.y);
     RotateTransformX(&transform, -rotation_.x);
+    // A Transform has the layout of a D3DMATRIX.
     d3d_->device_->SetTransform(D3DTRANSFORMSTATE_VIEW,
                                 reinterpret_cast<D3DMATRIX*>(&transform));
     flags_ = 0;
