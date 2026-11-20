@@ -1,3 +1,5 @@
+<img src="docs/wf-title-transparent.png" width="476" alt="Warning Forever">
+
 # Warning Forever 1.08 decompilation
 
 A byte-matching decompilation of Warning Forever 1.08 (Hikoza T. Ohkubo, 2005).
