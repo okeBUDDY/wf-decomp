@@ -233,7 +233,7 @@ matches.
 
 ## Decompiled code
 
-676 of 678 game functions match (97.86% of the 128586 game code bytes; `tools/compare.py`),
+677 of 678 game functions match (98.02% of the 128586 game code bytes; `tools/compare.py`),
 and all 151 compiler-generated EH stubs (the `.text$x` unwind funclets and
 `__ehhandler$` stubs, and the `.text$yc`/`.text$yd` dynamic initializers and atexit thunks at
 0x44fed0-0x45092a) equal what cl emits for the TU that compiles their parent. The stubs are
@@ -255,7 +255,7 @@ emitted in several files, such as header inlines, count in each):
 | Sound | `snd_sys.cpp` 29/29, `snd_buf.cpp` 27/27, `snd_channel.cpp` 7/7, `snd_strm.cpp` 12/12, `snd_file_wav.cpp` 14/14, `snd_file_ogg.cpp` 21/21, `snd_file_seq.cpp` 36/36 | 146/146 |
 | Actors and controls | `actor_system.cpp` 33/33, `actor_control.cpp` 68/68, `core_controls.cpp` 37/37, `boss_controls.cpp` 17/17, `boss_helpers.cpp` 4/4, `effect_controls.cpp` 5/5, `explosion_controls.cpp` 11/11, `player.cpp` 10/10, `background.cpp` 10/10 | 195/195 |
 | Enemy generator (boss design) | `enm_param.cpp` 26/28, `enm_plan.cpp` 18/18, `enm_tactics.cpp` 17/17, `enm_tactic_helpers.cpp` 4/4, `enm_battle.cpp` 2/2, `enm_title.cpp` 3/3 | 70/72 |
-| Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 4/5 | 43/44 |
+| Scores and replays | `score_table.cpp` 20/20, `replay.cpp` 19/19, `record.cpp` 5/5 | 44/44 |
 
 Known compiler behaviour worth remembering:
 
@@ -406,11 +406,18 @@ Known compiler behaviour worth remembering:
 * A member pointer kept as `add edi, 0xc` (the address of `device_`) and reloaded after the
   call is an inline member using `this->device_` twice: `HL3D::SetPointFilter()` in
   `DrawResult`/`DrawNameEntry`, where an explicit `d3d->device_->...` pair keeps `d3d` instead.
-* Unresolved leads: `RateGame` (`record.cpp`) keeps the shared `g_rating` tail
-  right after the first case (both modes 0) and the other cases jump back into it; VC puts
-  it at the end here. Per-branch `SetRating()` calls (with or without `return`), a `goto`
-  into the first case, `title = 0` as the initializer, a wrapping `if (mode != 0 || ...)`
-  and `/Os` do not move it, and the permuter found nothing in 25 minutes.
+* **A block placed after the function's return tail is made by jump threading (step 47).**
+  `FnGame::RateGame` keeps its shared `g_rating` tail right after the first case and the
+  grade-1 case as a lone `mov eax, 1; jmp` block at the very end. That is a `bool titled`
+  flag set by the grade 5/6 cases and `int title = titled ? <first word> - 13 : 0;` after
+  the chain: VC threads every case's jump through the flag test (the 5/6 cases get their own
+  copy of the title load, the others jump to the `title = 0` block), and the threaded copy
+  for the grade-1 case is created late and placed last. Every per-case `title = ...` form
+  (steps 36-46) left the tail at the end. An `if (titled) { title = ...; }` after an `int
+  title = 0;` is not threaded (34). Lead for other drafts: a block laid out after a `ret`
+  that the source has in the middle may be a threaded copy of a flag or ternary test.
+  (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
+  in step 38.)
   (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
   in step 38.)
   (`SoundSystem::Pause` and `Control32::RunProgramB0` matched in step 41, see there.)
@@ -668,6 +675,28 @@ Known compiler behaviour worth remembering:
     from`, which is the known int case (12, with `movsx`).
   * `CEnmParam::Plan`: float helpers (`ToInt(float)`, `Ratio()`, `Average()`, and an
     `AddClampedRate(short*, float)`) leave it at 64.
+* **Step 47 (1 new match: `FnGame::RateGame`).**
+  * `RateGame` matched with a `titled` flag and the title computed by a ternary after the
+    chain (see the compiler note above). Behaviour is unchanged: grades 5 and 6 record the
+    title's first word minus 13, the others 0. How it was found: the hoisted `grade = 1`
+    (step 46) and a `grade = 1;` at the top of the `else` after the both-zero case both put
+    the tail after the first case, but `mov eax, 1` then sits before the either-zero test
+    (the modes move to cx/dx), and VC pushes esi rather than sink a constant copy onto an
+    edge. So the original's last block had to be a copy VC creates late; jump threading of
+    a test after the chain does that. An `int` flag matches too; an `if` instead of the
+    ternary does not (34).
+  * `CEnmParam::Plan` (plain `state_.sides[0]` reads, 49): the use that keeps 0x20000 out
+    of a register is the kinds switch's `case 0x20000` compare inside the kinds loop.
+    Changing that label (probe only) gets `mov ebp, 0x20000` for the flags test and
+    `AddStep(17)` with the plain reads, and moves `AddStep(10)`'s 0x400 out of edi. Without
+    the mode0 `[ebp]` read the zero constant takes ebp for the `AddStep` code instead. The
+    dead-arm fix of step 42 needs both `side->mode = 2;` and `side->unknown_08_ = 0;` in the
+    copy (one of them alone: 49). No change (49): an `inline`/`__forceinline` `AddStep`,
+    `1u << id`, `0x20000u`, a flags local, `1 << 17`, `static_cast<int>` switch operands,
+    case order, `default: break;`, a `continue` for `mode != 0` or after the mode-4 case, a
+    `case 0:` label in the progress switch, a `__forceinline` member `ChooseMode(side,
+    kind)` for the kinds switch (also with `first`: 2 bytes), and `side = state_.sides;`
+    resets before the mode reads or the mode-3 loop (VC folds them back).
 * **Step 46 (1 new match: `FnGame::Initialize`).**
   * `FnGame::Initialize` matched by calling `TaskList::Add(background_, 2, TASK_APPEND)`
     directly (`TASK_APPEND` in `task_list.h` names the `(Task*)1` sentinel). The other

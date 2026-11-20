@@ -107,36 +107,31 @@ static inline void SetRating(int grade, int title) {
 }
 
 // 0x418b60
-// TODO: nonmatching (the same code, but the original places the shared
-// SetRating() tail right after the first case, not at the end).
+// Grades 5 and 6 also record the first word of the boss's title.
 void FnGame::RateGame() {
   const EnmSideStats* sides = g_enm_param.state_.sides;
   int grade;
-  int title;
+  bool titled = false;
   if (sides[0].mode == 0 && sides[1].mode == 0) {
     grade = 0;
-    title = 0;
   } else if (sides[0].mode == 0 || sides[1].mode == 0) {
     // Only one side reached a later mode.
     grade = 1;
-    title = 0;
   } else if (sides[0].mode == 3 || sides[1].mode == 3) {
     if (sides[0].progress >= 100 && sides[1].progress >= 100) {
       grade = 6;
-      title = g_enm_param.state_.title.words[0] - 13;
     } else {
       grade = 5;
-      title = g_enm_param.state_.title.words[0] - 13;
     }
+    titled = true;
   } else if (sides[0].progress >= 100 && sides[1].progress >= 100) {
     grade = 5;
-    title = g_enm_param.state_.title.words[0] - 13;
+    titled = true;
   } else if (sides[0].progress >= 65) {
     grade = (sides[1].progress >= 65) + 3;
-    title = 0;
   } else {
     grade = (sides[1].progress >= 65) + 2;
-    title = 0;
   }
+  int title = titled ? g_enm_param.state_.title.words[0] - 13 : 0;
   SetRating(grade, title);
 }
