@@ -1,5 +1,5 @@
-// GameHud: the game over screen. A unit of its own, so GameHud does not inline
-// it.
+// GameHud: the boss warning screen. A unit of its own, so GameHud does not
+// inline it.
 #include "game_hud.h"
 
 #include <stdio.h>
@@ -47,24 +47,24 @@ int GameHud::InitChart() {
 }
 
 // 0x4202e0
-void GameHud::InitGameOver() {
-  mode_texts_[0] = mode_texts_[1] = NULL;
-  mode_texts_[2] = NULL;
+void GameHud::InitWarning() {
+  warning_texts_[kWarningName] = warning_texts_[kWarningStage] = NULL;
+  warning_texts_[kWarningTitle] = NULL;
 }
 
 // 0x4202f0
-void GameHud::ReleaseGameOver() {
-  if (mode_texts_[0] != NULL) {
-    mode_texts_[0]->Release();
-    mode_texts_[0] = NULL;
+void GameHud::ReleaseWarning() {
+  if (warning_texts_[kWarningName] != NULL) {
+    warning_texts_[kWarningName]->Release();
+    warning_texts_[kWarningName] = NULL;
   }
-  if (mode_texts_[1] != NULL) {
-    mode_texts_[1]->Release();
-    mode_texts_[1] = NULL;
+  if (warning_texts_[kWarningStage] != NULL) {
+    warning_texts_[kWarningStage]->Release();
+    warning_texts_[kWarningStage] = NULL;
   }
-  if (mode_texts_[2] != NULL) {
-    mode_texts_[2]->Release();
-    mode_texts_[2] = NULL;
+  if (warning_texts_[kWarningTitle] != NULL) {
+    warning_texts_[kWarningTitle]->Release();
+    warning_texts_[kWarningTitle] = NULL;
   }
 }
 
@@ -72,15 +72,15 @@ void GameHud::ReleaseGameOver() {
 // The closing corner is copied field by field: a struct assignment makes VC
 // rebase the corner stores off &chart_[0] and &chart_[6].
 void GameHud::UpdateChart() {
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < kChartCorners; ++i) {
     D3DVECTOR& corner = chart_[i];
     float scale = shown_params_[i] * 0.0625f;
     corner.x = g_hexagon[i].x * scale;
     corner.y = g_hexagon[i].y * scale;
   }
-  chart_[6].x = chart_[0].x;
-  chart_[6].y = chart_[0].y;
-  chart_[6].z = chart_[0].z;
+  chart_[kChartCorners].x = chart_[0].x;
+  chart_[kChartCorners].y = chart_[0].y;
+  chart_[kChartCorners].z = chart_[0].z;
 }
 
 // 0x420480
@@ -129,7 +129,7 @@ static D3DVECTOR kWeaponBar[4] = {
     {0, 2, 0}, {64, 2, 0}, {0, 12, 0}, {64, 12, 0}};  // 0x45de50
 
 // 0x420500
-void GameHud::DrawGameOver() {
+void GameHud::DrawWarning() {
   Transform transform;
   transform.m[2][2] = 1;
   transform.m[1][1] = 1;
@@ -229,7 +229,8 @@ void GameHud::DrawGameOver() {
     transform.m[0][1] = 0;
     transform.m[2][0] = 0;
     transform.m[2][1] = 0;
-    ScaleTransform(&transform, shown_params_[6 + i] / 1024.0f, 1.0f);
+    ScaleTransform(&transform, shown_params_[kChartCorners + i] / 1024.0f,
+                   1.0f);
     TranslateTransform(&transform, x, y);
     g_application.d3d->DrawPoints(D3DPT_TRIANGLESTRIP, &transform, kWeaponBar,
                                   info_color, 4);
@@ -242,27 +243,29 @@ void GameHud::DrawGameOver() {
   title_pos_.x = static_cast<int>(title_slide_) + 360;
   g_application.d3d->DrawPoints(D3DPT_LINESTRIP, &transform, kTitleLine,
                                 0xc8ffc800, 3);
-  game_over_texts_[0]->PrintInline(title_pos_.x, title_pos_.y - 20, 0xc8ffc800,
-                                   -1);
-  game_over_texts_[2]->PrintInline(title_pos_.x + 20, title_pos_.y, 0xc8ffc800,
-                                   -1);
-  game_over_texts_[1]->PrintInline(title_pos_.x + 144, 408, 0xc8ffc800, -1);
+  warning_texts_[kWarningName]->PrintInline(title_pos_.x, title_pos_.y - 20,
+                                            0xc8ffc800, -1);
+  warning_texts_[kWarningTitle]->PrintInline(title_pos_.x + 20, title_pos_.y,
+                                             0xc8ffc800, -1);
+  warning_texts_[kWarningStage]->PrintInline(title_pos_.x + 144, 408,
+                                             0xc8ffc800, -1);
 }
 
 // 0x420bd0
-int GameHud::MoveGameOver() {
+int GameHud::MoveWarning() {
   int step = step_;
   switch (step) {
     case 0: {
-      mode_texts_[0] = g_fonts.text.Create(16, NULL);
-      mode_texts_[1] = g_fonts.text.Create(16, NULL);
+      warning_texts_[kWarningName] = g_fonts.text.Create(16, NULL);
+      warning_texts_[kWarningStage] = g_fonts.text.Create(16, NULL);
       if (g_global.flags & cGlobal::kFlagEnglish) {
-        mode_texts_[2] = g_fonts.title.Create(0x80, NULL);
+        warning_texts_[kWarningTitle] = g_fonts.title.Create(0x80, NULL);
       } else {
-        mode_texts_[2] = g_fonts.kana.Create(0x80, NULL);
+        warning_texts_[kWarningTitle] = g_fonts.kana.Create(0x80, NULL);
       }
-      if (mode_texts_[0] == NULL || mode_texts_[1] == NULL ||
-          mode_texts_[2] == NULL) {
+      if (warning_texts_[kWarningName] == NULL ||
+          warning_texts_[kWarningStage] == NULL ||
+          warning_texts_[kWarningTitle] == NULL) {
         return 1;
       }
       LoadParams();
@@ -272,14 +275,15 @@ int GameHud::MoveGameOver() {
       chart_alpha_ = 0;
       title_slide_ = 400.0f;
       const char* name = "NAME:";
-      strcpy(mode_texts_[0]->text(), name);
-      sprintf(mode_texts_[1]->text(), "STAGE:%02d", g_global.stage);
+      strcpy(warning_texts_[kWarningName]->text(), name);
+      sprintf(warning_texts_[kWarningStage]->text(), "STAGE:%02d",
+              g_global.stage);
       if (g_global.flags & cGlobal::kFlagEnglish) {
-        g_enm_param.FormatTitleEn(mode_texts_[2]->text());
+        g_enm_param.FormatTitleEn(warning_texts_[kWarningTitle]->text());
       } else {
-        g_enm_param.FormatTitleJa(mode_texts_[2]->text());
+        g_enm_param.FormatTitleJa(warning_texts_[kWarningTitle]->text());
       }
-      mode_texts_[2]->Measure(&title_size_);
+      warning_texts_[kWarningTitle]->Measure(&title_size_);
       title_pos_.x = static_cast<int>(title_slide_) + 360;
       title_pos_.y = 400 - title_size_.cy;
       g_application.sound->channel(kSndWarning)
@@ -316,7 +320,7 @@ int GameHud::MoveGameOver() {
             shown_params_[i] = params_[i];
           }
           UpdateChart();
-          if (i < 6) {
+          if (i < kChartCorners) {
             break;
           }
         } else {

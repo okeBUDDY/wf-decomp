@@ -1,7 +1,7 @@
 // GameHud: the in-game display task of Application::overlays (vtable
 // 0x453494), FnGame's second task. Besides the status texts it runs one
-// screen at a time: the game over screen, name entry and the boss result.
-// Only the fields used by decompiled code are known so far.
+// screen at a time: the boss warning at the start of a stage, the name entry
+// after the game is over and the result of a destroyed boss.
 #ifndef WF_GAME_HUD_H_
 #define WF_GAME_HUD_H_
 
@@ -17,8 +17,8 @@ class GameHud : public Task {
  public:
   enum Mode {
     kModeNone = 0,
-    kModeGameOver = 1,   // "NAME:" / "STAGE:"
-    kModeNameEntry = 2,  // "PLEASE ENTER YOUR NAME!"
+    kModeWarning = 1,    // the next boss: its title, stage and parameters
+    kModeNameEntry = 2,  // "PLEASE ENTER YOUR NAME!" after the game
     kModeResult = 3,     // the boss result (CEnmParam::FormatResult)
   };
   enum Flags {
@@ -54,6 +54,22 @@ class GameHud : public Task {
   virtual void Run();         // 0x41f340
 
  private:
+  // params_: the corners of the boss chart, then the level of each weapon.
+  enum { kChartCorners = 6 };
+  // warning_texts_.
+  enum WarningText {
+    kWarningName,   // "NAME:"
+    kWarningStage,  // "STAGE:nn"
+    kWarningTitle,  // the boss's title
+  };
+  // name_entry_texts_.
+  enum NameEntryText {
+    kEntryScore,   // the rank and score
+    kEntryPrompt,  // "PLEASE ENTER YOUR NAME!"
+    kEntryName,    // the name being entered
+    kEntryChars,   // kNameChars
+  };
+
   // Ends the current screen and starts `mode`.
   void SetMode(int mode);  // 0x41eef0
   // Moves *`out` from `from` to `to` over `frames`; 1 once `time` reaches
@@ -62,7 +78,7 @@ class GameHud : public Task {
   int Lerp(int* out, int from, int to, int frames, int time);        // 0x420250
 
   // Draw the current screen.
-  void DrawGameOver();   // 0x420500
+  void DrawWarning();    // 0x420500
   void DrawNameEntry();  // 0x41f830
   void DrawResult();     // 0x4200e0
 
@@ -72,13 +88,13 @@ class GameHud : public Task {
   // /OPT:ICF into 0x410340).
   int InitNameEntryScreen();
   int InitResultScreen();
-  void InitGameOver();     // 0x4202e0
-  void ReleaseGameOver();  // 0x4202f0
+  void InitWarning();     // 0x4202e0
+  void ReleaseWarning();  // 0x4202f0
   // Places the corners of the boss chart from shown_params_.
   void UpdateChart();  // 0x420330
   // Reads the boss's parameters and starts the chart from the first one.
   void LoadParams();        // 0x4204b0
-  int MoveGameOver();       // 0x420bd0
+  int MoveWarning();        // 0x420bd0
   void InitNameEntry();     // 0x41f5a0
   void ReleaseNameEntry();  // 0x41f5b0
   // Moves the name entry cursor by the pad; 1 once the name is ended.
@@ -98,12 +114,11 @@ class GameHud : public Task {
   int mode_time_;      // 0x24, frames in mode_
   int replay_name_x_;  // 0x28, right-aligned at column 80
   HLSTxt* texts_[8];   // 0x2c
-  // The state of the current screen.
+  // The state of the current screen, which starts with its texts.
   union {
-    HLSTxt* mode_texts_[4];  // 0x4c, the texts of the screen
     // The name entry screen.
     struct {
-      HLSTxt* name_entry_texts_[4];  // 0x4c
+      HLSTxt* name_entry_texts_[4];  // 0x4c, NameEntryText
       int cursor_;                   // 0x5c, the letter being entered (0..3)
       int char_index_;    // 0x60, the character selected in kNameChars
       float back_alpha_;  // 0x64, of the backdrop
@@ -122,9 +137,9 @@ class GameHud : public Task {
       short result_shown_;   // 0x5c, characters typed out so far
       short result_length_;  // 0x5e, of the text
     };
-    // The game over screen.
+    // The boss warning screen.
     struct {
-      HLSTxt* game_over_texts_[3];  // 0x4c, "NAME:", "STAGE:", the title
+      HLSTxt* warning_texts_[3];  // 0x4c, WarningText
       // The boss's title: measured, then where it is drawn.
       union {
         SIZE title_size_;  // 0x58
@@ -140,7 +155,7 @@ class GameHud : public Task {
       short params_[13];        // 0x78, CEnmParam::GetParams(), at least 0x40
       short shown_params_[13];  // 0x92, the values drawn so far
       D3DVECTOR chart_center_;  // 0xac
-      D3DVECTOR chart_[7];      // 0xb8, the corners, closed
+      D3DVECTOR chart_[kChartCorners + 1];  // 0xb8, the corners, closed
     };
   };
 };

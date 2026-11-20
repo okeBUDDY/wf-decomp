@@ -50,29 +50,29 @@ enum {
 
 // 0x41f5a0
 void GameHud::InitNameEntry() {
-  mode_texts_[0] = NULL;
-  mode_texts_[1] = NULL;
-  mode_texts_[2] = NULL;
-  mode_texts_[3] = NULL;
+  name_entry_texts_[kEntryScore] = NULL;
+  name_entry_texts_[kEntryPrompt] = NULL;
+  name_entry_texts_[kEntryName] = NULL;
+  name_entry_texts_[kEntryChars] = NULL;
 }
 
 // 0x41f5b0
 void GameHud::ReleaseNameEntry() {
-  if (mode_texts_[0] != NULL) {
-    mode_texts_[0]->Release();
-    mode_texts_[0] = NULL;
+  if (name_entry_texts_[kEntryScore] != NULL) {
+    name_entry_texts_[kEntryScore]->Release();
+    name_entry_texts_[kEntryScore] = NULL;
   }
-  if (mode_texts_[1] != NULL) {
-    mode_texts_[1]->Release();
-    mode_texts_[1] = NULL;
+  if (name_entry_texts_[kEntryPrompt] != NULL) {
+    name_entry_texts_[kEntryPrompt]->Release();
+    name_entry_texts_[kEntryPrompt] = NULL;
   }
-  if (mode_texts_[2] != NULL) {
-    mode_texts_[2]->Release();
-    mode_texts_[2] = NULL;
+  if (name_entry_texts_[kEntryName] != NULL) {
+    name_entry_texts_[kEntryName]->Release();
+    name_entry_texts_[kEntryName] = NULL;
   }
-  if (mode_texts_[3] != NULL) {
-    mode_texts_[3]->Release();
-    mode_texts_[3] = NULL;
+  if (name_entry_texts_[kEntryChars] != NULL) {
+    name_entry_texts_[kEntryChars]->Release();
+    name_entry_texts_[kEntryChars] = NULL;
   }
 }
 
@@ -137,7 +137,7 @@ int GameHud::EnterName() {
       switch (index) {
         case kCharDelete:
           if (cursor_ > 0) {
-            mode_texts_[2]->text()[cursor_] =
+            name_entry_texts_[kEntryName]->text()[cursor_] =
                 cursor_ >= kNameLength ? ' ' : '-';
             --cursor_;
             for (int i = 0; i < kChars; ++i) {
@@ -149,7 +149,7 @@ int GameHud::EnterName() {
           break;
         case kCharEnd:
           name_[cursor_] = '\0';
-          mode_texts_[2]->text()[cursor_] = '\0';
+          name_entry_texts_[kEntryName]->text()[cursor_] = '\0';
           return 1;
         default:
           name_[cursor_] = kNameChars[char_index_];
@@ -160,7 +160,7 @@ int GameHud::EnterName() {
       }
     }
   }
-  mode_texts_[2]->text()[cursor_] = kNameChars[char_index_];
+  name_entry_texts_[kEntryName]->text()[cursor_] = kNameChars[char_index_];
   return 0;
 }
 
@@ -173,19 +173,22 @@ int GameHud::MoveNameEntry() {
       if (rank < 0) {
         return 1;
       }
-      mode_texts_[0] = g_fonts.text.Create(0x40, NULL);
-      mode_texts_[1] = g_fonts.small_text.Create(0, "PLEASE ENTER YOUR NAME!");
-      mode_texts_[2] = g_fonts.text.Create(8, NULL);
-      mode_texts_[3] =
+      name_entry_texts_[kEntryScore] = g_fonts.text.Create(0x40, NULL);
+      name_entry_texts_[kEntryPrompt] =
+          g_fonts.small_text.Create(0, "PLEASE ENTER YOUR NAME!");
+      name_entry_texts_[kEntryName] = g_fonts.text.Create(8, NULL);
+      name_entry_texts_[kEntryChars] =
           g_fonts.small_text.Create(0, const_cast<char*>(kNameChars));
-      if (mode_texts_[0] == NULL || mode_texts_[1] == NULL ||
-          mode_texts_[2] == NULL || mode_texts_[3] == NULL) {
+      if (name_entry_texts_[kEntryScore] == NULL ||
+          name_entry_texts_[kEntryPrompt] == NULL ||
+          name_entry_texts_[kEntryName] == NULL ||
+          name_entry_texts_[kEntryChars] == NULL) {
         return 1;
       }
-      sprintf(mode_texts_[0]->text(), "%s: %012d", kRankNames[rank],
-              g_global.entry.score);
+      sprintf(name_entry_texts_[kEntryScore]->text(), "%s: %012d",
+              kRankNames[rank], g_global.entry.score);
       const char* blank = "A-- ";
-      strcpy(mode_texts_[2]->text(), blank);
+      strcpy(name_entry_texts_[kEntryName]->text(), blank);
       cursor_ = 0;
       char_index_ = 0;
       back_alpha_ = 0;
@@ -329,8 +332,8 @@ void GameHud::DrawNameEntry() {
 
   D3DCOLOR color = static_cast<int>(text_alpha_ * 200) << 24 | 0xffc800;
   D3DCOLOR white = static_cast<int>(text_alpha_ * 128) << 24 | 0xffffff;
-  mode_texts_[0]->Print(184, 204, color, -1);
-  mode_texts_[1]->Print(228, 228, white, -1);
-  mode_texts_[2]->Print(296, 244, color, -1);
-  mode_texts_[3]->Print(116, 268, white, -1);
+  name_entry_texts_[kEntryScore]->Print(184, 204, color, -1);
+  name_entry_texts_[kEntryPrompt]->Print(228, 228, white, -1);
+  name_entry_texts_[kEntryName]->Print(296, 244, color, -1);
+  name_entry_texts_[kEntryChars]->Print(116, 268, white, -1);
 }

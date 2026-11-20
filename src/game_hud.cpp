@@ -22,8 +22,8 @@ static const D3DCOLOR kTextColor = 0xc8ffc800;
 // 0x41eef0
 void GameHud::SetMode(int mode) {
   switch (mode_) {
-    case kModeGameOver:
-      ReleaseGameOver();
+    case kModeWarning:
+      ReleaseWarning();
       break;
     case kModeNameEntry:
       ReleaseNameEntry();
@@ -33,8 +33,8 @@ void GameHud::SetMode(int mode) {
       break;
   }
   switch (mode) {
-    case kModeGameOver:
-      InitGameOver();
+    case kModeWarning:
+      InitWarning();
       break;
     case kModeNameEntry:
       InitNameEntry();
@@ -60,9 +60,9 @@ int GameHud::IsProtected() {
     flags_ |= kFlagSkip;
   }
   switch (mode_) {
-    case kModeGameOver:
-      if (MoveGameOver()) {
-        ReleaseGameOver();
+    case kModeWarning:
+      if (MoveWarning()) {
+        ReleaseWarning();
         mode_ = kModeNone;
       }
       break;
@@ -96,8 +96,8 @@ GameHud::GameHud() {
 // 0x41f280
 void GameHud::Finalize() {
   switch (mode_) {
-    case kModeGameOver:
-      ReleaseGameOver();
+    case kModeWarning:
+      ReleaseWarning();
       break;
     case kModeNameEntry:
       ReleaseNameEntry();
@@ -211,8 +211,8 @@ error:
 void GameHud::Run() {
   g_application.d3d->SetAlphaBlend(D3DBLEND_INVSRCALPHA);
   switch (mode_) {
-    case kModeGameOver:
-      DrawGameOver();
+    case kModeWarning:
+      DrawWarning();
       break;
     case kModeNameEntry:
       DrawNameEntry();

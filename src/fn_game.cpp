@@ -127,7 +127,7 @@ void FnGame::Move() {
             break;
         }
       }
-      hud_->RequestMode(GameHud::kModeGameOver);
+      hud_->RequestMode(GameHud::kModeWarning);
       g_replay.Start(g_player);
       ++state_;
       // Falls through.

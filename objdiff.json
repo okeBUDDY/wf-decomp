@@ -113,11 +113,6 @@
       "base_path": "build/obj/src/game_hud.obj"
     },
     {
-      "name": "game_hud_game_over",
-      "target_path": "build/target/game_hud_game_over.obj",
-      "base_path": "build/obj/src/game_hud_game_over.obj"
-    },
-    {
       "name": "game_hud_name_entry",
       "target_path": "build/target/game_hud_name_entry.obj",
       "base_path": "build/obj/src/game_hud_name_entry.obj"
@@ -126,6 +121,11 @@
       "name": "game_hud_result",
       "target_path": "build/target/game_hud_result.obj",
       "base_path": "build/obj/src/game_hud_result.obj"
+    },
+    {
+      "name": "game_hud_warning",
+      "target_path": "build/target/game_hud_warning.obj",
+      "base_path": "build/obj/src/game_hud_warning.obj"
     },
     {
       "name": "graphics",

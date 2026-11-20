@@ -11,13 +11,13 @@
 #include "sounds.h"
 
 // 0x41fef0
-void GameHud::InitResult() { mode_texts_[0] = NULL; }
+void GameHud::InitResult() { result_text_ = NULL; }
 
 // 0x41ff00
 void GameHud::ReleaseResult() {
-  if (mode_texts_[0] != NULL) {
-    mode_texts_[0]->Release();
-    mode_texts_[0] = NULL;
+  if (result_text_ != NULL) {
+    result_text_->Release();
+    result_text_ = NULL;
   }
 }
 
@@ -32,14 +32,14 @@ int GameHud::MoveResult() {
   int step = step_;
   switch (step) {
     case 0: {
-      mode_texts_[0] =
+      result_text_ =
           g_fonts.small_text.Create(g_enm_param.GetResultSize(), NULL);
-      if (mode_texts_[0] == NULL) {
+      if (result_text_ == NULL) {
         return 1;
       }
       int columns;
       int lines;
-      g_enm_param.FormatResult(mode_texts_[0]->text(), &columns, &lines);
+      g_enm_param.FormatResult(result_text_->text(), &columns, &lines);
       result_bar_ = 0;
       result_alpha_ = 1.0f;
       result_shown_ = 0;
@@ -117,7 +117,6 @@ void GameHud::DrawResult() {
   D3DCOLOR palette[2];
   palette[0] = static_cast<int>(result_alpha_ * 128) << 24 | 0xffffff;
   palette[1] = static_cast<int>(result_alpha_ * 200) << 24 | 0xffc800;
-  mode_texts_[0]->Print(16,
-                        448 - result_height_ * result_shown_ / result_length_,
-                        palette, result_shown_);
+  result_text_->Print(16, 448 - result_height_ * result_shown_ / result_length_,
+                      palette, result_shown_);
 }
