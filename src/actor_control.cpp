@@ -932,9 +932,7 @@ HLSAnm* HLSAnmSys::Play(AnmData* data) {
     if (anim->cursor_ == NULL) {
       anim->data_ = data;
       anim->cursor_ = data->script;
-      anim->object_ = data->set->objects != NULL
-                          ? data->set->objects[anim->cursor_[0]]
-                          : NULL;
+      anim->object_ = data->pat_file->Get(anim->cursor_[0]);
       anim->texture_ = anim->object_->texture_;
       anim->wait_ = anim->cursor_[1];
       anim->loop_ = 0;

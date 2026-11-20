@@ -640,9 +640,9 @@ short g_beam_scripts[3][4] = {
     {17, 40, 20, -1},
 };
 AnmData g_beam_anims[3] = {
-    {reinterpret_cast<AnmSet*>(&g_pats.add[0]), g_beam_scripts[0]},
-    {reinterpret_cast<AnmSet*>(&g_pats.add[0]), g_beam_scripts[1]},
-    {reinterpret_cast<AnmSet*>(&g_pats.add[0]), g_beam_scripts[2]},
+    {&g_pats.add[0], g_beam_scripts[0]},
+    {&g_pats.add[0], g_beam_scripts[1]},
+    {&g_pats.add[0], g_beam_scripts[2]},
 };
 // The beam stops after 8 segments outside this rectangle.
 FloatRect g_beam_bounds = {-120.0f, -120.0f, 760.0f, 600.0f};

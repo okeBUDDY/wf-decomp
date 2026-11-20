@@ -111,7 +111,7 @@ void TaskList::Add(Task* task, unsigned short priority, Task* after) {
     task->next_ = head_;
     head_ = task;
   } else {
-    if (after == reinterpret_cast<Task*>(1)) {
+    if (after == TASK_APPEND) {
       after = tail_;
     }
     Task* at = head_;

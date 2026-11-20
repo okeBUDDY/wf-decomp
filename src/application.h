@@ -1,5 +1,5 @@
 // Application: the settings and window handed to every system's
-// Initialize(). Only the fields used by decompiled code are known.
+// Initialize().
 #ifndef WF_APPLICATION_H_
 #define WF_APPLICATION_H_
 
@@ -103,9 +103,9 @@ struct Application : public Object, public AppSettings {
   // Asks the main loop to restart at reset_func (when there is one).
   void RequestReset();  // 0x40cda0
 
-  int frame_count;   // 0x24, frames the time moved
-  char title[0x2c];  // 0x28, "<title>  ver 0.00"
-  char unknown_54_[0x24];
+  int frame_count;               // 0x24, frames the time moved
+  char title[0x2c];              // 0x28, "<title>  ver 0.00"
+  char unused_54_[0x24];         // 0x54, never accessed
   TaskList tasks;                // 0x78
   TaskList overlays;             // 0x8c
   HLDevice* device;              // 0xa0

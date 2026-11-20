@@ -1,5 +1,4 @@
 // HL3D: the Direct3D 7 device drawn into the back buffer (vtable 0x451568).
-// Only the fields used by decompiled code are known so far.
 #ifndef WF_HL_3D_H_
 #define WF_HL_3D_H_
 
@@ -107,7 +106,8 @@ class HLCamera;
 
 class HL3D : public System {
  public:
-  enum Flags { kInScene = 0x10000 };
+  // flags_: the low word holds HLSurface::texture_caps_.
+  enum Flags { kInScene = 0x10000, kTnLDevice = 0x20000 };
   enum { kMaxVertices = 0x800, kMaxMeshes = 128 };
 
   HL3D();                                    // 0x402bb0

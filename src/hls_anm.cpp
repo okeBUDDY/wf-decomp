@@ -6,6 +6,7 @@
 #include "application.h"
 #include "hl_3d.h"
 #include "hl_mesh.h"
+#include "hls_pat.h"
 
 HL3D* HLMesh::d3d_;  // 0x468eac
 
@@ -14,9 +15,9 @@ HLMesh::HLMesh() {
   buffer_ = NULL;
   locked_ = NULL;
   vertices_ = NULL;
-  unknown_14_ = 0;
-  unknown_18_ = unknown_1c_ = unknown_1a_ = unknown_1e_ = unknown_24_ = 0;
-  unknown_20_ = 0;
+  unused_14_ = 0;
+  unused_18_ = unused_1c_ = unused_1a_ = unused_1e_ = unused_24_ = 0;
+  unused_20_ = 0;
   name_ = "  HLMesh";
   id_ = -1;
 }
@@ -42,9 +43,9 @@ void HLMesh::Release() {
     d3d_->meshes_[id_] = NULL;
   }
   id_ = -1;
-  unknown_14_ = 0;
-  unknown_20_ = 0;
-  unknown_18_ = unknown_1c_ = unknown_1a_ = unknown_1e_ = unknown_24_ = 0;
+  unused_14_ = 0;
+  unused_20_ = 0;
+  unused_18_ = unused_1c_ = unused_1a_ = unused_1e_ = unused_24_ = 0;
 }
 
 // 0x4072f0
@@ -113,8 +114,7 @@ void HLSAnm::Step() {
   if (command == kEnd) {
     return;
   }
-  HLSObject** objects = data_->set->objects;
-  object_ = objects != NULL ? objects[cursor_[0]] : NULL;
+  object_ = data_->pat_file->Get(cursor_[0]);
   wait_ = cursor_[1];
 }
 

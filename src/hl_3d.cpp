@@ -279,7 +279,7 @@ int HL3D::Initialize(Application* app) {
   flags_ = 0;
   if (CreateDevice(IID_IDirect3DTnLHalDevice, TRUE)) {
     Log("Direct3D-HAL(TnL)ﾃﾞﾊﾞｲｽを使用 : Zﾊﾞｯﾌｧ=%dbit", depth_);
-    flags_ |= 0x20000;
+    flags_ |= kTnLDevice;
   } else if (CreateDevice(IID_IDirect3DHALDevice, TRUE)) {
     Log("Direct3D-HALﾃﾞﾊﾞｲｽを使用 : Zﾊﾞｯﾌｧ=%dbit", depth_);
   } else {
@@ -312,7 +312,7 @@ int HL3D::Initialize(Application* app) {
     return 0;
   }
   HLCamera::d3d_ = this;
-  app_->overlays.Add(camera_, 0, reinterpret_cast<Task*>(1));
+  app_->overlays.Add(camera_, 0, TASK_APPEND);
   TaskBase* node = new TaskBase;
   Node::d3d_ = this;
   delete node;

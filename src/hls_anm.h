@@ -12,6 +12,7 @@
 
 struct Application;
 class HLSHitImage;
+class HLSPatFile;
 class HLSurface;
 struct Transform;
 
@@ -31,17 +32,11 @@ class HLSObject {
   HLSurface* texture_;  // 0x04, used by HLSPat
 };
 
-// The objects and scripts of an animation set.
-struct AnmSet {
-  char unknown_00_[0x30];
-  HLSObject** objects;  // 0x30
-};
-
 // One animation: a script of (object, frames) pairs. -2 entries jump
 // (target, count), -1 ends.
 struct AnmData {
-  AnmSet* set;    // 0x00
-  short* script;  // 0x04
+  HLSPatFile* pat_file;  // 0x00, the patterns the script numbers
+  short* script;         // 0x04
 };
 
 // vtable 0x451cb4.

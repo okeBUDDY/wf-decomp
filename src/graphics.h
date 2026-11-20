@@ -1,5 +1,4 @@
 // Graphics: the DirectDraw display, "HLDraw" in the log (vtable 0x4518fc).
-// Only the fields used by decompiled code are known so far.
 #ifndef WF_GRAPHICS_H_
 #define WF_GRAPHICS_H_
 

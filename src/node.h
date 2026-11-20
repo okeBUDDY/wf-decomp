@@ -33,13 +33,13 @@ class Node : public Object {
   }
 
  protected:
-  Vector3 position_;  // 0x08
-  Vector3 rotation_;  // 0x14
-  Vector3 scale_;     // 0x20
-  char unknown2c_[0xac - 0x2c];
-  int mode_;               // 0xac, meaning unknown
-  unsigned char flag_b0_;  // 0xb0, meaning unknown
-  char unknownb1_[0xcf - 0xb1];
+  Vector3 position_;             // 0x08
+  Vector3 rotation_;             // 0x14
+  Vector3 scale_;                // 0x20
+  char unused_2c_[0xac - 0x2c];  // never accessed
+  int mode_;                     // 0xac, meaning unknown
+  unsigned char flag_b0_;        // 0xb0, meaning unknown
+  char unused_b1_[0xcf - 0xb1];  // never accessed
   unsigned char
       visible_;        // 0xcf, set to 1 by the constructor (name unverified)
   Node* parent_;       // 0xd0

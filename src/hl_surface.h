@@ -1,5 +1,5 @@
-// HLSurface: a DirectDraw surface with its size (vtable 0x451fe0). Only
-// the fields used by decompiled code are known so far.
+// HLSurface: a DirectDraw surface with its size (vtable 0x451fe0, shared by
+// /OPT:ICF with the other classes whose only virtual is the destructor).
 #ifndef WF_HL_SURFACE_H_
 #define WF_HL_SURFACE_H_
 
@@ -118,7 +118,7 @@ class HLSurface : public Object {
   short height_;                  // 0x12
   short pitch_;                   // 0x14
   short format_;                  // 0x16, pixel format index
-  int unknown_18_;                // 0x18
+  int unused_18_;                 // 0x18, only cleared
   short mode_;                    // 0x1c
   short id_;                      // 0x1e, -1: none
   unsigned char scale_x_;         // 0x20, texels per pixel

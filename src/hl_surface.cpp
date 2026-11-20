@@ -133,7 +133,7 @@ HLSurface::HLSurface() {
   file_name_ = NULL;
   name_ = "  HLSurface";
   scale_x_ = scale_y_ = 1;
-  unknown_18_ = 0;
+  unused_18_ = 0;
   id_ = -1;
 }
 
@@ -155,7 +155,7 @@ void HLSurface::Attach(unsigned short mode) {
   height_ = static_cast<short>(desc.dwHeight);
   pitch_ = static_cast<short>(desc.lPitch);
   locked_bits_ = NULL;
-  unknown_18_ = 0;
+  unused_18_ = 0;
   if ((mode_ & kKindMask) == kPrimary) {
     formats_[0] = desc.ddpfPixelFormat;
     format_codes_[0] = GetFormatCode(&desc.ddpfPixelFormat);
@@ -188,7 +188,7 @@ void HLSurface::Release() {
   if (id_ != -1) {
     graphics_->surfaces_[id_] = NULL;
   }
-  unknown_18_ = 0;
+  unused_18_ = 0;
   id_ = -1;
   mode_ = 0;
 }
