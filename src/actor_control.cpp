@@ -334,7 +334,7 @@ unsigned short Actor::ClampAngle(unsigned short value, short low, short high) {
 int PartControl::SpawnPieces(Actor* actor, const PartPiece* pieces, int count) {
   ActorDesc desc;
   memset(&desc, 0, sizeof(desc));
-  desc.work = actor->work[0];
+  desc.slot = reinterpret_cast<PartWork*>(actor->work)->slot;
   desc.color = 0xffffffff;
   for (; count > 0; --count, ++pieces) {
     desc.debris = g_debris_controls[pieces->debris];
@@ -815,7 +815,7 @@ int PartControl::SpawnItems(Actor* actor) {
   ActorDesc desc;
   memset(&desc, 0, sizeof(desc));
   desc.color = 0xffffffff;
-  desc.work = reinterpret_cast<int>(slot);
+  desc.slot = slot;
   int count = part->item_count;
   for (int i = 0; i < count; ++i, ++item) {
     desc.debris = g_debris_controls[item->debris];

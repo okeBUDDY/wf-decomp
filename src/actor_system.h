@@ -14,6 +14,7 @@ class Actor;
 class ActorControl;
 class Channel;
 class CSndBuf;
+struct EnmSlot;
 class HLSObject;
 
 // What ActorSystem::Spawn() makes an actor from.
@@ -24,7 +25,8 @@ struct ActorDesc {
   D3DCOLOR color;              // 0x0c
   float speed;                 // 0x10
   float acceleration;          // 0x14
-  int work;                    // 0x18
+  EnmSlot* slot;               // 0x18, goes to Actor::work[0]: the part
+                               // that fired a bullet
   float x;                     // 0x1c
   float y;                     // 0x20
   unsigned short layer;        // 0x24

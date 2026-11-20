@@ -117,7 +117,7 @@ int BulletCoreControl::OnMove(Actor* actor) {
         desc_.y = actor->screen.m[2][1];
         desc_.start_angle = work->fire_angle;
         desc_.speed = work->speed;
-        desc_.work = reinterpret_cast<int>(work->slot);
+        desc_.slot = work->slot;
         g_actor_system.Spawn(&desc_);
         g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0,
                                                  1.0f);
@@ -239,7 +239,7 @@ int ShellCoreControl::OnMove(Actor* actor) {
   desc_.x = actor->screen.m[2][0];
   desc_.y = actor->screen.m[2][1];
   desc_.speed = work->speed;
-  desc_.work = reinterpret_cast<int>(work->slot);
+  desc_.slot = work->slot;
   int count = work->count;
   int angle = static_cast<short>(actor->ScreenAngle()) -
               ((count - 1) * work->spread >> 1);
@@ -532,7 +532,7 @@ int SparkCoreControl::OnMove(Actor* actor) {
   }
   if (g_actor_system.count() < 700) {
     for (int i = 0; i < work->count; ++i) {
-      desc_.work = reinterpret_cast<int>(work->slot);
+      desc_.slot = work->slot;
       float x = actor->screen.m[2][0];
       desc_.x = x + (rand() & 7) - 4.0f;
       float y = actor->screen.m[2][1];
@@ -616,7 +616,7 @@ int StreamCoreControl::OnMove(Actor* actor) {
         desc_.x = actor->screen.m[2][0];
         desc_.y = actor->screen.m[2][1];
         desc_.start_angle = actor->ScreenAngle();
-        desc_.work = reinterpret_cast<int>(work->slot);
+        desc_.slot = work->slot;
         g_actor_system.Spawn(&desc_);
         g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0,
                                                  1.0f);
@@ -655,7 +655,7 @@ int LaserControl::OnCreate(Actor* actor, void* param) {
   work->sound = 0;
   actor->hit_points = 1;
   actor->team = 0;
-  beam_desc_.work = reinterpret_cast<int>(work->owner->slot);
+  beam_desc_.slot = work->owner->slot;
   beam_desc_.y = -24.0f;
   beam_desc_.parent = actor;
   beam_desc_.sprite = g_anm_sys.Play(&g_beam_anims[work->owner->mode]);

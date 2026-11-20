@@ -583,7 +583,7 @@ void TurretControl::FireRing(Actor* actor) {
     desc_.x = actor->screen.m[2][0];
     desc_.y = actor->screen.m[2][1];
     desc_.speed = 4.0f;
-    desc_.work = reinterpret_cast<int>(work->slot);
+    desc_.slot = work->slot;
     int angle = rand() % 64;
     for (int i = 16; i > 0; --i) {
       desc_.start_angle = angle;
@@ -618,7 +618,7 @@ int TurretControl::OnMove(Actor* actor) {
       desc_.y = actor->screen.m[2][1];
       desc_.start_angle = work->angle;
       desc_.speed = 6.0f;
-      desc_.work = reinterpret_cast<int>(work->slot);
+      desc_.slot = work->slot;
       g_actor_system.Spawn(&desc_);
       g_application.sound->channel(17)->Assign(&g_sounds[kSndFireBl], 0, 1.0f);
       work->angle += 20;

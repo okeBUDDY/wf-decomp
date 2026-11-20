@@ -221,7 +221,7 @@ int Actor::Restore(const ActorDesc* desc) {
   acceleration = desc->acceleration;
   debris = desc->debris;
   age = desc->age;
-  work[0] = desc->work;
+  work[0] = reinterpret_cast<int>(desc->slot);
   return 1;
 }
 
