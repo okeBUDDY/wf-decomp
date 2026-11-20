@@ -1,6 +1,7 @@
 // Replay: recording and playing back the player's input.
 #include "replay.h"
 
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -48,7 +49,7 @@ void Replay::GetInput(unsigned short* keys, unsigned short* pressed) {
     case kRecord:
       if (flags_ & kOpen) {
         if (frame_ == 0) {
-          if (!file_.WriteExact(&down, 2)) {
+          if (!file_.WriteExact(&down, sizeof(down))) {
             flags_ &= ~kOpen;
           }
           run_.keys = held;
@@ -73,7 +74,7 @@ void Replay::GetInput(unsigned short* keys, unsigned short* pressed) {
       held = 0;
       if (flags_ & kOpen) {
         if (frame_ == 0) {
-          if (!file_.ReadExact(&down, 2)) {
+          if (!file_.ReadExact(&down, sizeof(down))) {
             flags_ &= ~kOpen;
           }
           if (!file_.ReadExact(&run_, sizeof(run_))) {
@@ -132,7 +133,7 @@ int Replay::LoadHeader() {
   int timer;
   switch (version) {
     case kOldVersion:
-      if (!file_.ReadExact(&header, 0x10)) {
+      if (!file_.ReadExact(&header, offsetof(Header, lives))) {
         file_.Close();
         return 0;
       }

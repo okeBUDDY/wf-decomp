@@ -107,8 +107,8 @@ void Game::OnPlayerDestroyed() {
 // 0x41ee80
 void Game::OnPartDestroyed() {
   if (rules_.stock != 0 && rules_.extend == GameRules::kExtendParts) {
-    if (++extend_count_ == 100) {
-      if (lives_ < 9) {
+    if (++extend_count_ == kPartsPerExtend) {
+      if (lives_ < kMaxLives) {
         ++lives_;
       }
       extend_count_ = 0;
@@ -122,7 +122,7 @@ void Game::OnBossDestroyed() {
     bonus_ += 30 * 60;
   }
   if (rules_.stock != 0 && rules_.extend == GameRules::kExtendBoss) {
-    if (lives_ < 9) {
+    if (lives_ < kMaxLives) {
       ++lives_;
     }
   }

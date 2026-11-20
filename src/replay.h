@@ -50,7 +50,7 @@ class Replay : public Object {
     int stage;
     int score;
     int timer;
-    // Version 103 only.
+    // Version 103 only (kOldVersion stops here).
     unsigned short lives;
     unsigned short extend_count;
     GameRules rules;

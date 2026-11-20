@@ -15,7 +15,11 @@ class Game {
     kRunning = 0x4,    // the clock is running
     kGameOver = 0x8,
   };
-  enum { kMaxTimer = 999 * 60 };
+  enum {
+    kMaxTimer = 999 * 60,
+    kMaxLives = 9,
+    kPartsPerExtend = 100,  // with GameRules::kExtendParts
+  };
 
   Game();  // 0x41ec90
   // scalar deleting dtor 0x401a10
