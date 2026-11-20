@@ -723,9 +723,9 @@ int LaserControl::OnMove(Actor* actor) {
 }
 
 // 0x414550
-void LaserControl::OnEvent(Actor* actor, int x, int y) {
+void LaserControl::OnEvent(Actor* actor, int event, int targets) {
   LaserWork* work = reinterpret_cast<LaserWork*>(actor->work);
-  if (x != 2 || work->sound == 2) {
+  if (event != 2 || work->sound == 2) {
     return;
   }
   // The beam turns into its fading sprite.

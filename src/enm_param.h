@@ -373,7 +373,9 @@ class CEnmParam : public System {
   // Actor::destroy_hook_ while the game runs.
   static void OnActorDestroyed(Actor* source, Actor* actor);  // 0x41aa60
 
-  void Count(EnmSlot* slot, int side);  // 0x41a190
+  // Counts the destroyed part in `slot` for `side` by its kind, marks it
+  // counted (flag 2) and fixes its angle range.
+  void CountKill(EnmSlot* slot, int side);  // 0x41a190
   // Counts up to `count` logged destructions of parts of kind 1 (only those
   // destroyed alone or in a chain of 2 unless `all`; one per side when
   // `unique`), keeping the first kind of each side in `kinds`. Returns the

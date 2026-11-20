@@ -111,23 +111,23 @@ int BossBodyControl::OnCreate(Actor* actor, void* param) {
   return 1;
 }
 
-// Passes the event (`x`, `y`) on to `actor`, if any.
-static inline void SendEvent(Actor* actor, int x, int y) {
+// Passes `event` for `targets` on to `actor`, if any.
+static inline void SendEvent(Actor* actor, int event, int targets) {
   if (actor != NULL && actor->control != NULL) {
-    actor->control->OnEvent(actor, x, y);
+    actor->control->OnEvent(actor, event, targets);
   }
 }
 
 // 0x411d10
-void BossBodyControl::OnEvent(Actor* actor, int x, int y) {
+void BossBodyControl::OnEvent(Actor* actor, int event, int targets) {
   BossBodyWork* work = reinterpret_cast<BossBodyWork*>(actor->work);
-  if (!(y & 0x400)) {
-    SendEvent(work->arms[0], x, y);
-    SendEvent(work->arms[1], x, y);
+  if (!(targets & 0x400)) {
+    SendEvent(work->arms[0], event, targets);
+    SendEvent(work->arms[1], event, targets);
   }
-  if (!(y & 0x200)) {
-    SendEvent(work->arms[2], x, y);
-    SendEvent(work->arms[3], x, y);
+  if (!(targets & 0x200)) {
+    SendEvent(work->arms[2], event, targets);
+    SendEvent(work->arms[3], event, targets);
   }
 }
 

@@ -45,22 +45,23 @@ int BossBodyControl::ListWeapons(int side, int* out) {
   return count;
 }
 
-// Passes the event (`x`, `y`) on to `actor`, if any.
-static inline void SendEvent(Actor* actor, int x, int y) {
+// Passes `event` for `targets` on to `actor`, if any.
+static inline void SendEvent(Actor* actor, int event, int targets) {
   if (actor != NULL && actor->control != NULL) {
-    actor->control->OnEvent(actor, x, y);
+    actor->control->OnEvent(actor, event, targets);
   }
 }
 
 // 0x411960
-void BossBodyControl::SignalSide(Actor* actor, int side, int x, int y) {
+void BossBodyControl::SignalSide(Actor* actor, int side, int event,
+                                 int targets) {
   BossBodyWork* work = reinterpret_cast<BossBodyWork*>(actor->work);
   if (side != 0) {
-    SendEvent(work->arms[2], x, y);
-    SendEvent(work->arms[3], x, y);
+    SendEvent(work->arms[2], event, targets);
+    SendEvent(work->arms[3], event, targets);
   } else {
-    SendEvent(work->arms[0], x, y);
-    SendEvent(work->arms[1], x, y);
+    SendEvent(work->arms[0], event, targets);
+    SendEvent(work->arms[1], event, targets);
   }
 }
 

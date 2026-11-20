@@ -112,7 +112,7 @@ class ActorControl {
   // Returns 0 when the actor is done.
   virtual int OnMove(Actor* actor) = 0;
   // 0x40fde0
-  virtual void OnEvent(Actor* actor, int x, int y) {}
+  virtual void OnEvent(Actor* actor, int event, int targets) {}
   // 0x40fdf0
   virtual void OnChildDestroyed(Actor* parent, Actor* child) {}
   // 0x40fe00
@@ -131,8 +131,8 @@ class ScoredControl : public ActorControl {
 
 class PartControl : public ScoredControl {
  public:
-  // The events of OnDamage() (the `x` of OnEvent()); the part enters the
-  // state of the same number. The `y` of OnEvent() selects the parts:
+  // The events of OnDamage() (the `event` of OnEvent()); the part enters the
+  // state of the same number. The `targets` of OnEvent() select the parts:
   // bits 0..7 the depth to pass the event down to, 0x100 any depth,
   // 0x200 / 0x400 skip side 1 / 0 (BossBodyControl), 0x800 at rank 100 (cores),
   // 0x1000 linked parts, 0x2000 also parts that are not kReady, and
@@ -177,7 +177,7 @@ class PartControl : public ScoredControl {
 class LinkedPartControl : public PartControl {
  public:
   virtual int OnMove(Actor* actor);                            // 0x419cc0
-  virtual void OnEvent(Actor* actor, int x, int y);            // 0x419370
+  virtual void OnEvent(Actor* actor, int event, int targets);  // 0x419370
   virtual void OnChildDestroyed(Actor* parent, Actor* child);  // 0x419400
   // 0x40fe30
   virtual int GetScore(Actor* actor);
@@ -195,8 +195,8 @@ class LinkedPartControl : public PartControl {
 
 class CorePartControl : public PartControl {
  public:
-  virtual void OnDestroy(Actor* actor);              // 0x4197d0
-  virtual void OnEvent(Actor* actor, int x, int y);  // 0x418cc0
+  virtual void OnDestroy(Actor* actor);                        // 0x4197d0
+  virtual void OnEvent(Actor* actor, int event, int targets);  // 0x418cc0
   virtual int GetLevel() = 0;
   virtual void Setup(Actor* actor, int rank) = 0;
   // InitPart() plus the rank of the core.
@@ -322,10 +322,10 @@ class LaserControl : public ActorControl {
  public:
   virtual int Initialize() { return 1; }
   virtual void Finalize() {}
-  virtual int OnCreate(Actor* actor, void* param);   // 0x414210
-  virtual void OnDestroy(Actor* actor);              // 0x414430
-  virtual int OnMove(Actor* actor);                  // 0x414480
-  virtual void OnEvent(Actor* actor, int x, int y);  // 0x414550
+  virtual int OnCreate(Actor* actor, void* param);             // 0x414210
+  virtual void OnDestroy(Actor* actor);                        // 0x414430
+  virtual int OnMove(Actor* actor);                            // 0x414480
+  virtual void OnEvent(Actor* actor, int event, int targets);  // 0x414550
 
   // The glow at the muzzle, and the segments of the beam (LaserCoreControl
   // fills them in).
@@ -391,7 +391,7 @@ class BossBodyControl : public LinkedPartControl {
   virtual int OnCreate(Actor* actor, void* param);             // 0x4116f0
   virtual void OnDestroy(Actor* actor);                        // 0x411550
   virtual int OnMove(Actor* actor);                            // 0x412750
-  virtual void OnEvent(Actor* actor, int x, int y);            // 0x411d10
+  virtual void OnEvent(Actor* actor, int event, int targets);  // 0x411d10
   virtual void OnChildDestroyed(Actor* parent, Actor* child);  // 0x412400
   virtual int GetScore(Actor* actor);                          // 0x411530
   virtual int GetHitPoints(Actor* actor) { return 1; }
@@ -414,8 +414,8 @@ class BossBodyControl : public LinkedPartControl {
   // Writes the weapons that the cores of `side` still have to `out`;
   // returns their count.
   int ListWeapons(int side, int* out);  // 0x411600
-  // Sends the event (`x`, `y`) to the parts of `side`.
-  void SignalSide(Actor* actor, int side, int x, int y);  // 0x411960
+  // Sends `event` to the `targets` among the parts of `side`.
+  void SignalSide(Actor* actor, int side, int event, int targets);  // 0x411960
   // The angle from `actor` to the player (or to where it starts).
   unsigned short AngleToPlayer(Actor* actor);  // 0x4124f0
 

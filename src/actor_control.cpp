@@ -236,19 +236,19 @@ void PartControl::Schedule(Actor* actor, int delay, int next) {
 }
 
 // 0x418cc0
-void CorePartControl::OnEvent(Actor* actor, int x, int y) {
+void CorePartControl::OnEvent(Actor* actor, int event, int targets) {
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
-  if (!(y & 0x2000) && !(work->flags & PartWork::kReady)) {
+  if (!(targets & 0x2000) && !(work->flags & PartWork::kReady)) {
     return;
   }
-  if (!(y & (0x10000 << GetLevel()))) {
+  if (!(targets & (0x10000 << GetLevel()))) {
     return;
   }
-  if (!(y & 0x100) && (y & 0xff) != 0) {
+  if (!(targets & 0x100) && (targets & 0xff) != 0) {
     return;
   }
-  if (x == 5) {
-    if (y & 0x800) {
+  if (event == 5) {
+    if (targets & 0x800) {
       if (!(work->flags & PartWork::kBoosted)) {
         Setup(actor, 100);
         work->flags |= PartWork::kBoosted;
@@ -261,7 +261,7 @@ void CorePartControl::OnEvent(Actor* actor, int x, int y) {
       max_volley_time_ = work->volley_time;
     }
   }
-  OnDamage(actor, x);
+  OnDamage(actor, event);
 }
 
 // 0x418d70
@@ -448,20 +448,20 @@ int LinkedPartControl::InitLinked(Actor* actor, void* param) {
 }
 
 // 0x419370
-void LinkedPartControl::OnEvent(Actor* actor, int x, int y) {
-  int count = y & 0xff;
-  if ((y & 0x1000) &&
-      ((y & 0x2000) ||
+void LinkedPartControl::OnEvent(Actor* actor, int event, int targets) {
+  int count = targets & 0xff;
+  if ((targets & 0x1000) &&
+      ((targets & 0x2000) ||
        (reinterpret_cast<PartWork*>(actor->work)->flags & PartWork::kReady)) &&
-      ((y & 0x100) || count == 0)) {
-    OnDamage(actor, x);
+      ((targets & 0x100) || count == 0)) {
+    OnDamage(actor, event);
   }
   if (--count >= 0) {
-    y = (y & ~0xff) | count;
+    targets = (targets & ~0xff) | count;
     for (Actor* child = actor->first_child; child != NULL;
          child = child->prev_sibling) {
       if (child->control != NULL) {
-        child->control->OnEvent(child, x, y);
+        child->control->OnEvent(child, event, targets);
       }
     }
   }

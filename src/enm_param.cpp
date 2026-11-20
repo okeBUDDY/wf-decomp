@@ -90,7 +90,7 @@ void CEnmParam::FormatResult(char* text, int* columns, int* lines) {
 }
 
 // 0x41a190
-void CEnmParam::Count(EnmSlot* slot, int side) {
+void CEnmParam::CountKill(EnmSlot* slot, int side) {
   slot->flags |= 2;
   const EnmPlanPart* part = slot->part;
   if (part->flags & 8) {
@@ -143,13 +143,13 @@ EnmSlot* CEnmParam::AllocSlot(unsigned int code, int kind) {
       slot->level = 0;
       slot->power = 10;
       slot->depth = 0;
-      unsigned int c = code & kCodeMask;
-      if (c != 0) {
+      unsigned int ancestor = code & kCodeMask;
+      if (ancestor != 0) {
         int depth = 0;
         do {
-          c = ParentCode(c);
+          ancestor = ParentCode(ancestor);
           ++depth;
-        } while (c != 0);
+        } while (ancestor != 0);
         slot->depth = depth;
       }
       if (slot->depth > state_.max_depth) {
@@ -323,16 +323,16 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   }
   int mode = state_.sides[(code & kSideMask) == 0x80000000].mode;
   if ((mode & 1) && (slot->kind & 0x10000)) {
-    short n = slot->part->option_count;
-    for (int i = 0; i < n; ++i) {
+    short options = slot->part->option_count;
+    for (int i = 0; i < options; ++i) {
       Grow(slot, code | count, 0x4010001);
       ++count;
     }
     slot->flags |= 0x1000;
   }
   if ((mode & 2) && (slot->kind & 0x20000)) {
-    short n = slot->part->option_count;
-    for (int i = 0; i < n; ++i) {
+    short options = slot->part->option_count;
+    for (int i = 0; i < options; ++i) {
       Grow(slot, code | count, 0x4020001);
       ++count;
     }
@@ -340,8 +340,8 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
   }
   if (mode & 4) {
     count += slot->part->option_count;
-    short n = slot->part->option4_count;
-    for (int i = 0; i < n; ++i) {
+    short options = slot->part->option4_count;
+    for (int i = 0; i < options; ++i) {
       Grow(slot, code | count, 0x4040001);
       ++count;
     }
@@ -396,7 +396,7 @@ int CEnmParam::CountDestroyed(int count, unsigned int* kinds, int unique,
         }
         if (unique) {
           if (kinds[side] == 0) {
-            Count(record->slot, side);
+            CountKill(record->slot, side);
             kinds[side] = record->slot->kind;
             --count;
             if (kinds[0] != 0 && kinds[1] != 0) {
@@ -404,7 +404,7 @@ int CEnmParam::CountDestroyed(int count, unsigned int* kinds, int unique,
             }
           }
         } else {
-          Count(record->slot, side);
+          CountKill(record->slot, side);
           if (kinds[side] == 0) {
             kinds[side] = record->slot->kind;
           }
