@@ -68,7 +68,7 @@ int EnmPlan::Load(const char* path) {
   if (!file.Open(path, File::kRead)) {
     return 0;
   }
-  file.Read(&unknown_04_, 0x58);
+  file.Read(&version_, 0x58);
   parts_ = new EnmPlanPart[part_count_];
   items_ = new EnmPlanItem[item_count_];
   weapons_ = new EnmPlanItem[weapon_count_];

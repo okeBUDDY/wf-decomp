@@ -12,7 +12,7 @@
 #include "hl_3d.h"
 
 // 0x411580
-int Control32::StartTurn(Actor* actor, EnmList* program, short angle) {
+int Control32::StartTurn(Actor* actor, EnmProgram* program, short angle) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
   work->turn_from = actor->angle;
   work->turn = angle - actor->angle;

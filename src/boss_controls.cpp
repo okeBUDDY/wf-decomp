@@ -27,7 +27,7 @@ int Control32::Initialize() {
 
 // 0x411530
 int Control32::GetScore(Actor* actor) {
-  return (g_global.stage * 10 + g_enm_param.state_.unknown_24_ - 10) * 1000;
+  return (g_global.stage * 10 + g_enm_param.state_.body_hit_points - 10) * 1000;
 }
 
 // 0x412b90
@@ -75,7 +75,7 @@ int Control32::OnCreate(Actor* actor, void* param) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
   boss_ = actor;
   InitLinked(actor, param);
-  actor->hit_points = g_enm_param.state_.unknown_24_;
+  actor->hit_points = g_enm_param.state_.body_hit_points;
   actor->team = 0x21;
   actor->debris = 20;
   actor->SetSprite(g_pats.enemy[0].Get(1));
@@ -104,10 +104,10 @@ int Control32::OnCreate(Actor* actor, void* param) {
   ScaleHitPoints(actor);
   SpawnPieces(actor, g_body_pieces, 4);
   bounds_.top = actor->transform->m[2][1];
-  g_enm_param.list_9c_.op = 0x10001;
-  g_enm_param.list_9c_.arg = 0;
-  g_enm_param.list_9c_.step = 0;
-  g_enm_param.list_9c_.time = 0;
+  g_enm_param.move_program_.op = EnmProgram::kMoveEnter;
+  g_enm_param.move_program_.arg = 0;
+  g_enm_param.move_program_.step = 0;
+  g_enm_param.move_program_.time = 0;
   return 1;
 }
 
@@ -141,7 +141,7 @@ void Control32::OnDestroy(Actor* actor) {
 }
 
 // 0x411e20
-int Control32::Dash(Actor* actor, EnmList* program, float x, float y,
+int Control32::Dash(Actor* actor, EnmProgram* program, float x, float y,
                     float power, int boost) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
   Transform* transform = actor->transform;
@@ -184,8 +184,8 @@ int Control32::Dash(Actor* actor, EnmList* program, float x, float y,
     program->time = 0;
     reinterpret_cast<PartWork*>(actor->work)->flags |= Control32Work::kDashing;
     if (boost) {
-      g_enm_param.unknown_164_ = 0;
-      g_enm_param.unknown_158_ = actor->start_angle;
+      g_enm_param.flare_count_ = 0;
+      g_enm_param.dash_angle_ = actor->start_angle;
       g_enm_param.flare_time_ = work->brake_time;
       g_enm_param.flare_size_ = power;
       SendEvent(work->arms[0], 9, 0x110a);
@@ -205,12 +205,12 @@ int Control32::Dash(Actor* actor, EnmList* program, float x, float y,
 }
 
 // The power of the dash of `program`: its argument in percent.
-static __forceinline float DashPower(const EnmList* program) {
+static __forceinline float DashPower(const EnmProgram* program) {
   return program->arg > 0 ? program->arg * 0.01f : 1.0f;
 }
 
 // 0x4120d0
-void Control32::RunProgram9c(Actor* actor, EnmList* program) {
+void Control32::RunMoveProgram(Actor* actor, EnmProgram* program) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
   PartWork* part = reinterpret_cast<PartWork*>(actor->work);
   bool dashing = (part->flags & Control32Work::kDashing) != 0;
@@ -227,13 +227,13 @@ void Control32::RunProgram9c(Actor* actor, EnmList* program) {
     }
   } else {
     switch (program->op) {
-      case 0x10002:
+      case EnmProgram::kMoveRandom:
         if (!Dash(actor, program, rand() % 320 - 160 + 320.0f,
                   rand() % 100 - 50 + 160.0f, DashPower(program), 0)) {
           program->op = 0;
         }
         break;
-      case 0x10005: {
+      case EnmProgram::kMoveRam: {
         float power = DashPower(program);
         float x;
         float y;
@@ -249,12 +249,12 @@ void Control32::RunProgram9c(Actor* actor, EnmList* program) {
         }
         break;
       }
-      case 0x10004:
+      case EnmProgram::kMoveCenter:
         if (!Dash(actor, program, 320.0f, 160.0f, DashPower(program), 0)) {
           program->op = 0;
         }
         break;
-      case 0x10003: {
+      case EnmProgram::kMoveCharge: {
         float power = DashPower(program);
         float x = g_sin_table[(actor->angle - 0x200) & 0x3ff] * 4096.0f +
                   actor->transform->m[2][0];
@@ -265,14 +265,14 @@ void Control32::RunProgram9c(Actor* actor, EnmList* program) {
         }
         break;
       }
-      case 0x10006:
+      case EnmProgram::kMoveRecoil:
         actor->start_angle = program->arg;
         actor->speed = 1.6f;
         actor->acceleration = -0.02f;
         part->flags |= Control32Work::kDashing;
         work->brake_time = 0;
         break;
-      case 0x10001:
+      case EnmProgram::kMoveEnter:
         switch (program->step) {
           case 0:
             actor->start_angle = 0x200;
@@ -281,7 +281,7 @@ void Control32::RunProgram9c(Actor* actor, EnmList* program) {
             ++program->step;
           case 1:
             if (actor->speed <= 0.0f) {
-              g_enm_param.state_.flags |= 0x100;
+              g_enm_param.state_.flags |= EnmState::kBattle;
               bounds_.top = 64.0f;
               program->op = 0;
               ++program->time;
@@ -300,9 +300,9 @@ void Control32::RunProgram9c(Actor* actor, EnmList* program) {
 }
 
 // 0x4119d0
-void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
+void Control32::RunFireProgram(Actor* actor, EnmProgram* program, int side) {
   switch (program->op) {
-    case 0x30001: {
+    case EnmProgram::kFireAny: {
       if (g_enm_param.fire_wait_[side] > 0) {
         break;
       }
@@ -321,8 +321,8 @@ void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
       g_enm_param.fire_wait_[side] += add;
       break;
     }
-    case 0x30002:
-    case 0x30003:
+    case EnmProgram::kFireWeapon:
+    case EnmProgram::kFireWeaponWait:
       switch (program->step) {
         case 0:
           if (g_enm_param.fire_wait_[side] > 0) {
@@ -336,8 +336,9 @@ void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
           SignalSide(actor, side, 5, (0x10000 << program->arg) | 0x10a);
           g_enm_param.fire_wait_[side] +=
               g_enm_param.core_power_[side][program->arg] * 10;
-          program->time =
-              program->op == 0x30003 ? CorePartControl::max_unknown_22_ : 0;
+          program->time = program->op == EnmProgram::kFireWeaponWait
+                              ? CorePartControl::max_unknown_22_
+                              : 0;
           ++program->step;
           break;
         case 1:
@@ -347,8 +348,8 @@ void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
           break;
       }
       break;
-    case 0x30004:
-    case 0x30005:
+    case EnmProgram::kFireBoosted:
+    case EnmProgram::kFireBoostedWait:
       switch (program->step) {
         case 0:
           if (g_enm_param.fire_wait_[side] > 0) {
@@ -362,8 +363,9 @@ void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
           SignalSide(actor, side, 5, (0x10000 << program->arg) | 0x90a);
           g_enm_param.fire_wait_[side] +=
               g_enm_param.core_power_[side][program->arg] * 10;
-          program->time =
-              program->op == 0x30005 ? CorePartControl::max_unknown_22_ : 0;
+          program->time = program->op == EnmProgram::kFireBoostedWait
+                              ? CorePartControl::max_unknown_22_
+                              : 0;
           ++program->step;
           break;
         case 1:
@@ -373,8 +375,8 @@ void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
           break;
       }
       break;
-    case 0x30006:
-    case 0x30007:
+    case EnmProgram::kFireAll:
+    case EnmProgram::kFireAllWait:
       switch (program->step) {
         case 0: {
           if (g_enm_param.fire_wait_[side] > 0) {
@@ -394,8 +396,9 @@ void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
                                            g_enm_param.core_power_[side][5] +
                                            g_enm_param.core_power_[side][6]) *
                                           10;
-          program->time =
-              program->op == 0x30007 ? CorePartControl::max_unknown_22_ : 0;
+          program->time = program->op == EnmProgram::kFireAllWait
+                              ? CorePartControl::max_unknown_22_
+                              : 0;
           ++program->step;
           break;
         }
@@ -410,16 +413,17 @@ void Control32::RunSideProgram(Actor* actor, EnmList* program, int side) {
 }
 
 // 0x412530
-// Case 0x20004 reads the start angle through a reference: a plain copy makes
-// VC add into `off`'s register and cross-jump the push of case 0x20001.
-void Control32::RunProgramB0(Actor* actor, EnmList* program) {
+// Case EnmProgram::kTurnFace reads the start angle through a reference: a plain
+// copy makes VC add into `off`'s register and cross-jump the push of case
+// EnmProgram::kTurnFlip.
+void Control32::RunTurnProgram(Actor* actor, EnmProgram* program) {
   Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
   PartWork* part = reinterpret_cast<PartWork*>(actor->work);
   if (part->flags & Control32Work::kTurning) {
     if (program->time >= work->turn_end) {
       actor->angle = work->turn + work->turn_from;
       part->flags &= ~Control32Work::kTurning;
-      g_enm_param.state_.flags |= 2;
+      g_enm_param.state_.flags |= EnmState::kTurned;
       program->op = 0;
       return;
     }
@@ -427,12 +431,12 @@ void Control32::RunProgramB0(Actor* actor, EnmList* program) {
     if (program->time >= work->turn_peak) {
       int left = work->turn_end - program->time;
       turned = abs(work->turn) - left * left / 180;
-      if (program->op == 0x20004) {
-        g_enm_param.state_.flags |= 2;
+      if (program->op == EnmProgram::kTurnFace) {
+        g_enm_param.state_.flags |= EnmState::kTurned;
       }
     } else if (program->time >= 90) {
       turned = program->time - 45;
-      if (program->op == 0x20004) {
+      if (program->op == EnmProgram::kTurnFace) {
         short off =
             (AngleToPlayer(actor) - 0x200 - program->arg - actor->angle) &
             0x3ff;
@@ -455,13 +459,13 @@ void Control32::RunProgramB0(Actor* actor, EnmList* program) {
     actor->angle = work->turn_from + turned;
   } else {
     switch (program->op) {
-      case 0x20001:
+      case EnmProgram::kTurnFlip:
         if (!StartTurn(actor, program,
                        actor->angle + ((rand() & 1) ? 0x200 : -0x200))) {
           program->op = 0;
         }
         break;
-      case 0x20002:
+      case EnmProgram::kTurnTo:
         actor->angle = (actor->angle - program->arg) & 0x3ff;
         if (actor->angle >= 0x200) {
           actor->angle -= 0x400;
@@ -471,14 +475,14 @@ void Control32::RunProgramB0(Actor* actor, EnmList* program) {
           program->op = 0;
         }
         break;
-      case 0x20003: {
+      case EnmProgram::kTurnSpin: {
         int turns = ((program->arg - 90) & ~0x3ff) + 0x400;
         if (!StartTurn(actor, program, actor->angle + turns)) {
           program->op = 0;
         }
         break;
       }
-      case 0x20004: {
+      case EnmProgram::kTurnFace: {
         const short& from = actor->angle;
         short off =
             (AngleToPlayer(actor) - 0x200 - program->arg - from) & 0x3ff;
@@ -513,33 +517,34 @@ void Control32::OnChildDestroyed(Actor* parent, Actor* child) {
   PartWork* part = reinterpret_cast<PartWork*>(parent->work);
   short level = reinterpret_cast<PartWork*>(child->work)->level;
   if ((level >= 6 || level * 100 / part->level >= 40) &&
-      (g_enm_param.state_.flags & 0x100)) {
+      (g_enm_param.state_.flags & EnmState::kBattle)) {
     // Knocked back, away from the lost part.
     part->flags &= ~Control32Work::kDashing;
-    g_enm_param.list_9c_.Start(
-        0x10006, static_cast<short>(parent->AngleTo(child->screen.m[2][0],
-                                                    child->screen.m[2][1])) +
-                     0x200);
+    g_enm_param.move_program_.Start(
+        EnmProgram::kMoveRecoil,
+        static_cast<short>(
+            parent->AngleTo(child->screen.m[2][0], child->screen.m[2][1])) +
+            0x200);
   }
   LinkedPartControl::OnChildDestroyed(parent, child);
-  if (part->level <= 1 && (g_enm_param.state_.step_mask & 0x40000)) {
-    g_enm_param.list_218_.Start(0x12, 0);
+  if (part->level <= 1 && (g_enm_param.state_.tactic_mask & 0x40000)) {
+    g_enm_param.tactic_program_.Start(18, 0);  // TacticLastStand
   }
 }
 
 // 0x412750
 int Control32::OnMove(Actor* actor) {
-  if (g_enm_param.list_9c_.op != 0) {
-    RunProgram9c(actor, &g_enm_param.list_9c_);
+  if (g_enm_param.move_program_.op != 0) {
+    RunMoveProgram(actor, &g_enm_param.move_program_);
   }
-  if (g_enm_param.list_b0_.op != 0) {
-    RunProgramB0(actor, &g_enm_param.list_b0_);
+  if (g_enm_param.turn_program_.op != 0) {
+    RunTurnProgram(actor, &g_enm_param.turn_program_);
   }
-  if (g_enm_param.lists_c4_[0].op != 0) {
-    RunSideProgram(actor, &g_enm_param.lists_c4_[0], 0);
+  if (g_enm_param.fire_programs_[0].op != 0) {
+    RunFireProgram(actor, &g_enm_param.fire_programs_[0], 0);
   }
-  if (g_enm_param.lists_c4_[1].op != 0) {
-    RunSideProgram(actor, &g_enm_param.lists_c4_[1], 1);
+  if (g_enm_param.fire_programs_[1].op != 0) {
+    RunFireProgram(actor, &g_enm_param.fire_programs_[1], 1);
   }
   return 1;
 }
@@ -591,8 +596,8 @@ int Control35::OnCreate(Actor* actor, void* param) {
   actor->SetLayer(4);
   Control35Work* work = reinterpret_cast<Control35Work*>(actor->work);
   work->slot = static_cast<EnmSlot*>(param);
-  work->weight = static_cast<short>(g_enm_param.unknown_98_ - work->slot->depth)
-                 << 2;
+  work->weight =
+      static_cast<short>(g_enm_param.turret_weight_ - work->slot->depth) << 2;
   work->ring = work->slot->depth < g_enm_param.state_.max_depth >> 1;
   work->burst = 0;
   ++g_enm_param.turret_count_;

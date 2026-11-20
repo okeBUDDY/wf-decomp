@@ -23,7 +23,7 @@ struct FloatRect;
 class HLSObject;
 class HLSPatFile;
 struct EnmSlot;
-class EnmList;
+class EnmProgram;
 class File;
 
 // Actor::work of the parts of the boss.
@@ -140,7 +140,7 @@ class PartControl : public ScoredControl {
   // Runs the states OnDamage() sets; returns 1.
   int MovePart(Actor* actor);  // 0x419a70
   // Spawns control 23 on the part, pointing away from the boss, unless the
-  // part is within a quarter turn of CEnmParam::unknown_158_ from it.
+  // part is within a quarter turn of CEnmParam::dash_angle_ from it.
   void SpawnFlare(Actor* actor);  // 0x419850
 };
 
@@ -330,7 +330,7 @@ struct Control32Work {
   float deceleration;  // 0x60, of the dash
   short brake_time;    // 0x64, frames into the dash it starts to brake, 0:
                        // braking
-  // A turn (RunProgramB0): it speeds up until turn_peak, then slows down
+  // A turn (RunTurnProgram): it speeds up until turn_peak, then slows down
   // until turn_end, turning by `turn` from `turn_from`.
   unsigned short turn_from;  // 0x66
   short turn;                // 0x68
@@ -356,14 +356,14 @@ class Control32 : public LinkedPartControl {
  private:
   // Starts a dash toward (`x`, `y`) (kept within bounds_) that stops
   // there; `boost` flares the parts. Returns 0 when it is there already.
-  int Dash(Actor* actor, EnmList* program, float x, float y, float power,
+  int Dash(Actor* actor, EnmProgram* program, float x, float y, float power,
            int boost);  // 0x411e20
   // Run the movement programs of CEnmParam.
-  void RunProgram9c(Actor* actor, EnmList* program);              // 0x4120d0
-  void RunProgramB0(Actor* actor, EnmList* program);              // 0x412530
-  void RunSideProgram(Actor* actor, EnmList* program, int side);  // 0x4119d0
+  void RunMoveProgram(Actor* actor, EnmProgram* program);            // 0x4120d0
+  void RunTurnProgram(Actor* actor, EnmProgram* program);            // 0x412530
+  void RunFireProgram(Actor* actor, EnmProgram* program, int side);  // 0x4119d0
   // Starts a turn of `actor` to `angle`; 0 when it faces it already.
-  int StartTurn(Actor* actor, EnmList* program,
+  int StartTurn(Actor* actor, EnmProgram* program,
                 short angle);  // 0x411580
   // Writes the weapons that the cores of `side` still have to `out`;
   // returns their count.
@@ -376,7 +376,7 @@ class Control32 : public LinkedPartControl {
  private:
   // Where the body may move.
   static FloatRect bounds_;  // 0x469054
-  // Scratch space of RunSideProgram for ListWeapons.
+  // Scratch space of RunFireProgram for ListWeapons.
   static int weapons_[7];  // 0x469064
 };
 

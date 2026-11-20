@@ -287,13 +287,13 @@ Known compiler behaviour worth remembering:
 * **A local reference changes register choices (step 41).** `const short& from =
   actor->angle;` instead of a copy, `const unsigned int& new_count = ++count;`, and `const
   EnmSideStats& first = state_.sides[0];` each fixed an operand or CSE choice that no value
-  form reached (`Control32::RunProgramB0`, `SoundSystem::Pause`, `CEnmParam::Plan`). A
+  form reached (`Control32::RunTurnProgram`, `SoundSystem::Pause`, `CEnmParam::Plan`). A
   reference that is only an alias of a local that is never modified changes nothing.
 * VC7.1 tracks which callee-saved registers a same-TU function clobbers and lets callers
   keep values in the others. A helper that the original calls (instead of inlining) and whose
   callers assume it saves everything belongs in a separate TU.
 * A store through a pointer right before an increment keeps VC from folding the two (see
-  `EnmList::Wait` / `SetArgAndNext` in `enm_param.h`).
+  `EnmProgram::Wait` / `SetArgAndNext` in `enm_param.h`).
 * `strcpy` from a string literal becomes `rep movsd`; the original's byte loop comes from
   copying through a `const char*` variable that holds the literal (`GameHud::Initialize`).
 * A file-`static` pointer whose address is never taken is not reloaded after stores through
@@ -415,17 +415,17 @@ Known compiler behaviour worth remembering:
   (steps 36-46) left the tail at the end. An `if (titled) { title = ...; }` after an `int
   title = 0;` is not threaded (34). `CEnmParam::Plan` matched the same way: its kinds loop
   sets only `side->mode` in each case and then resets the count once with `if (side->mode
-  != 0) { side->unknown_08_ = 0; }`. VC threads that test (it knows the stored mode) into
+  != 0) { side->rapid_kills = 0; }`. VC threads that test (it knows the stored mode) into
   the per-case `mov word ptr [eax], K; jmp` blocks and the shared count store, but the test
   still counts for the allocator, which then keeps 0x20000 in ebp for the flags test and
-  `AddStep(17)`, as the dead arm of step 42 did by accident. Lesson: when only an
+  `AddTactic(17)`, as the dead arm of step 42 did by accident. Lesson: when only an
   unnatural duplicate fixes the allocation, look for a natural test or flag that VC
   threads away after the weights are taken.
   (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
   in step 38.)
   (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
   in step 38.)
-  (`SoundSystem::Pause` and `Control32::RunProgramB0` matched in step 41, see there.)
+  (`SoundSystem::Pause` and `Control32::RunTurnProgram` matched in step 41, see there.)
   `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
   setter's operand order, `count + 1`, a separate `++count`, `count++` in the test, a
   function-scope `count`, a `const unsigned int&` to the flags, `&=`/`|=` statements in the
@@ -433,7 +433,7 @@ Known compiler behaviour worth remembering:
   have gone through a by-reference helper.
   `CEnmParam::Plan` is the original size; it spills `rate` in the prologue (the 0x20000 in
   ebp was fixed in step 41). (`FnGame::Initialize` matched in step 46.)
-  `Control32::RunProgramB0` (15 instructions): only case 0x20004 is left. The
+  `Control32::RunTurnProgram` (15 instructions): only case 0x20004 is left. The
   original adds the turn into `from`'s register (`add ebx, eax; push ebx`), so the push of
   case 0x20001 stays its own; here it is `add eax, ebx; push eax` and the two pushes are
   cross-jumped. An `int from` gives the right add but loads `from` with `movsx` instead of
@@ -474,7 +474,7 @@ Known compiler behaviour worth remembering:
   `jmp` back from the bottom (`PartControl::OnDestroy`).
 * `mov al, [esi+0x34]; mov ecx, 1; test cl, al` is a flag test stored in a `bool` local
   (`bool dashing = (flags & kDashing) != 0; if (dashing)`); the plain `if (flags & 1)` gives
-  `test al, 1` (`Control32::RunProgram9c`).
+  `test al, 1` (`Control32::RunMoveProgram`).
 * VC does not unroll loops with calls in them (it does fully unroll the six-pass arithmetic
   loop of `GameHud::UpdateChart`): four calls in a row in the original are four calls in the source
   (`SendEvent()` to the arms in `Control32::Dash`). A `return 0` placed after all the other
@@ -508,15 +508,15 @@ Known compiler behaviour worth remembering:
   op on failure is `if (!Call(...)) { program->op = 0; } break;` in every case, with the
   common `++program->time` after the switch and the other path in an `else` (not an early
   `return`): VC cross-jumps the calls into one call site, which loads the parameter
-  registers once at the top (`Control32::RunProgram9c` matched, `RunProgramB0` is down to
+  registers once at the top (`Control32::RunMoveProgram` matched, `RunTurnProgram` is down to
   one register). The `++program->time; return;` per case kept separate tails.
 * `fcomp; fnstsw ax; test ah, 0x41; jp` is `if (x <= 0.0f)`; `!(x > 0.0f)` gives `je`
   (they differ only for NaN). A `PartWork* part` local for `part->flags |= ...`, instead
   of the cast written out, kept the `or dword ptr [esi+0x34], ecx` memory form in
-  `RunProgram9c` (with the cast VC split it into load/or/store and hoisted the load).
+  `RunMoveProgram` (with the cast VC split it into load/or/store and hoisted the load).
   Updating a member in place (`work->turn = a - b; work->turn += work->turn >= 0 ? 45 :
   -45;`) gave the original's `sets` on the subtraction's flags where a `done` local gave
-  `test`/`setge` (`RunProgramB0`).
+  `test`/`setge` (`RunTurnProgram`).
 * C-style declarations at the top of the function share stack slots differently from block
   locals: `HLSPatFile::Load` matched with the pattern record's locals declared at function
   scope and the header's highest id read into the same `id` local. Scope does not change
@@ -597,7 +597,7 @@ Known compiler behaviour worth remembering:
   COMDAT would sit in a later object); the `HLImage` constructor, `Load` and `Release`
   live in `hl_image.cpp`'s objects; `Object::Log` is out of line in `object.cpp` (obj09). Moving `Grow`
   above `AllocSlot`/`ChooseWeapon`, and `inline`/`__forceinline`/an `unsigned` id on
-  `AddStep`, leave `Grow` and `Plan` unchanged; `SetRating` as a plain `static` or
+  `AddTactic`, leave `Grow` and `Plan` unchanged; `SetRating` as a plain `static` or
   external function leaves `RateGame` unchanged; a `Channel::Suspend()` inline (body in
   the header or in the TU) leaves `Pause` unchanged.
 * **`SoundSystem::Pause` in a probe TU (step 35).** `tools/fas.py --print` on a copy of
@@ -636,9 +636,9 @@ Known compiler behaviour worth remembering:
     a buffer local, a `while` loop and a function-scope channel. In `HLSurface::Load`, a
     `BytesPerPixel()`/`RowBytes()`/`RowSkip()` inline helper (every form), a `bits` local and
     `scale_y_ * x - x`: all keep the product order, and every named raw width still flips the
-    allocation (191). In `Control32::RunProgramB0`, if/else forms of `off`, of the case
+    allocation (191). In `Control32::RunTurnProgram`, if/else forms of `off`, of the case
     0x20001 turn and of the final angle. In `CEnmParam::Plan`, if/else forms of the
-    `AddStep()` cost index and of the travel clamp, `rate` split into two statements or
+    `AddTactic()` cost index and of the travel clamp, `rate` split into two statements or
     declared at the top, and `/Op` (69). In `FnGame::Initialize`, removing any one case,
     `SetState()` or the HUD add keeps eax for the input pointer. In `FnGame::RateGame`, an
     early `SetRating(0, 0); return;` puts the first case first but with its own tail (28),
@@ -674,7 +674,7 @@ Known compiler behaviour worth remembering:
     the load (edx). A 45-minute permuter run found nothing.
   * `SoundSystem::Pause`: an `unsigned short` getter or setter, `int` in both, an unsigned
     mask enum and a literal `0xffff0000` mask: none fixes it (2 bytes or worse).
-  * `Control32::RunProgramB0`: a probe shows VC canonicalizes every expression form of `from
+  * `Control32::RunTurnProgram`: a probe shows VC canonicalizes every expression form of `from
     + off` (casts, `off += from`, a `to` local, a ternary for `off`). Only an int-typed
     `from` adds into from's register. A 45-minute permuter run found only `unsigned int
     from`, which is the known int case (12, with `movsx`).
@@ -699,10 +699,10 @@ Known compiler behaviour worth remembering:
     plain reads (49): the use that keeps 0x20000 out
     of a register is the kinds switch's `case 0x20000` compare inside the kinds loop.
     Changing that label (probe only) gets `mov ebp, 0x20000` for the flags test and
-    `AddStep(17)` with the plain reads, and moves `AddStep(10)`'s 0x400 out of edi. Without
-    the mode0 `[ebp]` read the zero constant takes ebp for the `AddStep` code instead. The
-    dead-arm fix of step 42 needs both `side->mode = 2;` and `side->unknown_08_ = 0;` in the
-    copy (one of them alone: 49). No change (49): an `inline`/`__forceinline` `AddStep`,
+    `AddTactic(17)` with the plain reads, and moves `AddTactic(10)`'s 0x400 out of edi. Without
+    the mode0 `[ebp]` read the zero constant takes ebp for the `AddTactic` code instead. The
+    dead-arm fix of step 42 needs both `side->mode = 2;` and `side->rapid_kills = 0;` in the
+    copy (one of them alone: 49). No change (49): an `inline`/`__forceinline` `AddTactic`,
     `1u << id`, `0x20000u`, a flags local, `1 << 17`, `static_cast<int>` switch operands,
     case order, `default: break;`, a `continue` for `mode != 0` or after the mode-4 case, a
     `case 0:` label in the progress switch, a `__forceinline` member `ChooseMode(side,
@@ -765,7 +765,7 @@ Known compiler behaviour worth remembering:
     plain progress read (also 2 bytes, `[ebp + 0xa]` for `[esi + 0x16]`), `first.progress`
     in the `>= 100` test. The dead `score` parameter reused for the flags, `mode0`,
     `mode1` or the progress, `mode1` declared first, the two progress tests swapped,
-    if/else or interleaved mode forms, the mode locals before `AddStep(1)`/`AddStep(6)`,
+    if/else or interleaved mode forms, the mode locals before `AddTactic(1)`/`AddTactic(6)`,
     a `side = state_.sides;` reset or a `sides` pointer for `mode0`, and `(&first)[i]` in
     the mode-3 loop are 2 bytes or worse (37-343 instructions).
 * **Step 44 (2 new matches: `CEnmParam::Grow`, `HLSurface::Load`).**
@@ -853,13 +853,13 @@ Known compiler behaviour worth remembering:
     read.** With plain `state_.sides[0].mode` and `state_.sides[0].progress` (no `first`),
     VC already reads the mode as `[ebp]` (the `&state_.sides[0]` CSE left over from the side
     loops) and the progress off esi, as the original does. Only `0x20000` is not loaded into
-    ebp (the original shares it between the flags test and `AddStep(17)`), and so 0x400 is
+    ebp (the original shares it between the flags test and `AddTactic(17)`), and so 0x400 is
     not loaded into edi either (49 instructions). Every form that gets the constant into a
     register keeps a variable for `&state_.sides[0]` in ebp past the mode read: `first.progress`,
     or `const EnmSideStats (&sides)[2] = state_.sides;` used only for side 1's progress
     (`[ebp + 0x10]`, also 2 bytes). A permuter run from the plain form reached 0 only through a
     dead arm: `case 2: if (state_.sides != NULL) { <body> } else { <body> }` in the progress
-    switch, or the same around `side->mode = 2; side->unknown_08_ = 0;` in the 0x10000 case
+    switch, or the same around `side->mode = 2; side->rapid_kills = 0;` in the 0x10000 case
     of the kinds loop. VC folds `state_.sides != NULL` late, so the uses in the dead copy
     still count for the allocator. `true`, `this != NULL`, `side` and `plan_.kind_counts_ !=
     NULL` as the condition, or the `if` without the `else`, do not do it; the dead arm around
@@ -922,13 +922,13 @@ Known compiler behaviour worth remembering:
     forms (`int parts = ++...`, `weapon_parts_[weapon]++`, an `int&`, an `int*`) stay at 87; the
     original keeps the tail's incremented count in edi (pushed in the prologue, with `this`
     in ebp and ebx pushed only in the else block), here edx.
-* **Step 41 (2 new matches: `SoundSystem::Pause`, `Control32::RunProgramB0`; `CEnmParam::Plan` at 2 bytes).**
+* **Step 41 (2 new matches: `SoundSystem::Pause`, `Control32::RunTurnProgram`; `CEnmParam::Plan` at 2 bytes).**
   * **A local reference changes the destination of a commutative operation.** Both drafts
     had VC write `a op b` into the right operand's register where the original used the
     left one. `Pause` matched with `const unsigned int& new_count = ++count;
     channel->set_pause_count(new_count);` (a non-const `unsigned int& c = count;`, or a
     pointer to `count`, gives the same code; an inline helper taking `unsigned int&` does
-    not). `RunProgramB0` matched with `const short& from = actor->angle;` in case 0x20004
+    not). `RunTurnProgram` matched with `const short& from = actor->angle;` in case 0x20004
     instead of an `unsigned short` copy (`const unsigned short& to = from += off;` and
     `unsigned short& to = from; to += off;` also give `add ebx, eax`). `StartTurn` takes a
     `short` and `off` is masked, so neither change alters behaviour. References to locals
@@ -937,7 +937,7 @@ Known compiler behaviour worth remembering:
     pointer to `state_.sides[0]` before the `state_.flags & 0x10000` test, written as `const
     EnmSideStats& first = state_.sides[0];` with `mode0 = first.mode` and `first.progress <
     65`, keeps `&state_.sides[0]` in ebp up to the mode read as in the original, which frees
-    ebp for the 0x20000 constant shared by the flags test and `AddStep(17)`. Reading only the
+    ebp for the 0x20000 constant shared by the flags test and `AddTactic(17)`. Reading only the
     mode through `first` loses it (VC folds a single use back into `[esi + 0xc]`), and so does
     declaring it anywhere earlier. (2) The `kinds` loop steps the same `side` pointer as the
     progress loop (one variable for both): `mov eax, ebp` before `xor edx, edx`. (3)
@@ -1026,13 +1026,13 @@ Known compiler behaviour worth remembering:
     including the `break`s and `MuteGroup()`) keeps eax for the input pointer. `tools/fas.py`
     hangs on `fn_game.cpp`, so use `multi_variants.py` or a clone's `compare.py` with
     `fdiff.py` for it.
-  * **`Control32::RunProgramB0`:** a `Wrap(short&)` helper, a `Turn(const unsigned
+  * **`Control32::RunTurnProgram`:** a `Wrap(short&)` helper, a `Turn(const unsigned
     short&, const short&)` helper, and `*&from`/`*&off` all canonicalize to `add eax, ebx`.
   * **Leads.** `Grow`: look for a value that is live from the function entry or the top
     of the else block in the original without code there (it would also explain `code` in
     ecx). Start from `int i = 0;` at the top of the else block, which gives the right
     `this`/`base` registers, and look for a form that keeps the zero store after the count
-    test. `Pause`/`RunProgramB0`: in both, the original's `or`/`add` destination is the
+    test. `Pause`/`RunTurnProgram`: in both, the original's `or`/`add` destination is the
     left operand. `Resume` gets that when the right operand changed in an earlier block,
     so look for a form where the increment (or `off`) is computed before the merge.
 * **Step 37 (drafts only, no new matches).**
@@ -1092,10 +1092,10 @@ Known compiler behaviour worth remembering:
     of `width_`/`height_` do not change it; neither does any order of the two saved locals and
     `result`. A 30-minute permuter run (after hand-fixing the `D3DDEVICEDESC7`/`DDCAPS`
     stubs in `base.c`) found nothing.
-  * `Control32::RunProgramB0` and `Pause` look alike: in both, the original puts the result of
+  * `Control32::RunTurnProgram` and `Pause` look alike: in both, the original puts the result of
     a commutative operation (`from + off`, `(flags & ~mask) | count`) into the left operand's
     register where VC, with both operands dying, reuses the right one's. In `Pause` a later use
-    of the right operand flips VC to the left; in `RunProgramB0` a test store of `off` after the
+    of the right operand flips VC to the left; in `RunTurnProgram` a test store of `off` after the
     call rearranges the whole case, so it says nothing there.
   * `RateGame`: an `else if (both modes != 0) { ... } else { grade = 1; }` chain, `grade = 0,
     title = 0` initializers and the stores written out keep the shared tail at the end.
@@ -1124,7 +1124,7 @@ Known compiler behaviour worth remembering:
     channel->flags_;`) or a copy of the channel pointer gives the original's `or edx, edi`, but
     then the `inc` moves after the `and`. The coupling also holds under `/G5` and `/G7`.
   * `CEnmParam::Plan`: VC keeps `rate` on the x87 stack across `_ftol` (in st1) where the
-    original spills it; `1 << 17`, `1u << id`, a `bit` local in `AddStep`, a flags local, `!= 0`
+    original spills it; `1 << 17`, `1u << id`, a `bit` local in `AddTactic`, a flags local, `!= 0`
     and the operand order of the `0x20000` test do not put the constant in a register.
   * `HLSTxtSys::Measure`: Print's forms (function-scope `code`, `code -= first_char_`), a
     `first` local, `*++text`, and a separate iteration pointer change nothing.

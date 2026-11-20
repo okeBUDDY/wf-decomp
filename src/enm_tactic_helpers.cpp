@@ -9,9 +9,9 @@
 
 // 0x416170
 int CEnmParam::IsSideBeaten(Actor* boss, int percent) {
-  if (state_.step_mask & 2) {
-    int left = parts_alive_[0] * 100 / unknown_f4_[0];
-    int right = parts_alive_[1] * 100 / unknown_f4_[1];
+  if (state_.tactic_mask & 2) {
+    int left = parts_alive_[0] * 100 / start_parts_[0];
+    int right = parts_alive_[1] * 100 / start_parts_[1];
     if (player_dir_ == 2) {
       if (left > right && right <= percent) {
         return 1;
@@ -27,41 +27,41 @@ int CEnmParam::IsSideBeaten(Actor* boss, int percent) {
 
 // 0x4163f0
 void CEnmParam::RunOpening(Actor* boss, int next_step) {
-  if (list_218_.step >= next_step) {
+  if (tactic_program_.step >= next_step) {
     return;
   }
-  switch (list_218_.step) {
+  switch (tactic_program_.step) {
     case 0:
-      lists_c4_[0].Start(0x30001, 70);
-      lists_c4_[1].Start(0x30001, 70);
-      list_218_.arg = 1;
-      list_b0_.Start(0x20004, 0);
-      ++list_218_.step;
+      fire_programs_[0].Start(EnmProgram::kFireAny, 70);
+      fire_programs_[1].Start(EnmProgram::kFireAny, 70);
+      tactic_program_.arg = 1;
+      turn_program_.Start(EnmProgram::kTurnFace, 0);
+      ++tactic_program_.step;
       // Fall through.
     case 1:
-      if (list_b0_.op != 0 && !(state_.flags & 2)) {
+      if (turn_program_.op != 0 && !(state_.flags & EnmState::kTurned)) {
         break;
       }
-      if (player_dir_ == 2 && list_218_.arg > 0) {
-        if (list_b0_.op == 0) {
-          --list_218_.arg;
-          list_b0_.Start(0x20004, 0);
+      if (player_dir_ == 2 && tactic_program_.arg > 0) {
+        if (turn_program_.op == 0) {
+          --tactic_program_.arg;
+          turn_program_.Start(EnmProgram::kTurnFace, 0);
         }
         break;
       }
-      lists_c4_[0].op = 0;
-      lists_c4_[1].op = 0;
-      list_9c_.Start(0x10003, 0);
-      ++list_218_.step;
+      fire_programs_[0].op = 0;
+      fire_programs_[1].op = 0;
+      move_program_.Start(EnmProgram::kMoveCharge, 0);
+      ++tactic_program_.step;
       break;
     case 2:
-      if (list_9c_.op == 0 && list_b0_.op == 0) {
-        list_218_.Wait(60);
+      if (move_program_.op == 0 && turn_program_.op == 0) {
+        tactic_program_.Wait(60);
       }
       break;
     case 3:
-      if (list_218_.time <= 0) {
-        list_218_.step = next_step;
+      if (tactic_program_.time <= 0) {
+        tactic_program_.step = next_step;
       }
       break;
   }
@@ -72,7 +72,7 @@ int CEnmParam::GlowArmor(Actor* actor, int time) {
   if (armored_parts_[0] <= 0 && armored_parts_[1] <= 0) {
     return 0;
   }
-  glow_time = time;
+  glow_time_ = time;
   if (actor->control != NULL) {
     actor->control->OnEvent(actor, 8, 0x110a);
   }
@@ -80,8 +80,8 @@ int CEnmParam::GlowArmor(Actor* actor, int time) {
 }
 
 // 0x4173f0
-int CEnmParam::SignalUnknown104(Actor* actor) {
-  if (unknown_104_[0] <= 0 && unknown_104_[1] <= 0) {
+int CEnmParam::StartTransform(Actor* actor) {
+  if (transform_parts_[0] <= 0 && transform_parts_[1] <= 0) {
     return 0;
   }
   if (actor->control != NULL) {

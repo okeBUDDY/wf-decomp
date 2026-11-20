@@ -19,7 +19,7 @@ struct EnmPlanItem {
   unsigned int kind;   // 0x08
   short x;             // 0x0c, relative to the parent
   short y;             // 0x0e
-  short unknown_10_;   // 0x10
+  short unused_10_;    // 0x10, 8 in every entry of plan.dat, not read
   short low;           // 0x12
   short high;          // 0x14
   short debris;        // 0x16, an index into g_debris_controls
@@ -37,12 +37,13 @@ struct EnmPlanPart : EnmPlanItem {
     kTurret = 0x80,   // its first child turns it
   };
 
-  short unknown_1c_[6];     // 0x1c
+  char name[12];            // 0x1c, an editor label ("ATK-ROOT", "NEW"), not
+                            // read
   int score;                // 0x28, of a linked part
   short hit_points;         // 0x2c, of a linked part
   short x1;                 // 0x2e, where it is while armed (flags & 3 == 1)
   short y1;                 // 0x30
-  short unknown_32_;        // 0x32
+  short unused_32_;         // 0x32, 9 in every part of plan.dat, not read
   short lerp_from;          // 0x34
   short lerp_to;            // 0x36
   short child_count;        // 0x38
@@ -50,7 +51,7 @@ struct EnmPlanPart : EnmPlanItem {
   short option4_count;      // 0x3c, children added in mode 4
   short extra_child_count;  // 0x3e
   short item_count;         // 0x40
-  short unknown_42_;        // 0x42
+                            // 0x42: padding (0 in plan.dat)
   EnmPlanItem* item;        // 0x44, an index into EnmPlan::items_ on disk
 };
 
@@ -72,7 +73,7 @@ class EnmPlan {
   friend class CEnmParam;
 
   // The header of plan.dat (0x58 bytes).
-  int unknown_04_;        // 0x04
+  int version_;           // 0x04, 1 in plan.dat (not checked)
   int part_count_;        // 0x08
   int weapon_count_;      // 0x0c
   int item_count_;        // 0x10
@@ -84,19 +85,20 @@ class EnmPlan {
   int kind_counts_[6];  // 0x68
 };
 
-// A list (vtable 0x4514b0, 0x14 bytes).
-// A movement program of the boss (CEnmParam::list_9c_...): the operation it
-// runs and how far it got.
-class EnmList {
+// A program the boss runs each frame (vtable 0x4514b0, 0x14 bytes): the
+// operation, its argument and how far it got. CEnmParam runs a tactic in
+// tactic_program_ (op = the tactic id), and the tactics start the move,
+// turn and fire programs that Control32 runs on the body.
+class EnmProgram {
  public:
-  EnmList() {  // 0x419e40
+  EnmProgram() {  // 0x419e40
     time = 0;
     step = 0;
     arg = 0;
     op = 0;
   }
   // 0x401a90, scalar deleting dtor 0x401aa0
-  virtual ~EnmList() {}
+  virtual ~EnmProgram() {}
 
   // Starts operation `new_op` with `new_arg`.
   void Start(int new_op, int new_arg) {
@@ -120,6 +122,27 @@ class EnmList {
     *value = new_arg;
     ++step;
   }
+
+  // The operations of the move, turn and fire programs.
+  enum Ops {
+    kMoveEnter = 0x10001,   // comes down onto the screen
+    kMoveRandom = 0x10002,  // dashes to a random place
+    kMoveCharge = 0x10003,  // dashes straight ahead
+    kMoveCenter = 0x10004,  // dashes to the top center
+    kMoveRam = 0x10005,     // dashes at the player
+    kMoveRecoil = 0x10006,  // knocked back to angle `arg`
+    kTurnFlip = 0x20001,    // half a turn either way
+    kTurnTo = 0x20002,      // turns to angle `arg`
+    kTurnSpin = 0x20003,    // spins for about `arg` frames
+    kTurnFace = 0x20004,    // faces the player (offset by `arg`)
+    kFireAny = 0x30001,     // fires random weapons, `arg` percent of the rate
+    kFireWeapon = 0x30002,  // fires weapon `arg` once
+    kFireWeaponWait = 0x30003,  // ... and waits for the volley
+    kFireBoosted = 0x30004,     // fires weapon `arg` at full rank once
+    kFireBoostedWait = 0x30005,
+    kFireAll = 0x30006,  // fires every weapon once
+    kFireAllWait = 0x30007,
+  };
 
   int arg;   // 0x04, of the operation
   int time;  // 0x08, frames since the operation started
@@ -164,16 +187,18 @@ inline void AddClamped(short* value, int delta) {
 struct EnmSideStats {
   int Score() const {
     if (mode == 0) {
-      return unknown_04_ + unknown_02_;
+      return wide_kills + attack_kills;
     }
-    return unknown_08_ + unknown_04_ + unknown_02_;
+    return rapid_kills + wide_kills + attack_kills;
   }
 
-  short mode;         // 0x00, bits 1, 2 and 4 pick the optional children
-  short unknown_02_;  // 0x02, parts of kind 0x10000 counted
-  short unknown_04_;  // 0x04, parts of kind 0x20000 counted
-  short progress;     // 0x06, in percent of the mode
-  short unknown_08_;  // 0x08, parts of kind 0x40000 counted
+  short mode;          // 0x00, bits 1, 2 and 4 (attack, wide, rapid) pick the
+                       // optional children
+  short attack_kills;  // 0x02, parts of kind 0x10000 (ATK-ROOT) counted
+  short wide_kills;    // 0x04, parts of kind 0x20000 (WIDE-ROOT) counted
+  short progress;      // 0x06, in percent of the mode
+  short rapid_kills;   // 0x08, parts of kind 0x40000 counted, and rapid
+                       // destructions while the mode is 0
 };
 
 // The title of a boss (8 bytes).
@@ -186,25 +211,38 @@ struct EnmTitle {
 
 // The state of CEnmParam that is saved with a game (0x7c bytes).
 struct EnmState {
-  unsigned int flags;        // 0x08
+  enum Flags {
+    // Cleared every frame (by RunBattle()).
+    kAimed = 0x1,   // a turret is on target
+    kTurned = 0x2,  // the turn program is done or slowing down
+    // Kept.
+    kBattle = 0x100,  // the body has come down; the tactics run
+    // Set while planning.
+    kArmor = 0x10000,      // a part with plan flag 0x100 (armored) is planned
+    kTransform = 0x20000,  // a part with plan flag 0x20 (transforms)
+  };
+
+  unsigned int flags;        // 0x08, Flags
   EnmSideStats sides[2];     // 0x0c
   unsigned int color;        // 0x20
-  short unknown_24_;         // 0x24
-  short unknown_26_;         // 0x26
-  short unknown_28_;         // 0x28
-  short unknown_2a_;         // 0x2a
+  short body_hit_points;     // 0x24, of control 32, 200 up to 1200
+  short toughness;           // 0x26, 0..0x400, adds toughness / 1024 to the hit
+                             // points of the parts
+  short fire_speed;          // 0x28, 0..0x400, gives CEnmParam::fire_rate_
+  short aim_speed;           // 0x2a, 0..0x400, gives CEnmParam::turn_speed_
   short max_depth;           // 0x2c
-  short unknown_2e_;         // 0x2e
+  short unused_2e_;          // 0x2e, never used
   unsigned int weapon_mask;  // 0x30
   short weapon_count;        // 0x34
   char weapons[8];           // 0x36
   short weapon_levels[7];    // 0x3e
-  unsigned int step_mask;    // 0x4c, the steps added so far
-  short step_count;          // 0x50
-  short step_total;          // 0x52
-  char steps[19][2];         // 0x54
+  unsigned int tactic_mask;  // 0x4c, bit i: tactic i is available
+  short tactic_count;        // 0x50
+  short tactic_weight;       // 0x52, the sum of the weights
+  char tactics[19][2];       // 0x54, the tactic ids and their running
+                             // weight sums, for the pick in RunBattle()
   EnmTitle title;            // 0x7a
-  short unknown_82_;         // 0x82
+  short unused_82_;          // 0x82, never used
 };
 
 class CEnmParam : public System {
@@ -253,31 +291,51 @@ class CEnmParam : public System {
   // Forgets the titles given so far.
   void ClearTitles();  // 0x417c00
 
-  // The battle tactics run by list_218_ on the boss; each returns 1 when
-  // it is over.
+  // The battle tactics, run by tactic_program_ on the boss; each returns 1
+  // when it is over. RunBattle() picks them by id (the op of
+  // tactic_program_; ids 12 and 13 are empty).
   // Nonzero when the stronger side (by the percentage of its parts alive)
   // is the one player_dir_ does not name, and the weaker one is down to
   // `percent`.
   int IsSideBeaten(Actor* boss, int percent);  // 0x416170
-  int Tactic4161d0(Actor* boss);               // 0x4161d0
-  int Tactic4162f0(Actor* boss);               // 0x4162f0
-  // The opening the next tactic shares: steps 0 to 3, then `next_step`.
+  // 0: dashes about at random, now and then at the player.
+  int TacticRoam(Actor* boss);  // 0x4161d0
+  // 1: dashes about; turns half round when a side is beaten to 50%.
+  int TacticDashFlip(Actor* boss);  // 0x4162f0
+  // The opening that tactics 2, 9 and 10 share (steps 0 to 3: faces the
+  // player while firing, then charges), then goes on at `next_step`.
   void RunOpening(Actor* boss, int next_step);  // 0x4163f0
-  int Tactic416560(Actor* boss);                // 0x416560
-  int Tactic416630(Actor* boss);                // 0x416630
-  int Tactic4167a0(Actor* boss);                // 0x4167a0
-  int Tactic4168e0(Actor* boss);                // 0x4168e0
-  int Tactic4169c0(Actor* boss);                // 0x4169c0
-  int Tactic416ac0(Actor* boss);                // 0x416ac0
-  int Tactic416cb0(Actor* boss);                // 0x416cb0
-  int Tactic416e10(Actor* boss);                // 0x416e10
-  int Tactic417010(Actor* boss);                // 0x417010
-  int Tactic4170c0(Actor* boss);                // 0x4170c0
-  int Tactic417430(Actor* boss);                // 0x417430
-  int Tactic417520(Actor* boss);                // 0x417520
-  int Tactic4175d0(Actor* boss);                // 0x4175d0
-  int Tactic4176f0(Actor* boss);                // 0x4176f0
-  int Tactic4177e0(Actor* boss);                // 0x4177e0
+  // 2: the opening, then a dash and a turn back.
+  int TacticCharge(Actor* boss);  // 0x416560
+  // 3: turns its back on the player and fires the sparks of side 1
+  // (weapon 4) at full rank, 3 to 5 times.
+  int TacticRearSparks(Actor* boss);  // 0x416630
+  // 4: fires the streams (weapon 6) of both sides while dashing about.
+  int TacticStream(Actor* boss);  // 0x4167a0
+  // 5: fires at twice the rate while dashing about for 5 to 15 seconds.
+  int TacticRapidFire(Actor* boss);  // 0x4168e0
+  // 7: spins for 20 to 40 seconds while dashing about.
+  int TacticSpinDash(Actor* boss);  // 0x4169c0
+  // 9: the opening, then tactic 3.
+  int TacticChargeRearSparks(Actor* boss);  // 0x416ac0
+  // 10: the opening, then half a turn at twice the fire rate.
+  int TacticChargeFlip(Actor* boss);  // 0x416cb0
+  // 11: faces the player and charges, 3 to 5 times.
+  int TacticRepeatCharge(Actor* boss);  // 0x416e10
+  // 14: spins for 20 to 40 seconds at twice the fire rate.
+  int TacticSpin(Actor* boss);  // 0x417010
+  // 18: once the body has lost its parts: turns back and dashes for good.
+  int TacticLastStand(Actor* boss);  // 0x4170c0
+  // 6: the armored parts glow for 5 to 10 seconds while it dashes about.
+  int TacticGlowArmor(Actor* boss);  // 0x417430
+  // 8: transforms the parts (event 4) and waits until they are done.
+  int TacticTransform(Actor* boss);  // 0x417520
+  // 15: glows and spins; side 1 fires its sparks.
+  int TacticSpinGlowSparks(Actor* boss);  // 0x4175d0
+  // 16: glows and fires at twice the rate while dashing about.
+  int TacticGlowRapidFire(Actor* boss);  // 0x4176f0
+  // 17: glows and spins while ramming the player.
+  int TacticSpinRam(Actor* boss);  // 0x4177e0
   // Sets up the battle with the planned boss and creates it (control 32).
   Actor* StartBattle(Actor* player);  // 0x417170
   // Runs a frame of the battle: follows `player` and runs the tactics on
@@ -288,7 +346,7 @@ class CEnmParam : public System {
   int GlowArmor(Actor* actor, int time);  // 0x4173a0
   // Sends event 4 to `actor` when parts with PartWork flag 0x20000 are
   // left; 0 without them.
-  int SignalUnknown104(Actor* actor);  // 0x4173f0
+  int StartTransform(Actor* actor);  // 0x4173f0
   // The slot of the part at `code`, NULL without one.
   EnmSlot* FindSlot(unsigned int code) {
     if (code != 0) {
@@ -333,26 +391,26 @@ class CEnmParam : public System {
     power_total_ += slot->power;
   }
 
-  // Adds step `id` to the steps of the game unless it is there already.
-  void AddStep(int id);
+  // Makes tactic `id` available unless it is already.
+  void AddTactic(int id);
 
  public:
   // The controls read and change much of this directly.
 
-  EnmState state_;       // 0x08
-  int turn_speed_;       // 0x84, of the turrets, per frame
-  int fire_rate_;        // 0x88, the fire waits count down by it
-  int fire_wait_[2];     // 0x8c, per side, before the next volley
-  int turret_count_;     // 0x94, of control 35
-  int unknown_98_;       // 0x98
-  EnmList list_9c_;      // 0x9c
-  EnmList list_b0_;      // 0xb0
-  EnmList lists_c4_[2];  // 0xc4
+  EnmState state_;           // 0x08
+  int turn_speed_;           // 0x84, of the turrets, per frame
+  int fire_rate_;            // 0x88, the fire waits count down by it
+  int fire_wait_[2];         // 0x8c, per side, before the next volley
+  int turret_count_;         // 0x94, of control 35
+  int turret_weight_;        // 0x98, the bursts of a turret: (this - depth) * 4
+  EnmProgram move_program_;  // 0x9c, EnmProgram::kMove...
+  EnmProgram turn_program_;  // 0xb0, EnmProgram::kTurn...
+  EnmProgram fire_programs_[2];  // 0xc4, per side, EnmProgram::kFire...
   // Parts of the boss in battle, per side.
-  int parts_alive_[2];    // 0xec
-  int unknown_f4_[2];     // 0xf4
-  int armored_parts_[2];  // 0xfc, of slots with flag 8
-  int unknown_104_[2];    // 0x104, with PartWork flag 0x20000
+  int parts_alive_[2];      // 0xec
+  int start_parts_[2];      // 0xf4, parts_alive_ when the battle started
+  int armored_parts_[2];    // 0xfc, of slots with flag 8
+  int transform_parts_[2];  // 0x104, with PartWork::kTransforms
   union {
     // While planning.
     struct {
@@ -368,18 +426,18 @@ class CEnmParam : public System {
   // Where the player is seen from the boss: 0 behind it (within 0x40 of
   // 0x200), 1 at its side (within 0x100), 2 in front.
   int player_dir_;             // 0x14c
-  int glow_time;               // 0x150, of the glow (control 22) of a part
+  int glow_time_;              // 0x150, of the glow (control 22) of a part
   int trans_count_;            // 0x154, parts that played trans1
-  int unknown_158_;            // 0x158
+  int dash_angle_;             // 0x158, of the last boosted dash
   int flare_time_;             // 0x15c, of control 23
   float flare_size_;           // 0x160, of control 23
-  int unknown_164_;            // 0x164
+  int flare_count_;            // 0x164, flares since the boosted dash
   int score_base_;             // 0x168
   int score_rapid_;            // 0x16c
   int score_chain_;            // 0x170
   int chain_count_;            // 0x174
   int rapid_count_;            // 0x178
-  int unknown_17c_;            // 0x17c
+  int unused_17c_;             // 0x17c, cleared by StartBattle(), not read
   int slot_capacity_;          // 0x180
   int record_capacity_;        // 0x184
   int slot_count_;             // 0x188
@@ -387,18 +445,19 @@ class CEnmParam : public System {
   EnmSlot* slots_;             // 0x190
   EnmDestroyRecord* records_;  // 0x194
   EnmPlan plan_;               // 0x198
-  EnmList list_218_;           // 0x218
+  EnmProgram tactic_program_;  // 0x218, op: the tactic id
   EnmTitle titles_[32];        // 0x22c, given so far
   int title_count_;            // 0x32c
   int deaths_;                 // 0x330
   int battle_time_;            // 0x334
-  int unknown_338_[3];         // 0x338, picks the order of new weapons
-  int unknown_344_;            // 0x344
-  float player_travel_;        // 0x348, sampled every 32 frames
-  float player_pos_[2];        // 0x34c, when last sampled
-  int player_samples_;         // 0x354
-  int new_weapon_;             // 0x358, added by Plan, or -1
-  int unknown_35c_;            // 0x35c
+  int dir_frames_[3];    // 0x338, frames by player_dir_; pick the order of new
+                         // weapons
+  int aimed_frames_;     // 0x344, frames with EnmState::kAimed
+  float player_travel_;  // 0x348, sampled every 32 frames
+  float player_pos_[2];  // 0x34c, when last sampled
+  int player_samples_;   // 0x354
+  int new_weapon_;       // 0x358, added by Plan, or -1
+  int unused_35c_;       // 0x35c, never used
 };
 
 extern CEnmParam g_enm_param;  // 0x4677b0

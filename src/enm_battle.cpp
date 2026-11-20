@@ -16,28 +16,28 @@ Actor* CEnmParam::StartBattle(Actor* player) {
   for (int i = slot_count_; i > 0; --i, ++slot) {
     slot->flags &= 0xffff;
   }
-  turn_speed_ = state_.unknown_2a_ * 2 / 1024 + 1;
-  fire_rate_ = state_.unknown_28_ * 50 / 1024 + 10;
+  turn_speed_ = state_.aim_speed * 2 / 1024 + 1;
+  fire_rate_ = state_.fire_speed * 50 / 1024 + 10;
   state_.flags &= 0xffff0000;
   fire_wait_[1] = 0;
   fire_wait_[0] = 0;
   turret_count_ = 0;
-  unknown_98_ = state_.max_depth * 2;
-  if (unknown_98_ < 5) {
-    unknown_98_ = 5;
+  turret_weight_ = state_.max_depth * 2;
+  if (turret_weight_ < 5) {
+    turret_weight_ = 5;
   }
   battle_time_ = 0;
-  unknown_344_ = 0;
+  aimed_frames_ = 0;
   deaths_ = 0;
-  unknown_338_[2] = 0;
-  unknown_338_[1] = 0;
-  unknown_338_[0] = 0;
+  dir_frames_[2] = 0;
+  dir_frames_[1] = 0;
+  dir_frames_[0] = 0;
   score_chain_ = 0;
   score_rapid_ = 0;
   score_base_ = 0;
   rapid_count_ = 0;
   chain_count_ = 0;
-  unknown_17c_ = 0;
+  unused_17c_ = 0;
   player_samples_ = 0;
   player_travel_ = 0.0f;
   player_pos_[0] = player->transform->m[2][0];
@@ -45,21 +45,21 @@ Actor* CEnmParam::StartBattle(Actor* player) {
   for (int i = 0; i < 7; ++i) {
     core_power_[0][i] = core_power_[1][i] = 0;
   }
-  list_9c_.op = 0;
-  list_b0_.op = 0;
-  lists_c4_[0].op = 0;
-  lists_c4_[1].op = 0;
-  list_218_.Start(0, 0);
+  move_program_.op = 0;
+  turn_program_.op = 0;
+  fire_programs_[0].op = 0;
+  fire_programs_[1].op = 0;
+  tactic_program_.Start(0, 0);
   EnmSlot* core = g_enm_param.FindSlot(kSideMask);
   core_count_ = 0;
   parts_alive_[0] = parts_alive_[1] = 0;
   armored_parts_[0] = armored_parts_[1] = 0;
-  unknown_104_[0] = unknown_104_[1] = 0;
+  transform_parts_[0] = transform_parts_[1] = 0;
   Actor* boss = g_actor_system.Create(-32, NULL, 320.0f, -480.0f, 4, 0, core);
   --parts_alive_[0];
   core_total_ = core_count_;
-  unknown_f4_[0] = parts_alive_[0];
-  unknown_f4_[1] = parts_alive_[1];
+  start_parts_[0] = parts_alive_[0];
+  start_parts_[1] = parts_alive_[1];
   trans_count_ = 0;
   return boss;
 }
@@ -95,67 +95,67 @@ void CEnmParam::RunBattle(Actor* player, Actor* boss) {
     player_dir_ = 2;
   }
   ++battle_time_;
-  ++unknown_338_[player_dir_];
-  if (state_.flags & 1) {
-    ++unknown_344_;
+  ++dir_frames_[player_dir_];
+  if (state_.flags & EnmState::kAimed) {
+    ++aimed_frames_;
   }
-  if (state_.flags & 0x100) {
+  if (state_.flags & EnmState::kBattle) {
     int over;
-    switch (list_218_.op) {
+    switch (tactic_program_.op) {
       case 0:
-        over = Tactic4161d0(boss);
+        over = TacticRoam(boss);
         break;
       case 1:
-        over = Tactic4162f0(boss);
+        over = TacticDashFlip(boss);
         break;
       case 2:
-        over = Tactic416560(boss);
+        over = TacticCharge(boss);
         break;
       case 3:
-        over = Tactic416630(boss);
+        over = TacticRearSparks(boss);
         break;
       case 4:
-        over = Tactic4167a0(boss);
+        over = TacticStream(boss);
         break;
       case 5:
-        over = Tactic4168e0(boss);
+        over = TacticRapidFire(boss);
         break;
       case 6:
-        over = Tactic417430(boss);
+        over = TacticGlowArmor(boss);
         break;
       case 7:
-        over = Tactic4169c0(boss);
+        over = TacticSpinDash(boss);
         break;
       case 8:
-        over = Tactic417520(boss);
+        over = TacticTransform(boss);
         break;
       case 18:
-        over = Tactic4170c0(boss);
+        over = TacticLastStand(boss);
         break;
       case 9:
-        over = Tactic416ac0(boss);
+        over = TacticChargeRearSparks(boss);
         break;
       case 10:
-        over = Tactic416cb0(boss);
+        over = TacticChargeFlip(boss);
         break;
       case 11:
-        over = Tactic416e10(boss);
+        over = TacticRepeatCharge(boss);
         break;
       case 12:
       case 13:
         over = 1;
         break;
       case 14:
-        over = Tactic417010(boss);
+        over = TacticSpin(boss);
         break;
       case 15:
-        over = Tactic4175d0(boss);
+        over = TacticSpinGlowSparks(boss);
         break;
       case 16:
-        over = Tactic4176f0(boss);
+        over = TacticGlowRapidFire(boss);
         break;
       case 17:
-        over = Tactic4177e0(boss);
+        over = TacticSpinRam(boss);
         break;
       default:
         over = 0;
@@ -163,24 +163,24 @@ void CEnmParam::RunBattle(Actor* player, Actor* boss) {
     }
     if (over) {
       int next;
-      if (state_.step_count <= 1) {
+      if (state_.tactic_count <= 1) {
         next = 0;
       } else if (IsSideBeaten(boss, 0)) {
         next = 1;
       } else {
         do {
-          int pick = rand() % state_.step_total;
-          for (int i = 0; i < state_.step_count; ++i) {
-            next = state_.steps[i][0];
-            if (pick < state_.steps[i][1]) {
+          int pick = rand() % state_.tactic_weight;
+          for (int i = 0; i < state_.tactic_count; ++i) {
+            next = state_.tactics[i][0];
+            if (pick < state_.tactics[i][1]) {
               break;
             }
           }
-        } while (next == list_218_.op);
+        } while (next == tactic_program_.op);
       }
-      list_218_.Start(next, 0);
+      tactic_program_.Start(next, 0);
     } else {
-      --list_218_.time;
+      --tactic_program_.time;
     }
   }
   if (fire_wait_[0] > 0) {

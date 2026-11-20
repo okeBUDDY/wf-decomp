@@ -223,8 +223,7 @@ int ScoredControl::Prepare(Actor* actor, void* param) {
   work->slot = static_cast<EnmSlot*>(param);
   work->flags = 0;
   actor->hit_points = GetHitPoints(actor);
-  actor->hit_points +=
-      actor->hit_points * g_enm_param.state_.unknown_26_ / 1024;
+  actor->hit_points += actor->hit_points * g_enm_param.state_.toughness / 1024;
   return 1;
 }
 
@@ -309,7 +308,7 @@ int LinkedPartControl::SpawnChildren(Actor* actor, unsigned int base,
 int LinkedPartControl::SpawnGlow(Actor* actor) {
   return g_actor_system.Create(
              22, actor, 0.0f, 0.0f, 5, 0,
-             reinterpret_cast<void*>(g_enm_param.glow_time)) != NULL;
+             reinterpret_cast<void*>(g_enm_param.glow_time_)) != NULL;
 }
 
 // 0x418ef0
@@ -402,7 +401,7 @@ int PartControl::InitPart(Actor* actor, void* param) {
   int side = (work->slot->code & CEnmParam::kSideMask) == 0x80000000;
   ++g_enm_param.parts_alive_[side];
   if (work->flags & 0x20000) {
-    ++g_enm_param.unknown_104_[side];
+    ++g_enm_param.transform_parts_[side];
   }
   if (work->slot->flags & 8) {
     ++g_enm_param.armored_parts_[side];
@@ -555,7 +554,7 @@ void PartControl::OnDestroy(Actor* actor) {
   int side = (work->slot->code & CEnmParam::kSideMask) == 0x80000000;
   --g_enm_param.parts_alive_[side];
   if (work->flags & 0x20000) {
-    --g_enm_param.unknown_104_[side];
+    --g_enm_param.transform_parts_[side];
   }
   if (work->flags & 0x40000) {
     --g_enm_param.armored_parts_[side];
@@ -590,7 +589,7 @@ void CorePartControl::OnDestroy(Actor* actor) {
 void PartControl::SpawnFlare(Actor* actor) {
   unsigned short angle =
       Control32::boss_->AngleTo(actor->screen.m[2][0], actor->screen.m[2][1]);
-  short offset = (g_enm_param.unknown_158_ - angle) & 0x3ff;
+  short offset = (g_enm_param.dash_angle_ - angle) & 0x3ff;
   if (offset > 0x100 && offset < 0x300) {
     if (actor->transform != &actor->screen) {
       angle = actor->parent->ToLocalAngle(angle);
@@ -602,7 +601,7 @@ void PartControl::SpawnFlare(Actor* actor) {
       }
     }
     g_actor_system.Create(23, actor, 0.0f, 0.0f, 1, angle, NULL);
-    ++g_enm_param.unknown_164_;
+    ++g_enm_param.flare_count_;
   }
 }
 
@@ -684,7 +683,7 @@ int PartControl::MovePart(Actor* actor) {
       turret->TurnTo(g_player, g_enm_param.turn_speed_);
       turret->angle = turret->ClampAngle(turret->angle, work->low, work->high);
       if (old_angle == turret->angle) {
-        g_enm_param.state_.flags |= 1;
+        g_enm_param.state_.flags |= EnmState::kAimed;
         if (work->state == 7) {
           OnDamage(actor, 5);
         }
@@ -762,15 +761,16 @@ int LinkedPartControl::OnMove(Actor* actor) {
   }
   switch (work->state_time) {
     case 0:
-      if (g_enm_param.glow_time < 120) {
-        g_enm_param.glow_time = 120;
+      if (g_enm_param.glow_time_ < 120) {
+        g_enm_param.glow_time_ = 120;
       }
       SpawnGlow(actor);
       for (Actor* child = actor->first_child; child != NULL;
            child = child->prev_sibling) {
         if (static_cast<HLSPat*>(child->sprite)->empty()) {
-          g_actor_system.Create(22, child, 0.0f, 0.0f, 5, 0,
-                                reinterpret_cast<void*>(g_enm_param.glow_time));
+          g_actor_system.Create(
+              22, child, 0.0f, 0.0f, 5, 0,
+              reinterpret_cast<void*>(g_enm_param.glow_time_));
         }
       }
       g_application.sound->channel(24)->Assign(&g_sounds[kSndBarrier], 0, 1.0f);
@@ -785,7 +785,7 @@ int LinkedPartControl::OnMove(Actor* actor) {
         if (actor->team == 0x61) {
           actor->team = 0xe1;
         }
-        work->unknown_1e_ = g_enm_param.glow_time - 120;
+        work->unknown_1e_ = g_enm_param.glow_time_ - 120;
         ++work->state_time;
       }
       break;
@@ -879,8 +879,7 @@ short Actor::AngleTo(float x, float y) {
   if (dx == 0.0f && dy == 0.0f) {
     return angle;
   }
-  unsigned short result =
-      0x100 - static_cast<int>(atan2(dy, dx) * -162.97466f);
+  unsigned short result = 0x100 - static_cast<int>(atan2(dy, dx) * -162.97466f);
   return transform == &screen ? result : parent->ToLocalAngle(result);
 }
 

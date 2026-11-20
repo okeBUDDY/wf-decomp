@@ -17,9 +17,9 @@ short g_weapon_order[3][7] = {
     {0, 3, 1, 6, 2, 4, 5},
 };
 
-// The length of each step; steps from 9 on have the length of step 9
-// (0x45d990).
-char g_step_costs[12] = {1, 1, 1, 1, 1, 1, 3, 1, 3, 5, 0, 0};
+// The weights of the tactics in the pick of RunBattle(); tactics from 9 on
+// have the weight of tactic 9 (0x45d990).
+char g_tactic_weights[12] = {1, 1, 1, 1, 1, 1, 3, 1, 3, 5, 0, 0};
 
 // 0x419e60
 CEnmParam::CEnmParam() {
@@ -50,11 +50,11 @@ int CEnmParam::GetParams(short* out) {
   int side0 = side->Score() * 800 / total;
   ++side;
   out[0] = side->Score() * 800 / total;
-  out[1] = state_.unknown_2a_;
-  out[2] = static_cast<short>((state_.unknown_24_ - 200) * 1.5f);
+  out[1] = state_.aim_speed;
+  out[2] = static_cast<short>((state_.body_hit_points - 200) * 1.5f);
   out[3] = side0;
-  out[4] = state_.unknown_28_;
-  out[5] = state_.unknown_26_;
+  out[4] = state_.fire_speed;
+  out[5] = state_.toughness;
   for (int i = 6; i < count; ++i) {
     out[i] = state_.weapon_levels[state_.weapons[i - 6]];
   }
@@ -107,21 +107,21 @@ void CEnmParam::Count(EnmSlot* slot, int side) {
     slot->high = part->high;
   }
   if (part->flags & 0x100) {
-    state_.flags |= 0x10000;
+    state_.flags |= EnmState::kArmor;
     slot->flags |= 8;
   }
   if (slot->part->flags & 0x20) {
-    state_.flags |= 0x20000;
+    state_.flags |= EnmState::kTransform;
   }
   switch (slot->kind & 0xff0000) {
     case 0x10000:
-      ++state_.sides[side].unknown_02_;
+      ++state_.sides[side].attack_kills;
       break;
     case 0x20000:
-      ++state_.sides[side].unknown_04_;
+      ++state_.sides[side].wide_kills;
       break;
     case 0x40000:
-      ++state_.sides[side].unknown_08_;
+      ++state_.sides[side].rapid_kills;
       break;
   }
   slot->hits = 0;
@@ -224,13 +224,13 @@ void CEnmParam::LogDestroy(EnmSlot* slot, int chain, int rapid) {
       EnmSideStats* side =
           &state_.sides[(slot->code & kSideMask) == 0x80000000];
       if (side->mode == 0) {
-        ++side->unknown_08_;
+        ++side->rapid_kills;
       }
-      AddClamped(&state_.unknown_26_, rapid * 7);
-      AddClamped(&state_.unknown_2a_, rapid * -5);
+      AddClamped(&state_.toughness, rapid * 7);
+      AddClamped(&state_.aim_speed, rapid * -5);
     }
     if (chain == 1) {
-      AddClamped(&state_.unknown_26_, rapid);
+      AddClamped(&state_.toughness, rapid);
     }
   }
 }
@@ -304,7 +304,7 @@ void CEnmParam::Grow(EnmSlot* parent, unsigned int code, int kind) {
     CountPart(slot);
     return;
   }
-  if ((state_.flags & 0x10000) && !(slot->flags & 8)) {
+  if ((state_.flags & EnmState::kArmor) && !(slot->flags & 8)) {
     int limit;
     if (slot->kind & 0x40000) {
       limit = 3;
@@ -369,7 +369,7 @@ void CEnmParam::OnActorDestroyed(Actor* source, Actor* actor) {
       g_enm_param.state_.weapon_levels[slot->weapon] = slot->power;
     }
   }
-  AddClamped(&g_enm_param.state_.unknown_26_, -50);
+  AddClamped(&g_enm_param.state_.toughness, -50);
   ++g_global.entry.deaths;
   ++g_enm_param.deaths_;
 }
@@ -438,19 +438,19 @@ int CEnmParam::Initialize(Application* app) {
   return 1;
 }
 
-void CEnmParam::AddStep(int id) {
-  int count = state_.step_count;
-  if (!(state_.step_mask & (1 << id))) {
-    state_.steps[count][0] = id;
-    int cost = g_step_costs[id < 9 ? id : 9];
+void CEnmParam::AddTactic(int id) {
+  int count = state_.tactic_count;
+  if (!(state_.tactic_mask & (1 << id))) {
+    state_.tactics[count][0] = id;
+    int cost = g_tactic_weights[id < 9 ? id : 9];
     if (count == 0) {
-      state_.steps[count][1] = cost;
+      state_.tactics[count][1] = cost;
     } else {
-      state_.steps[count][1] = state_.steps[count - 1][1] + cost;
+      state_.tactics[count][1] = state_.tactics[count - 1][1] + cost;
     }
-    ++state_.step_count;
-    state_.step_total += cost;
-    state_.step_mask |= 1 << id;
+    ++state_.tactic_count;
+    state_.tactic_weight += cost;
+    state_.tactic_mask |= 1 << id;
   }
 }
 
@@ -466,14 +466,14 @@ void CEnmParam::Plan(int score) {
     battle_time_ = 1;
   }
   float travel = player_travel_ / player_samples_;
-  float rate = static_cast<float>(unknown_344_) / battle_time_;
+  float rate = static_cast<float>(aimed_frames_) / battle_time_;
   int count = static_cast<unsigned int>(score) / 300000 + 2;
   int add = __min(static_cast<int>(travel), 50);
-  AddClamped(&state_.unknown_28_, add);
-  AddClamped(&state_.unknown_2a_, static_cast<int>(rate * 100.0f));
-  state_.unknown_24_ += state_.unknown_26_ * 70 / 1024 + 10;
-  if (state_.unknown_24_ > 1200) {
-    state_.unknown_24_ = 1200;
+  AddClamped(&state_.fire_speed, add);
+  AddClamped(&state_.aim_speed, static_cast<int>(rate * 100.0f));
+  state_.body_hit_points += state_.toughness * 70 / 1024 + 10;
+  if (state_.body_hit_points > 1200) {
+    state_.body_hit_points = 1200;
   }
 
   unsigned int kinds[2];
@@ -484,14 +484,13 @@ void CEnmParam::Plan(int score) {
       (g_global.stage <= 1 ||
        (left > 0 && g_global.stage >= state_.weapon_count * 2 - 2))) {
     int order;
-    if (unknown_338_[0] > unknown_338_[1] &&
-        unknown_338_[0] > unknown_338_[2]) {
+    if (dir_frames_[0] > dir_frames_[1] && dir_frames_[0] > dir_frames_[2]) {
       order = 0;
-    } else if (unknown_338_[1] > unknown_338_[0] &&
-               unknown_338_[1] > unknown_338_[2]) {
+    } else if (dir_frames_[1] > dir_frames_[0] &&
+               dir_frames_[1] > dir_frames_[2]) {
       order = 1;
-    } else if (unknown_338_[2] > unknown_338_[0] &&
-               unknown_338_[2] > unknown_338_[1]) {
+    } else if (dir_frames_[2] > dir_frames_[0] &&
+               dir_frames_[2] > dir_frames_[1]) {
       order = 2;
     } else {
       order = rand() % 3;
@@ -524,21 +523,21 @@ void CEnmParam::Plan(int score) {
   EnmSideStats* side = state_.sides;
   for (int i = 0; i < 2; ++i, ++side) {
     if (side->mode == 0) {
-      if (side->unknown_08_ >= plan_.kind_counts_[2]) {
+      if (side->rapid_kills >= plan_.kind_counts_[2]) {
         side->mode = 4;
       } else {
         switch (kinds[i] & 0xff0000) {
           case 0x10000:
-            if (side->unknown_02_ >= plan_.kind_counts_[0]) {
+            if (side->attack_kills >= plan_.kind_counts_[0]) {
               side->mode = 1;
-            } else if (side->unknown_04_ >= plan_.kind_counts_[1]) {
+            } else if (side->wide_kills >= plan_.kind_counts_[1]) {
               side->mode = 2;
             }
             break;
           case 0x20000:
-            if (side->unknown_04_ >= plan_.kind_counts_[1]) {
+            if (side->wide_kills >= plan_.kind_counts_[1]) {
               side->mode = 2;
-            } else if (side->unknown_02_ >= plan_.kind_counts_[0]) {
+            } else if (side->attack_kills >= plan_.kind_counts_[0]) {
               side->mode = 1;
             }
             break;
@@ -546,7 +545,7 @@ void CEnmParam::Plan(int score) {
       }
       if (side->mode != 0) {
         // A new mode starts its own count.
-        side->unknown_08_ = 0;
+        side->rapid_kills = 0;
       }
     }
   }
@@ -562,21 +561,21 @@ void CEnmParam::Plan(int score) {
   for (int i = 0; i < 2; ++i, ++side) {
     switch (side->mode) {
       case 1:
-        side->progress = side->unknown_02_ * 100 /
+        side->progress = side->attack_kills * 100 /
                          (plan_.kind_counts_[0] + plan_.kind_counts_[3]);
         break;
       case 2:
-        side->progress = side->unknown_04_ * 100 /
+        side->progress = side->wide_kills * 100 /
                          (plan_.kind_counts_[1] + plan_.kind_counts_[4]);
         break;
       case 3:
         side->progress =
-            (side->unknown_08_ + side->unknown_04_ + side->unknown_02_) * 100 /
+            (side->rapid_kills + side->wide_kills + side->attack_kills) * 100 /
             (plan_.kind_counts_[5] + plan_.kind_counts_[1] +
              plan_.kind_counts_[0]);
         break;
       case 4:
-        side->progress = (side->unknown_02_ + side->unknown_04_) * 100 /
+        side->progress = (side->attack_kills + side->wide_kills) * 100 /
                          (plan_.kind_counts_[0] + plan_.kind_counts_[1] +
                           plan_.kind_counts_[3] + plan_.kind_counts_[4]);
         break;
@@ -587,67 +586,69 @@ void CEnmParam::Plan(int score) {
   }
 
   if (g_global.stage >= 1) {
-    AddStep(1);
+    AddTactic(1);
   }
-  if (state_.flags & 0x10000) {
-    AddStep(6);
+  if (state_.flags & EnmState::kArmor) {
+    AddTactic(6);
   }
-  int mode0 = state_.sides[0].mode;
-  int mode1 = state_.sides[1].mode;
+  // The modes of the sides that have grown to at least 65%.
+  int side0_mode = state_.sides[0].mode;
+  int side1_mode = state_.sides[1].mode;
   if (state_.sides[0].progress < 65) {
-    mode0 = 0;
+    side0_mode = 0;
   }
   if (state_.sides[1].progress < 65) {
-    mode1 = 0;
+    side1_mode = 0;
   }
-  if ((state_.flags & 0x20000) && (mode0 != 0 || mode1 != 0)) {
-    AddStep(8);
+  if ((state_.flags & EnmState::kTransform) &&
+      (side0_mode != 0 || side1_mode != 0)) {
+    AddTactic(8);
   }
-  if (mode0 & 1) {
-    AddStep(2);
-    if (mode1 & 1) {
-      AddStep(9);
+  if (side0_mode & 1) {
+    AddTactic(2);
+    if (side1_mode & 1) {
+      AddTactic(9);
     }
-    if (mode1 & 2) {
-      AddStep(10);
+    if (side1_mode & 2) {
+      AddTactic(10);
     }
-    if (mode1 & 4) {
-      AddStep(11);
-    }
-  }
-  if (mode0 & 2) {
-    AddStep(4);
-    AddStep(5);
-    if (mode1 & 1) {
-      AddStep(12);
-    }
-    if (mode1 & 2) {
-      AddStep(13);
-    }
-    if (mode1 & 4) {
-      AddStep(14);
+    if (side1_mode & 4) {
+      AddTactic(11);
     }
   }
-  if (mode0 & 4) {
-    if (mode1 & 1) {
-      AddStep(15);
+  if (side0_mode & 2) {
+    AddTactic(4);
+    AddTactic(5);
+    if (side1_mode & 1) {
+      AddTactic(12);
     }
-    if (mode1 & 2) {
-      AddStep(16);
+    if (side1_mode & 2) {
+      AddTactic(13);
     }
-    if (mode1 & 4) {
-      AddStep(17);
+    if (side1_mode & 4) {
+      AddTactic(14);
     }
   }
-  if (mode1 & 1) {
-    AddStep(3);
+  if (side0_mode & 4) {
+    if (side1_mode & 1) {
+      AddTactic(15);
+    }
+    if (side1_mode & 2) {
+      AddTactic(16);
+    }
+    if (side1_mode & 4) {
+      AddTactic(17);
+    }
   }
-  if (mode1 & 4) {
-    AddStep(7);
+  if (side1_mode & 1) {
+    AddTactic(3);
   }
-  if (mode1 & 2) {
-    AddStep(4);
-    AddStep(5);
+  if (side1_mode & 4) {
+    AddTactic(7);
+  }
+  if (side1_mode & 2) {
+    AddTactic(4);
+    AddTactic(5);
   }
 
   for (int i = 0; i < 7; ++i) {
@@ -668,24 +669,24 @@ void CEnmParam::Plan(int score) {
 void CEnmParam::Reset() {
   memset(&state_, 0, sizeof(state_));
   state_.color = 0xff00ff00;
-  state_.unknown_24_ = 200;
+  state_.body_hit_points = 200;
   state_.max_depth = 0;
   slot_count_ = 0;
   for (int i = 0; i < slot_capacity_; ++i) {
     slots_[i].code = 0;
   }
-  state_.step_mask = 0x40000;
-  int count = state_.step_count;
-  state_.steps[count][0] = 0;
-  int step = g_step_costs[0];
+  state_.tactic_mask = 0x40000;
+  int count = state_.tactic_count;
+  state_.tactics[count][0] = 0;
+  int step = g_tactic_weights[0];
   if (count == 0) {
-    state_.steps[count][1] = step;
+    state_.tactics[count][1] = step;
   } else {
-    state_.steps[count][1] = state_.steps[count - 1][1] + step;
+    state_.tactics[count][1] = state_.tactics[count - 1][1] + step;
   }
-  state_.step_total += step;
-  ++state_.step_count;
-  state_.step_mask |= 1;
+  state_.tactic_weight += step;
+  ++state_.tactic_count;
+  state_.tactic_mask |= 1;
   AllocSlot(0xc0000000, 0);
   AllocSlot(0x40000000, 0);
   AllocSlot(0x80000000, 0);
