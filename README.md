@@ -287,7 +287,7 @@ Known compiler behaviour worth remembering:
 * **A local reference changes register choices (step 41).** `const short& from =
   actor->angle;` instead of a copy, `const unsigned int& new_count = ++count;`, and `const
   EnmSideStats& first = state_.sides[0];` each fixed an operand or CSE choice that no value
-  form reached (`Control32::RunTurnProgram`, `SoundSystem::Pause`, `CEnmParam::Plan`). A
+  form reached (`BossBodyControl::RunTurnProgram`, `SoundSystem::Pause`, `CEnmParam::Plan`). A
   reference that is only an alias of a local that is never modified changes nothing.
 * VC7.1 tracks which callee-saved registers a same-TU function clobbers and lets callers
   keep values in the others. A helper that the original calls (instead of inlining) and whose
@@ -321,16 +321,16 @@ Known compiler behaviour worth remembering:
   order, but a register constant (0, 1.0f, `true`) is loaded early and its stores move up
   when its first store comes early in the source. Moving one assignment (`SetScale()` right
   after the rotation in `Node::Node`, `unknown_18_ = 0` after the scale in `HLSurface()`,
-  `team` before `angle` in `Control23::OnCreate`) fixed register and vtable-store order.
+  `team` before `angle` in `FlareControl::OnCreate`) fixed register and vtable-store order.
   Trying every single-line move of a block is cheap and often finds it.
 * A `memset` of a struct sits right before that struct's field stores; hoisting all the
-  memsets to the top changes the constant CSE (`Control42::Initialize`). A getter result
+  memsets to the top changes the constant CSE (`LaserCoreControl::Initialize`). A getter result
   stored after the null-check merge (one store, not one per branch) went through a local
-  (`HLSObject* sprite = ...Get(8)` in `Control16::Initialize`).
+  (`HLSObject* sprite = ...Get(8)` in `PlayerExplosionControl::Initialize`).
 * Copying two floats through the FPU (`fld` early, `fstp` late) instead of integer moves is
-  an inline setter with float parameters (`Actor::SetPosition` in `Control01::Load`).
+  an inline setter with float parameters (`Actor::SetPosition` in `PlayerControl::Load`).
 * `i / 48` compiled as a signed divide (`imul`/`sar`) rather than `mul`/`shr`: the loop
-  counted `i` from 0 to 48 and divided `i * 0x400 / 48` (`Control16::OnCreate`).
+  counted `i` from 0 to 48 and divided `i * 0x400 / 48` (`PlayerExplosionControl::OnCreate`).
 * An implicit or inline member is emitted by every TU that needs it, and LINK keeps the
   first object's copy. `~CEnmParam` (0x401b30) comes from `cglobal.cpp`, which defines
   `g_global`, `g_game`, `g_score_table` and `g_enm_param` and does not see `Finalize()`'s
@@ -344,7 +344,7 @@ Known compiler behaviour worth remembering:
   returns `short`).
 * `Actor::angle`, `start_angle` and `matrix_angle` are `short`, and `AngleTo()` returns
   `short`: the original reads them with `movsx` and compares two angles as words
-  (`cmp word ptr [eax+0x18], di`). With the `unsigned short` types `Control01::Fire` was 98
+  (`cmp word ptr [eax+0x18], di`). With the `unsigned short` types `PlayerControl::Fire` was 98
   instructions off (it matches now). Every matching function kept matching once `MovePart`'s
   `old_angle` local became a `short` too.
 * Two null-checked returns with a shared tail (`test`/`jmp` into the other's `jne`) are two
@@ -425,7 +425,7 @@ Known compiler behaviour worth remembering:
   in step 38.)
   (`HLSTxtSys::Measure` and `HLSurface::InitTextureFormats`, listed here before, matched
   in step 38.)
-  (`SoundSystem::Pause` and `Control32::RunTurnProgram` matched in step 41, see there.)
+  (`SoundSystem::Pause` and `BossBodyControl::RunTurnProgram` matched in step 41, see there.)
   `SoundSystem::Pause` (2 bytes, `or edx, edi` operands): the
   setter's operand order, `count + 1`, a separate `++count`, `count++` in the test, a
   function-scope `count`, a `const unsigned int&` to the flags, `&=`/`|=` statements in the
@@ -433,7 +433,7 @@ Known compiler behaviour worth remembering:
   have gone through a by-reference helper.
   `CEnmParam::Plan` is the original size; it spills `rate` in the prologue (the 0x20000 in
   ebp was fixed in step 41). (`FnGame::Initialize` matched in step 46.)
-  `Control32::RunTurnProgram` (15 instructions): only case 0x20004 is left. The
+  `BossBodyControl::RunTurnProgram` (15 instructions): only case 0x20004 is left. The
   original adds the turn into `from`'s register (`add ebx, eax; push ebx`), so the push of
   case 0x20001 stays its own; here it is `add eax, ebx; push eax` and the two pushes are
   cross-jumped. An `int from` gives the right add but loads `from` with `movsx` instead of
@@ -474,10 +474,10 @@ Known compiler behaviour worth remembering:
   `jmp` back from the bottom (`PartControl::OnDestroy`).
 * `mov al, [esi+0x34]; mov ecx, 1; test cl, al` is a flag test stored in a `bool` local
   (`bool dashing = (flags & kDashing) != 0; if (dashing)`); the plain `if (flags & 1)` gives
-  `test al, 1` (`Control32::RunMoveProgram`).
+  `test al, 1` (`BossBodyControl::RunMoveProgram`).
 * VC does not unroll loops with calls in them (it does fully unroll the six-pass arithmetic
   loop of `GameHud::UpdateChart`): four calls in a row in the original are four calls in the source
-  (`SendEvent()` to the arms in `Control32::Dash`). A `return 0` placed after all the other
+  (`SendEvent()` to the arms in `BossBodyControl::Dash`). A `return 0` placed after all the other
   code is `if (ok) { ...; return 1; } return 0;` rather than an early `if (!ok) return 0;`.
 * Dead parameter slots: VC7.1 puts spilled locals and temporaries into the slots of
   parameters that are dead, and a dead `short` parameter's slot is taken first, before the int
@@ -485,18 +485,18 @@ Known compiler behaviour worth remembering:
   `char_count` became an int (its member stays `short`): with the short parameter the whole
   assignment was rotated by one slot. Parameter and local names do not matter.
 * A global that only one file uses may also be a file-`static` that stands in for a static
-  member: `Control01::weapon_` (0x4690ec) is `g_player_weapon` in `player.cpp`. With the static
+  member: `PlayerControl::weapon_` (0x4690ec) is `g_player_weapon` in `player.cpp`. With the static
   member, the inlined `SelectWeapon()` either put the laser in the wrong register or loaded it
   after the store to the weapon; with the file-static, VC knows that the store does not alias
-  `laser->color`, which fixed `Control01::OnCreate` and `OnMove` (Load kept matching).
-* A local copy of a member next to the member itself: `Control32::Dash`'s brake formula
+  `laser->color`, which fixed `PlayerControl::OnCreate` and `OnMove` (Load kept matching).
+* A local copy of a member next to the member itself: `BossBodyControl::Dash`'s brake formula
   takes the acceleration from a local (`float acceleration = work->deceleration;`, declared in
   the `if`) and the deceleration from `work->deceleration` (v^2 = 2 d a b / (a + b), brake after
   v / a frames, with a == b here). The local is then homed in the dead `actor` slot and
   `distance2` in its own local, as in the original; with one name for both, VC kept one of the
   two on the FPU stack.
 * The author reuses variables, and a reused variable's longer life changes slots and
-  registers. `Control32::StartTurn` (16-bit `angle`, as its caller shows) stores the peak of a
+  registers. `BossBodyControl::StartTurn` (16-bit `angle`, as its caller shows) stores the peak of a
   short turn in `angle` itself (`angle = sqrt(...); turn_peak = angle; turn_end = angle * 2;`):
   `angle` then stays live and the `sqrt()` temporary goes into the dead `actor` slot (with
   `turn_peak` written directly it took `angle`'s slot). `HLSTxtSys::Print` turns the
@@ -508,7 +508,7 @@ Known compiler behaviour worth remembering:
   op on failure is `if (!Call(...)) { program->op = 0; } break;` in every case, with the
   common `++program->time` after the switch and the other path in an `else` (not an early
   `return`): VC cross-jumps the calls into one call site, which loads the parameter
-  registers once at the top (`Control32::RunMoveProgram` matched, `RunTurnProgram` is down to
+  registers once at the top (`BossBodyControl::RunMoveProgram` matched, `RunTurnProgram` is down to
   one register). The `++program->time; return;` per case kept separate tails.
 * `fcomp; fnstsw ax; test ah, 0x41; jp` is `if (x <= 0.0f)`; `!(x > 0.0f)` gives `je`
   (they differ only for NaN). A `PartWork* part` local for `part->flags |= ...`, instead
@@ -521,7 +521,7 @@ Known compiler behaviour worth remembering:
   locals: `HLSPatFile::Load` matched with the pattern record's locals declared at function
   scope and the header's highest id read into the same `id` local. Scope does not change
   register choice (`HLSurface::Load`, `CEnmParam::Grow`, `HLSTxtSys::Measure`,
-  `Control32::Dash` and `SoundSystem::Pause` were tried).
+  `BossBodyControl::Dash` and `SoundSystem::Pause` were tried).
 * The mangled names are made up, so parameter types are free as long as the callee still
   matches. A short local passed to a short parameter is pushed with a dword load; the
   original's `movsx` before the push means the parameter was an int (`HLSPatSys::Create`'s
@@ -540,7 +540,7 @@ Known compiler behaviour worth remembering:
   and ends with `if (next[0] == 0) { if (first[0] != 0) copy first; else return 0; } else
   copy next;`.
 * A negation computed before an `if` whose two branches use it (`fld; fchs` above the `je`)
-  is a local declared in each branch (`float left = -offset;` in `Control01::Fire`): VC
+  is a local declared in each branch (`float left = -offset;` in `PlayerControl::Fire`): VC
   hoists the two negations and stores `offset` with `fstp`/`fld`; one local before the `if`
   keeps it with `fst`, and `-offset + x` written in both branches becomes `x - offset`.
 * **Same-TU escape analysis; the draw helpers are header inlines (step 34).** VC7.1 lets a
@@ -636,7 +636,7 @@ Known compiler behaviour worth remembering:
     a buffer local, a `while` loop and a function-scope channel. In `HLSurface::Load`, a
     `BytesPerPixel()`/`RowBytes()`/`RowSkip()` inline helper (every form), a `bits` local and
     `scale_y_ * x - x`: all keep the product order, and every named raw width still flips the
-    allocation (191). In `Control32::RunTurnProgram`, if/else forms of `off`, of the case
+    allocation (191). In `BossBodyControl::RunTurnProgram`, if/else forms of `off`, of the case
     0x20001 turn and of the final angle. In `CEnmParam::Plan`, if/else forms of the
     `AddTactic()` cost index and of the travel clamp, `rate` split into two statements or
     declared at the top, and `/Op` (69). In `FnGame::Initialize`, removing any one case,
@@ -674,7 +674,7 @@ Known compiler behaviour worth remembering:
     the load (edx). A 45-minute permuter run found nothing.
   * `SoundSystem::Pause`: an `unsigned short` getter or setter, `int` in both, an unsigned
     mask enum and a literal `0xffff0000` mask: none fixes it (2 bytes or worse).
-  * `Control32::RunTurnProgram`: a probe shows VC canonicalizes every expression form of `from
+  * `BossBodyControl::RunTurnProgram`: a probe shows VC canonicalizes every expression form of `from
     + off` (casts, `off += from`, a `to` local, a ternary for `off`). Only an int-typed
     `from` adds into from's register. A 45-minute permuter run found only `unsigned int
     from`, which is the known int case (12, with `movsx`).
@@ -922,7 +922,7 @@ Known compiler behaviour worth remembering:
     forms (`int parts = ++...`, `weapon_parts_[weapon]++`, an `int&`, an `int*`) stay at 87; the
     original keeps the tail's incremented count in edi (pushed in the prologue, with `this`
     in ebp and ebx pushed only in the else block), here edx.
-* **Step 41 (2 new matches: `SoundSystem::Pause`, `Control32::RunTurnProgram`; `CEnmParam::Plan` at 2 bytes).**
+* **Step 41 (2 new matches: `SoundSystem::Pause`, `BossBodyControl::RunTurnProgram`; `CEnmParam::Plan` at 2 bytes).**
   * **A local reference changes the destination of a commutative operation.** Both drafts
     had VC write `a op b` into the right operand's register where the original used the
     left one. `Pause` matched with `const unsigned int& new_count = ++count;
@@ -1026,7 +1026,7 @@ Known compiler behaviour worth remembering:
     including the `break`s and `MuteGroup()`) keeps eax for the input pointer. `tools/fas.py`
     hangs on `fn_game.cpp`, so use `multi_variants.py` or a clone's `compare.py` with
     `fdiff.py` for it.
-  * **`Control32::RunTurnProgram`:** a `Wrap(short&)` helper, a `Turn(const unsigned
+  * **`BossBodyControl::RunTurnProgram`:** a `Wrap(short&)` helper, a `Turn(const unsigned
     short&, const short&)` helper, and `*&from`/`*&off` all canonicalize to `add eax, ebx`.
   * **Leads.** `Grow`: look for a value that is live from the function entry or the top
     of the else block in the original without code there (it would also explain `code` in
@@ -1092,7 +1092,7 @@ Known compiler behaviour worth remembering:
     of `width_`/`height_` do not change it; neither does any order of the two saved locals and
     `result`. A 30-minute permuter run (after hand-fixing the `D3DDEVICEDESC7`/`DDCAPS`
     stubs in `base.c`) found nothing.
-  * `Control32::RunTurnProgram` and `Pause` look alike: in both, the original puts the result of
+  * `BossBodyControl::RunTurnProgram` and `Pause` look alike: in both, the original puts the result of
     a commutative operation (`from + off`, `(flags & ~mask) | count`) into the left operand's
     register where VC, with both operands dying, reuses the right one's. In `Pause` a later use
     of the right operand flips VC to the left; in `RunTurnProgram` a test store of `off` after the

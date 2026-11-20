@@ -154,38 +154,38 @@ class Actor {
   static DestroyHook destroy_hook_;  // 0x468ed0
   static DamageHook damage_hook_;    // 0x468ed4
 
-  unsigned int flags;           // 0x04, Flags, 0 when the slot is free
-  int hit_points;               // 0x08, negative while flashing
-  int low_hit_points;           // 0x0c, an eighth of the starting ones
-  unsigned short team;          // 0x10, Team
-  unsigned short age;           // 0x12, frames since creation
-  unsigned short hit_age;       // 0x14, the age when first hit
-  short debris;                 // 0x16, control of the debris actor
-  short angle;                  // 0x18
-  short start_angle;            // 0x1a
-  float speed;                  // 0x1c, along start_angle
-  float acceleration;           // 0x20
-  const FloatRect* bounds;      // 0x24, keeps it inside (or it dies outside
-                                // the screen)
-  HLSObject* sprite;            // 0x28
-  D3DCOLOR color;               // 0x2c
-  int work[0x10];               // 0x30, for the control
-  ActorControl* control;        // 0x70
-  unsigned short hit_id;        // 0x74
-  short id;                     // 0x76, control id
-  unsigned short layer;         // 0x78
-  short matrix_angle;           // 0x7a, the angle of the rotation in transform
-  float scale;                  // 0x7c
-  Actor* parent;                // 0x80
-  Actor* next_sibling;          // 0x84, the one created before
-  Actor* prev_sibling;          // 0x88, the one created after
-  Actor* first_child;           // 0x8c, the oldest
-  Actor* last_child;            // 0x90, the newest
-  Actor* draw_prev;             // 0x94
-  Actor* draw_next;             // 0x98
-  Transform* transform;         // 0x9c, &screen or &relative
-  Transform screen;             // 0xa0
-  Transform relative;           // 0xe0, to the parent
+  unsigned int flags;       // 0x04, Flags, 0 when the slot is free
+  int hit_points;           // 0x08, negative while flashing
+  int low_hit_points;       // 0x0c, an eighth of the starting ones
+  unsigned short team;      // 0x10, Team
+  unsigned short age;       // 0x12, frames since creation
+  unsigned short hit_age;   // 0x14, the age when first hit
+  short debris;             // 0x16, control of the debris actor
+  short angle;              // 0x18
+  short start_angle;        // 0x1a
+  float speed;              // 0x1c, along start_angle
+  float acceleration;       // 0x20
+  const FloatRect* bounds;  // 0x24, keeps it inside (or it dies outside
+                            // the screen)
+  HLSObject* sprite;        // 0x28
+  D3DCOLOR color;           // 0x2c
+  int work[0x10];           // 0x30, for the control
+  ActorControl* control;    // 0x70
+  unsigned short hit_id;    // 0x74
+  short id;                 // 0x76, control id
+  unsigned short layer;     // 0x78
+  short matrix_angle;       // 0x7a, the angle of the rotation in transform
+  float scale;              // 0x7c
+  Actor* parent;            // 0x80
+  Actor* next_sibling;      // 0x84, the one created before
+  Actor* prev_sibling;      // 0x88, the one created after
+  Actor* first_child;       // 0x8c, the oldest
+  Actor* last_child;        // 0x90, the newest
+  Actor* draw_prev;         // 0x94
+  Actor* draw_next;         // 0x98
+  Transform* transform;     // 0x9c, &screen or &relative
+  Transform screen;         // 0xa0
+  Transform relative;       // 0xe0, to the parent
 };
 
 #endif  // WF_ACTOR_H_

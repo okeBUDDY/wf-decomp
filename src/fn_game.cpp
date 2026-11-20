@@ -257,7 +257,7 @@ int FnGame::Initialize() {
   g_global.ClearStage();
   g_global.ResetGame();
   g_game.Start(&g_global.rules);
-  Control01::ResetWeapon();
+  PlayerControl::ResetWeapon();
   stage_score_ = 0;
   exit_time_ = 0;
   exit_frames_ = 0;

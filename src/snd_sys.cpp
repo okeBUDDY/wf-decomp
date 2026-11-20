@@ -337,8 +337,7 @@ void SoundSystem::Pause() {
     const unsigned int& new_count = ++count;
     channel->set_pause_count(new_count);
   }
-  for (CSndBuf* buffer = list->tail_; buffer != NULL;
-       buffer = buffer->prev_) {
+  for (CSndBuf* buffer = list->tail_; buffer != NULL; buffer = buffer->prev_) {
     buffer->Suspend();
   }
   if (primary_ != NULL) {

@@ -28,83 +28,83 @@ ActorControl::~ActorControl() {}
 
 // 0x40ff00
 int cGlobal::RegisterActorControls() {
-  if (!g_actor_system.Register(1, new Control01)) {
+  if (!g_actor_system.Register(1, new PlayerControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(8, new Control08)) {
+  if (!g_actor_system.Register(8, new EffectControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(16, new Control16)) {
+  if (!g_actor_system.Register(16, new PlayerExplosionControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(17, new Control17)) {
+  if (!g_actor_system.Register(17, new SmallExplosionControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(18, new Control18)) {
+  if (!g_actor_system.Register(18, new MediumExplosionControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(19, new Control19)) {
+  if (!g_actor_system.Register(19, new LargeExplosionControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(20, new Control20)) {
+  if (!g_actor_system.Register(20, new BossExplosionControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(21, new Control21)) {
+  if (!g_actor_system.Register(21, new SmokeControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(22, new Control22)) {
+  if (!g_actor_system.Register(22, new GlowControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(23, new Control23)) {
+  if (!g_actor_system.Register(23, new FlareControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(35, new Control35)) {
+  if (!g_actor_system.Register(35, new TurretControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(43, new Control43)) {
+  if (!g_actor_system.Register(43, new LaserControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(32, new Control32)) {
+  if (!g_actor_system.Register(32, new BossBodyControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(33, new Control33)) {
+  if (!g_actor_system.Register(33, new BossArmControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(34, new Control34)) {
+  if (!g_actor_system.Register(34, new JointPartControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(40, new Control40)) {
+  if (!g_actor_system.Register(40, new BulletCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(41, new Control41)) {
+  if (!g_actor_system.Register(41, new ShellCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(42, new Control42)) {
+  if (!g_actor_system.Register(42, new LaserCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(44, new Control44)) {
+  if (!g_actor_system.Register(44, new HomingCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(47, new Control47)) {
+  if (!g_actor_system.Register(47, new MissileCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(46, new Control46)) {
+  if (!g_actor_system.Register(46, new SparkCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(49, new Control49)) {
+  if (!g_actor_system.Register(49, new StreamCoreControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(45, new Control45)) {
+  if (!g_actor_system.Register(45, new HomingMissileControl)) {
     return 0;
   }
-  if (!g_actor_system.Register(48, new Control48)) {
+  if (!g_actor_system.Register(48, new MissileControl)) {
     return 0;
   }
   return 1;
 }
 
 // 0x410350
-int Control22::OnMove(Actor* actor) {
+int GlowControl::OnMove(Actor* actor) {
   GlowWork* work = reinterpret_cast<GlowWork*>(actor->work);
   float alpha;
   switch (work->state) {
@@ -146,7 +146,7 @@ int Control22::OnMove(Actor* actor) {
 }
 
 // 0x410470
-int Control22::OnCreate(Actor* actor, void* param) {
+int GlowControl::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
   actor->SetSprite(g_pats.add[0].Get(27));
@@ -176,22 +176,22 @@ void Actor::SetLayer(unsigned short new_layer) {
 }
 
 // 0x4104d0
-void Control16::OnDestroy(Actor* actor) { g_game.SpawnPlayer(); }
+void PlayerExplosionControl::OnDestroy(Actor* actor) { g_game.SpawnPlayer(); }
 
 // 0x4104e0
-int Control16::OnMove(Actor* actor) { return actor->age <= 60; }
+int PlayerExplosionControl::OnMove(Actor* actor) { return actor->age <= 60; }
 
 // 0x410500
-int Control17::OnMove(Actor* actor) { return actor->age <= 18; }
+int SmallExplosionControl::OnMove(Actor* actor) { return actor->age <= 18; }
 
 // 0x410520
-void Control20::OnDestroy(Actor* actor) { g_boss = NULL; }
+void BossExplosionControl::OnDestroy(Actor* actor) { g_boss = NULL; }
 
 // 0x4127c0
-void Control35::OnDestroy(Actor* actor) { --g_enm_param.turret_count_; }
+void TurretControl::OnDestroy(Actor* actor) { --g_enm_param.turret_count_; }
 
 // 0x412820
-int Control35::Initialize() {
+int TurretControl::Initialize() {
   memset(&desc_, 0, sizeof(desc_));
   desc_.color = 0xffffffff;
   HLSObject* sprite = g_pats.sys[0].Get(64);
@@ -205,13 +205,13 @@ int Control35::Initialize() {
 }
 
 // 0x412fa0
-void Control01::OnDestroy(Actor* actor) { g_game.OnPlayerDestroyed(); }
+void PlayerControl::OnDestroy(Actor* actor) { g_game.OnPlayerDestroyed(); }
 
 // 0x417c00 (this object, so the enm_param.cpp callers do not inline it)
 void CEnmParam::ClearTitles() { title_count_ = 0; }
 
-Actor* Control32::boss_;
-int Control32::weapons_[7];
+Actor* BossBodyControl::boss_;
+int BossBodyControl::weapons_[7];
 int CorePartControl::max_volley_time_;
 
 int g_core_controls[7] = {40, 41, 42, 44, 46, 47, 49};
@@ -587,8 +587,8 @@ void CorePartControl::OnDestroy(Actor* actor) {
 
 // 0x419850
 void PartControl::SpawnFlare(Actor* actor) {
-  unsigned short angle =
-      Control32::boss_->AngleTo(actor->screen.m[2][0], actor->screen.m[2][1]);
+  unsigned short angle = BossBodyControl::boss_->AngleTo(actor->screen.m[2][0],
+                                                         actor->screen.m[2][1]);
   short offset = (g_enm_param.dash_angle_ - angle) & 0x3ff;
   if (offset > 0x100 && offset < 0x300) {
     if (actor->transform != &actor->screen) {

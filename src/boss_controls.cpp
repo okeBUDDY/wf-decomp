@@ -17,7 +17,7 @@
 #include "sounds.h"
 
 // 0x411500
-int Control32::Initialize() {
+int BossBodyControl::Initialize() {
   bounds_.left = 64.0f;
   bounds_.top = 64.0f;
   bounds_.right = 576.0f;
@@ -26,12 +26,12 @@ int Control32::Initialize() {
 }
 
 // 0x411530
-int Control32::GetScore(Actor* actor) {
+int BossBodyControl::GetScore(Actor* actor) {
   return (g_global.stage * 10 + g_enm_param.state_.body_hit_points - 10) * 1000;
 }
 
 // 0x412b90
-int Control34::OnCreate(Actor* actor, void* param) {
+int JointPartControl::OnCreate(Actor* actor, void* param) {
   InitLinked(actor, param);
   PartWork* work = reinterpret_cast<PartWork*>(actor->work);
   unsigned int base = CEnmParam::ChildBase(work->slot->code);
@@ -51,7 +51,7 @@ int Control34::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x412c30
-int Control33::OnCreate(Actor* actor, void* param) {
+int BossArmControl::OnCreate(Actor* actor, void* param) {
   InitLinked(actor, param);
   SpawnChildren(actor,
                 CEnmParam::ChildBase(
@@ -71,8 +71,8 @@ static inline void Mirror(Actor* actor, unsigned int flag) {
 }
 
 // 0x4116f0
-int Control32::OnCreate(Actor* actor, void* param) {
-  Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
+int BossBodyControl::OnCreate(Actor* actor, void* param) {
+  BossBodyWork* work = reinterpret_cast<BossBodyWork*>(actor->work);
   boss_ = actor;
   InitLinked(actor, param);
   actor->hit_points = g_enm_param.state_.body_hit_points;
@@ -119,8 +119,8 @@ static inline void SendEvent(Actor* actor, int x, int y) {
 }
 
 // 0x411d10
-void Control32::OnEvent(Actor* actor, int x, int y) {
-  Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
+void BossBodyControl::OnEvent(Actor* actor, int x, int y) {
+  BossBodyWork* work = reinterpret_cast<BossBodyWork*>(actor->work);
   if (!(y & 0x400)) {
     SendEvent(work->arms[0], x, y);
     SendEvent(work->arms[1], x, y);
@@ -132,7 +132,7 @@ void Control32::OnEvent(Actor* actor, int x, int y) {
 }
 
 // 0x411550
-void Control32::OnDestroy(Actor* actor) {
+void BossBodyControl::OnDestroy(Actor* actor) {
   PartControl::OnDestroy(actor);
   if (!(g_game.flags() & Game::kGameOver)) {
     g_fn_game.SetState(40);
@@ -141,9 +141,9 @@ void Control32::OnDestroy(Actor* actor) {
 }
 
 // 0x411e20
-int Control32::Dash(Actor* actor, EnmProgram* program, float x, float y,
-                    float power, int boost) {
-  Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
+int BossBodyControl::Dash(Actor* actor, EnmProgram* program, float x, float y,
+                          float power, int boost) {
+  BossBodyWork* work = reinterpret_cast<BossBodyWork*>(actor->work);
   Transform* transform = actor->transform;
   float from_x = transform->m[2][0];
   float from_y = transform->m[2][1];
@@ -182,7 +182,7 @@ int Control32::Dash(Actor* actor, EnmProgram* program, float x, float y,
     actor->speed = 0.0f;
     actor->start_angle = actor->AngleTo(x, y);
     program->time = 0;
-    reinterpret_cast<PartWork*>(actor->work)->flags |= Control32Work::kDashing;
+    reinterpret_cast<PartWork*>(actor->work)->flags |= BossBodyWork::kDashing;
     if (boost) {
       g_enm_param.flare_count_ = 0;
       g_enm_param.dash_angle_ = actor->start_angle;
@@ -210,17 +210,17 @@ static __forceinline float DashPower(const EnmProgram* program) {
 }
 
 // 0x4120d0
-void Control32::RunMoveProgram(Actor* actor, EnmProgram* program) {
-  Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
+void BossBodyControl::RunMoveProgram(Actor* actor, EnmProgram* program) {
+  BossBodyWork* work = reinterpret_cast<BossBodyWork*>(actor->work);
   PartWork* part = reinterpret_cast<PartWork*>(actor->work);
-  bool dashing = (part->flags & Control32Work::kDashing) != 0;
+  bool dashing = (part->flags & BossBodyWork::kDashing) != 0;
   if (dashing) {
     if (work->brake_time != 0 && program->time >= work->brake_time) {
       actor->acceleration = -work->deceleration;
       work->brake_time = 0;
     }
     if (actor->speed <= 0.0f) {
-      part->flags &= ~Control32Work::kDashing;
+      part->flags &= ~BossBodyWork::kDashing;
       program->op = 0;
       ++program->time;
       return;
@@ -269,7 +269,7 @@ void Control32::RunMoveProgram(Actor* actor, EnmProgram* program) {
         actor->start_angle = program->arg;
         actor->speed = 1.6f;
         actor->acceleration = -0.02f;
-        part->flags |= Control32Work::kDashing;
+        part->flags |= BossBodyWork::kDashing;
         work->brake_time = 0;
         break;
       case EnmProgram::kMoveEnter:
@@ -300,7 +300,8 @@ void Control32::RunMoveProgram(Actor* actor, EnmProgram* program) {
 }
 
 // 0x4119d0
-void Control32::RunFireProgram(Actor* actor, EnmProgram* program, int side) {
+void BossBodyControl::RunFireProgram(Actor* actor, EnmProgram* program,
+                                     int side) {
   switch (program->op) {
     case EnmProgram::kFireAny: {
       if (g_enm_param.fire_wait_[side] > 0) {
@@ -420,13 +421,13 @@ void Control32::RunFireProgram(Actor* actor, EnmProgram* program, int side) {
 // Case EnmProgram::kTurnFace reads the start angle through a reference: a plain
 // copy makes VC add into `off`'s register and cross-jump the push of case
 // EnmProgram::kTurnFlip.
-void Control32::RunTurnProgram(Actor* actor, EnmProgram* program) {
-  Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
+void BossBodyControl::RunTurnProgram(Actor* actor, EnmProgram* program) {
+  BossBodyWork* work = reinterpret_cast<BossBodyWork*>(actor->work);
   PartWork* part = reinterpret_cast<PartWork*>(actor->work);
-  if (part->flags & Control32Work::kTurning) {
+  if (part->flags & BossBodyWork::kTurning) {
     if (program->time >= work->turn_end) {
       actor->angle = work->turn + work->turn_from;
-      part->flags &= ~Control32Work::kTurning;
+      part->flags &= ~BossBodyWork::kTurning;
       g_enm_param.state_.flags |= EnmState::kTurned;
       program->op = 0;
       return;
@@ -504,11 +505,11 @@ void Control32::RunTurnProgram(Actor* actor, EnmProgram* program) {
 }
 
 // 0x412400
-void Control32::OnChildDestroyed(Actor* parent, Actor* child) {
+void BossBodyControl::OnChildDestroyed(Actor* parent, Actor* child) {
   if (child->team != 0x61) {
     return;
   }
-  Control32Work* work = reinterpret_cast<Control32Work*>(parent->work);
+  BossBodyWork* work = reinterpret_cast<BossBodyWork*>(parent->work);
   if (child == work->arms[0]) {
     work->arms[0] = NULL;
   } else if (child == work->arms[1]) {
@@ -523,7 +524,7 @@ void Control32::OnChildDestroyed(Actor* parent, Actor* child) {
   if ((level >= 6 || level * 100 / part->level >= 40) &&
       (g_enm_param.state_.flags & EnmState::kBattle)) {
     // Knocked back, away from the lost part.
-    part->flags &= ~Control32Work::kDashing;
+    part->flags &= ~BossBodyWork::kDashing;
     g_enm_param.move_program_.Start(
         EnmProgram::kMoveRecoil,
         static_cast<short>(
@@ -537,7 +538,7 @@ void Control32::OnChildDestroyed(Actor* parent, Actor* child) {
 }
 
 // 0x412750
-int Control32::OnMove(Actor* actor) {
+int BossBodyControl::OnMove(Actor* actor) {
   if (g_enm_param.move_program_.op != 0) {
     RunMoveProgram(actor, &g_enm_param.move_program_);
   }
@@ -554,7 +555,7 @@ int Control32::OnMove(Actor* actor) {
 }
 
 // Actor::work of control 35, a turret of the boss.
-struct Control35Work {
+struct TurretWork {
   EnmSlot* slot;  // 0x30
   short burst;    // 0x34, bullets left in the burst
   short weight;   // 0x36, of the bursts
@@ -563,8 +564,8 @@ struct Control35Work {
 };
 
 // 0x4127d0
-void Control35::StartBurst(Actor* actor) {
-  Control35Work* work = reinterpret_cast<Control35Work*>(actor->work);
+void TurretControl::StartBurst(Actor* actor) {
+  TurretWork* work = reinterpret_cast<TurretWork*>(actor->work);
   work->angle = rand() & 0x3ff;
   work->burst = (g_enm_param.core_total_ - g_enm_param.core_count_) *
                 work->weight / g_enm_param.core_total_;
@@ -575,8 +576,8 @@ void Control35::StartBurst(Actor* actor) {
 }
 
 // 0x412880
-void Control35::FireRing(Actor* actor) {
-  Control35Work* work = reinterpret_cast<Control35Work*>(actor->work);
+void TurretControl::FireRing(Actor* actor) {
+  TurretWork* work = reinterpret_cast<TurretWork*>(actor->work);
   if (work->ring != 0 && g_enm_param.turret_count_ < 3 &&
       g_enm_param.core_count_ * 100 / g_enm_param.core_total_ < 50) {
     desc_.x = actor->screen.m[2][0];
@@ -594,11 +595,11 @@ void Control35::FireRing(Actor* actor) {
 }
 
 // 0x412950
-int Control35::OnCreate(Actor* actor, void* param) {
+int TurretControl::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
   actor->SetLayer(4);
-  Control35Work* work = reinterpret_cast<Control35Work*>(actor->work);
+  TurretWork* work = reinterpret_cast<TurretWork*>(actor->work);
   work->slot = static_cast<EnmSlot*>(param);
   work->weight =
       static_cast<short>(g_enm_param.turret_weight_ - work->slot->depth) << 2;
@@ -609,8 +610,8 @@ int Control35::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x4129c0
-int Control35::OnMove(Actor* actor) {
-  Control35Work* work = reinterpret_cast<Control35Work*>(actor->work);
+int TurretControl::OnMove(Actor* actor) {
+  TurretWork* work = reinterpret_cast<TurretWork*>(actor->work);
   if (work->burst != 0) {
     if (!(work->burst & 3)) {
       desc_.x = actor->screen.m[2][0];

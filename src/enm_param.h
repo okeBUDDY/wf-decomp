@@ -88,7 +88,7 @@ class EnmPlan {
 // A program the boss runs each frame (vtable 0x4514b0, 0x14 bytes): the
 // operation, its argument and how far it got. CEnmParam runs a tactic in
 // tactic_program_ (op = the tactic id), and the tactics start the move,
-// turn and fire programs that Control32 runs on the body.
+// turn and fire programs that BossBodyControl runs on the body.
 class EnmProgram {
  public:
   EnmProgram() {  // 0x419e40
@@ -368,7 +368,7 @@ class CEnmParam : public System {
   }
 
  private:
-  friend class Control01;
+  friend class PlayerControl;
 
   // Actor::destroy_hook_ while the game runs.
   static void OnActorDestroyed(Actor* source, Actor* actor);  // 0x41aa60

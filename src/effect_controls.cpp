@@ -31,14 +31,14 @@ struct EffectWork {
   }
 
 // 0x412c80
-int Control08::Initialize() {
+int EffectControl::Initialize() {
   HLSObject* sprite = g_pats.add[0].Get(1);
   default_.sprite = sprite;
   return 1;
 }
 
 // 0x412cb0
-int Control08::OnCreate(Actor* actor, void* param) {
+int EffectControl::OnCreate(Actor* actor, void* param) {
   EffectWork* work = reinterpret_cast<EffectWork*>(actor->work);
   const EffectDesc* desc = static_cast<const EffectDesc*>(param);
   if (desc == NULL) {
@@ -96,7 +96,7 @@ int Control08::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x412e70
-int Control08::OnMove(Actor* actor) {
+int EffectControl::OnMove(Actor* actor) {
   EffectWork* work = reinterpret_cast<EffectWork*>(actor->work);
   if (work->life != 0 && actor->age > work->life) {
     return 0;
@@ -134,7 +134,7 @@ struct FlareWork {
 extern EffectDesc g_flare_trail;  // 0x45d3e0
 
 // 0x411380
-int Control23::OnCreate(Actor* actor, void* param) {
+int FlareControl::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
   actor->angle = actor->start_angle;
@@ -146,7 +146,7 @@ int Control23::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x411450
-int Control23::OnMove(Actor* actor) {
+int FlareControl::OnMove(Actor* actor) {
   FlareWork* work = reinterpret_cast<FlareWork*>(actor->work);
   if (--work->timer <= 0) {
     return 0;

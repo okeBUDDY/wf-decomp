@@ -30,7 +30,7 @@ extern AnmData g_explosion_anim;   // 0x45d37c
 extern AnmData g_fragment_anim;    // 0x45d3a4
 
 // 0x410540
-int Control16::Initialize() {
+int PlayerExplosionControl::Initialize() {
   memset(&g_fragment_desc, 0, sizeof(g_fragment_desc));
   g_fragment_desc.color = 0xffffffff;
   g_fragment_desc.team = 0;
@@ -58,7 +58,7 @@ int Control16::Initialize() {
 }
 
 // 0x410640
-int Control16::OnCreate(Actor* actor, void* param) {
+int PlayerExplosionControl::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
   ++g_explosion_depth;
@@ -78,7 +78,7 @@ int Control16::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x410930
-int Control17::OnCreate(Actor* actor, void* param) {
+int SmallExplosionControl::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
   actor->SetSprite(g_anm_sys.Play(&g_explosion_anim));
@@ -97,7 +97,7 @@ int Control17::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x410a00
-int Control18::OnCreate(Actor* actor, void* param) {
+int MediumExplosionControl::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
   actor->SetLayer(8);
@@ -111,15 +111,15 @@ int Control18::OnCreate(Actor* actor, void* param) {
 }
 
 // Actor::work of control 19.
-struct Control19Work {
+struct LargeExplosionWork {
   Actor* pieces[3];  // 0x30
   short spins[3];    // 0x3c
   short alpha;       // 0x42
 };
 
 // 0x410710
-int Control19::OnMove(Actor* actor) {
-  Control19Work* work = reinterpret_cast<Control19Work*>(actor->work);
+int LargeExplosionControl::OnMove(Actor* actor) {
+  LargeExplosionWork* work = reinterpret_cast<LargeExplosionWork*>(actor->work);
   if (work->alpha > 0) {
     work->alpha -= 3;
   }
@@ -150,7 +150,7 @@ int Control19::OnMove(Actor* actor) {
 }
 
 // 0x410a80
-int Control18::OnMove(Actor* actor) {
+int MediumExplosionControl::OnMove(Actor* actor) {
   switch (actor->age) {
     case 4:
     case 8:
@@ -183,8 +183,8 @@ int Control18::OnMove(Actor* actor) {
 }
 
 // 0x410be0
-int Control19::OnCreate(Actor* actor, void* param) {
-  Control19Work* work = reinterpret_cast<Control19Work*>(actor->work);
+int LargeExplosionControl::OnCreate(Actor* actor, void* param) {
+  LargeExplosionWork* work = reinterpret_cast<LargeExplosionWork*>(actor->work);
   actor->hit_points = 1;
   actor->team = 0;
   actor->SetLayer(8);
@@ -218,7 +218,7 @@ int Control19::OnCreate(Actor* actor, void* param) {
 }
 
 // Actor::work of control 20.
-struct Control20Work {
+struct BossExplosionWork {
   Actor* core;      // 0x30
   Actor* rings[3];  // 0x34
   short spins[3];   // 0x40
@@ -226,8 +226,8 @@ struct Control20Work {
 };
 
 // 0x410d50
-int Control20::OnCreate(Actor* actor, void* param) {
-  Control20Work* work = reinterpret_cast<Control20Work*>(actor->work);
+int BossExplosionControl::OnCreate(Actor* actor, void* param) {
+  BossExplosionWork* work = reinterpret_cast<BossExplosionWork*>(actor->work);
   actor->hit_points = 1;
   actor->team = 0;
   actor->SetSprite(g_pats.sys[0].Get(32));
@@ -257,8 +257,8 @@ int Control20::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x410e70
-int Control20::OnMove(Actor* actor) {
-  Control20Work* work = reinterpret_cast<Control20Work*>(actor->work);
+int BossExplosionControl::OnMove(Actor* actor) {
+  BossExplosionWork* work = reinterpret_cast<BossExplosionWork*>(actor->work);
   switch (actor->age) {
     case 50:
     case 80:

@@ -16,18 +16,18 @@
 #include "sounds.h"
 
 // 0x413c30
-int Control48::OnMove(Actor* actor) {
+int MissileControl::OnMove(Actor* actor) {
   if (actor->speed <= 0.0f) {
     return 0;
   }
   return 1;
 }
 
-struct Control42Work;
+struct LaserCoreWork;
 
 // Actor::work of control 43, the laser of control 42.
-struct Control43Work {
-  Control42Work* owner;  // 0x30
+struct LaserWork {
+  LaserCoreWork* owner;  // 0x30
   float scale;           // 0x34, of the glow
   Actor* glow;           // 0x38, at the muzzle
   Actor* head;           // 0x3c, the first segment of the beam
@@ -36,8 +36,8 @@ struct Control43Work {
 };
 
 // 0x414430
-void Control43::OnDestroy(Actor* actor) {
-  switch (reinterpret_cast<Control43Work*>(actor->work)->sound) {
+void LaserControl::OnDestroy(Actor* actor) {
+  switch (reinterpret_cast<LaserWork*>(actor->work)->sound) {
     case 0:
       if (--sound_users_[0] == 0) {
         g_application.sound->channel(19)->Stop();
@@ -54,7 +54,7 @@ void Control43::OnDestroy(Actor* actor) {
 // Core controls -------------------------------------------------------------
 
 // Actor::work of control 40.
-struct Control40Work : PartWork {
+struct BulletCoreWork : PartWork {
   short interval;             // 0x54, frames of firing
   unsigned short fire_angle;  // 0x56
   short delay;                // 0x58, until the next round
@@ -63,8 +63,8 @@ struct Control40Work : PartWork {
 };
 
 // 0x4139c0
-void Control40::Setup(Actor* actor, int rank) {
-  Control40Work* work = reinterpret_cast<Control40Work*>(actor->work);
+void BulletCoreControl::Setup(Actor* actor, int rank) {
+  BulletCoreWork* work = reinterpret_cast<BulletCoreWork*>(actor->work);
   short interval = rank / 10 * 4 + 4;
   work->interval = interval;
   work->speed = 4.0f;
@@ -76,7 +76,7 @@ void Control40::Setup(Actor* actor, int rank) {
 }
 
 // 0x413a40
-int Control40::Initialize() {
+int BulletCoreControl::Initialize() {
   memset(&desc_, 0, sizeof(desc_));
   desc_.color = 0xffffffff;
   HLSObject* sprite = g_pats.sys[0].Get(64);
@@ -90,7 +90,7 @@ int Control40::Initialize() {
 }
 
 // 0x413aa0
-int Control40::OnCreate(Actor* actor, void* param) {
+int BulletCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(48));
   actor->debris = 17;
@@ -99,8 +99,8 @@ int Control40::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x413b00
-int Control40::OnMove(Actor* actor) {
-  Control40Work* work = reinterpret_cast<Control40Work*>(actor->work);
+int BulletCoreControl::OnMove(Actor* actor) {
+  BulletCoreWork* work = reinterpret_cast<BulletCoreWork*>(actor->work);
   if (work->state != kEventFire) {
     return MovePart(actor);
   }
@@ -131,20 +131,20 @@ int Control40::OnMove(Actor* actor) {
 }
 
 // Actor::work of control 47.
-struct Control47Work : PartWork {
+struct MissileCoreWork : PartWork {
   float speed;  // 0x54, of the missiles
   short delay;  // 0x58
 };
 
 // 0x413be0
-void Control47::Setup(Actor* actor, int rank) {
-  Control47Work* work = reinterpret_cast<Control47Work*>(actor->work);
+void MissileCoreControl::Setup(Actor* actor, int rank) {
+  MissileCoreWork* work = reinterpret_cast<MissileCoreWork*>(actor->work);
   work->speed = rank * 0.05f + 5.0f;
   work->delay = 240 - rank * 150 / 100;
 }
 
 // 0x413c60
-int Control47::OnCreate(Actor* actor, void* param) {
+int MissileCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(53));
   actor->debris = 17;
@@ -153,8 +153,8 @@ int Control47::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x413cc0
-int Control47::OnMove(Actor* actor) {
-  Control47Work* work = reinterpret_cast<Control47Work*>(actor->work);
+int MissileCoreControl::OnMove(Actor* actor) {
+  MissileCoreWork* work = reinterpret_cast<MissileCoreWork*>(actor->work);
   if (work->state != kEventFire) {
     return MovePart(actor);
   }
@@ -166,16 +166,16 @@ int Control47::OnMove(Actor* actor) {
 }
 
 // Actor::work of control 48.
-struct Control48Work {
-  int unused[2];            // 0x30, not set: a missile carries no EnmSlot
-                            // in work[0], unlike the bullets
-  Control47Work* launcher;  // 0x38
+struct MissileWork {
+  int unused[2];              // 0x30, not set: a missile carries no EnmSlot
+                              // in work[0], unlike the bullets
+  MissileCoreWork* launcher;  // 0x38
 };
 
 // 0x413d50
-int Control48::OnCreate(Actor* actor, void* param) {
-  Control48Work* work = reinterpret_cast<Control48Work*>(actor->work);
-  work->launcher = static_cast<Control47Work*>(param);
+int MissileControl::OnCreate(Actor* actor, void* param) {
+  MissileWork* work = reinterpret_cast<MissileWork*>(actor->work);
+  work->launcher = static_cast<MissileCoreWork*>(param);
   actor->team = 0x61;
   actor->debris = 19;
   actor->SetSprite(g_pats.sys[0].Get(67));
@@ -186,17 +186,17 @@ int Control48::OnCreate(Actor* actor, void* param) {
 }
 
 // Actor::work of control 41.
-struct Control41Work : PartWork {
+struct ShellCoreWork : PartWork {
   short interval;  // 0x54
   short count;     // 0x56, shells in the fan
   short spread;    // 0x58, angle between two shells
                    // 0x5a: padding
-  float speed;  // 0x5c
+  float speed;     // 0x5c
 };
 
 // 0x413dc0
-void Control41::Setup(Actor* actor, int rank) {
-  Control41Work* work = reinterpret_cast<Control41Work*>(actor->work);
+void ShellCoreControl::Setup(Actor* actor, int rank) {
+  ShellCoreWork* work = reinterpret_cast<ShellCoreWork*>(actor->work);
   work->count = (rank >> 3) + 1;
   work->spread = 0x40;
   if (work->count * 0x40 > 0x400) {
@@ -207,7 +207,7 @@ void Control41::Setup(Actor* actor, int rank) {
 }
 
 // 0x413e30
-int Control41::Initialize() {
+int ShellCoreControl::Initialize() {
   memset(&desc_, 0, sizeof(desc_));
   desc_.color = 0xffffffff;
   HLSObject* sprite = g_pats.sys[0].Get(65);
@@ -222,7 +222,7 @@ int Control41::Initialize() {
 }
 
 // 0x413ea0
-int Control41::OnCreate(Actor* actor, void* param) {
+int ShellCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(49));
   actor->debris = 17;
@@ -231,8 +231,8 @@ int Control41::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x413f00
-int Control41::OnMove(Actor* actor) {
-  Control41Work* work = reinterpret_cast<Control41Work*>(actor->work);
+int ShellCoreControl::OnMove(Actor* actor) {
+  ShellCoreWork* work = reinterpret_cast<ShellCoreWork*>(actor->work);
   if (work->state != kEventFire) {
     return MovePart(actor);
   }
@@ -254,7 +254,7 @@ int Control41::OnMove(Actor* actor) {
 }
 
 // Actor::work of control 42.
-struct Control42Work : PartWork {
+struct LaserCoreWork : PartWork {
   Actor* laser;    // 0x54, control 43 while it fires
   short mode;      // 0x58, 0..2: the width of the beam
   short duration;  // 0x5a
@@ -262,8 +262,8 @@ struct Control42Work : PartWork {
 };
 
 // 0x413fc0
-void Control42::Setup(Actor* actor, int rank) {
-  Control42Work* work = reinterpret_cast<Control42Work*>(actor->work);
+void LaserCoreControl::Setup(Actor* actor, int rank) {
+  LaserCoreWork* work = reinterpret_cast<LaserCoreWork*>(actor->work);
   if (rank < 33) {
     work->mode = 0;
   } else {
@@ -276,26 +276,26 @@ void Control42::Setup(Actor* actor, int rank) {
 }
 
 // 0x414040
-int Control42::Initialize() {
-  memset(&Control43::beam_desc_, 0, sizeof(Control43::beam_desc_));
-  Control43::beam_desc_.color = 0xffffffff;
-  Control43::beam_desc_.flags = Actor::kFaceStart | Actor::kAdditive;
-  Control43::beam_desc_.team = 0x21;
-  Control43::beam_desc_.hit_points = 1;
-  Control43::beam_desc_.layer = 12;
-  memset(&Control43::glow_desc_, 0, sizeof(Control43::glow_desc_));
-  Control43::glow_desc_.color = 0xffffffff;
+int LaserCoreControl::Initialize() {
+  memset(&LaserControl::beam_desc_, 0, sizeof(LaserControl::beam_desc_));
+  LaserControl::beam_desc_.color = 0xffffffff;
+  LaserControl::beam_desc_.flags = Actor::kFaceStart | Actor::kAdditive;
+  LaserControl::beam_desc_.team = 0x21;
+  LaserControl::beam_desc_.hit_points = 1;
+  LaserControl::beam_desc_.layer = 12;
+  memset(&LaserControl::glow_desc_, 0, sizeof(LaserControl::glow_desc_));
+  LaserControl::glow_desc_.color = 0xffffffff;
   HLSObject* sprite = g_pats.add[0].Get(16);
-  Control43::glow_desc_.sprite = sprite;
-  Control43::glow_desc_.flags = Actor::kAdditive;
-  Control43::glow_desc_.team = 0;
-  Control43::glow_desc_.hit_points = 1;
-  Control43::glow_desc_.layer = 12;
+  LaserControl::glow_desc_.sprite = sprite;
+  LaserControl::glow_desc_.flags = Actor::kAdditive;
+  LaserControl::glow_desc_.team = 0;
+  LaserControl::glow_desc_.hit_points = 1;
+  LaserControl::glow_desc_.layer = 12;
   return 1;
 }
 
 // 0x4140d0
-int Control42::OnCreate(Actor* actor, void* param) {
+int LaserCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(50));
   actor->debris = 17;
@@ -304,8 +304,8 @@ int Control42::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x414130
-int Control42::OnMove(Actor* actor) {
-  Control42Work* work = reinterpret_cast<Control42Work*>(actor->work);
+int LaserCoreControl::OnMove(Actor* actor) {
+  LaserCoreWork* work = reinterpret_cast<LaserCoreWork*>(actor->work);
   if (work->state != kEventFire) {
     return MovePart(actor);
   }
@@ -339,14 +339,14 @@ int Control42::OnMove(Actor* actor) {
 }
 
 // Actor::work of control 44.
-struct Control44Work : PartWork {
+struct HomingCoreWork : PartWork {
   short interval;  // 0x54
   short delay;     // 0x56
 };
 
 // 0x414650
-void Control44::Setup(Actor* actor, int rank) {
-  Control44Work* work = reinterpret_cast<Control44Work*>(actor->work);
+void HomingCoreControl::Setup(Actor* actor, int rank) {
+  HomingCoreWork* work = reinterpret_cast<HomingCoreWork*>(actor->work);
   short interval = rank / 35 * 8 + 8;
   work->interval = interval;
   work->delay = 120 - rank * 60 / 100;
@@ -354,7 +354,7 @@ void Control44::Setup(Actor* actor, int rank) {
 }
 
 // 0x414700
-int Control44::OnCreate(Actor* actor, void* param) {
+int HomingCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   reinterpret_cast<PartWork*>(actor->work)->flags &= ~PartWork::kAims;
   actor->SetSprite(g_pats.sys[0].Get(51));
@@ -364,8 +364,8 @@ int Control44::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x414760
-int Control44::OnMove(Actor* actor) {
-  Control44Work* work = reinterpret_cast<Control44Work*>(actor->work);
+int HomingCoreControl::OnMove(Actor* actor) {
+  HomingCoreWork* work = reinterpret_cast<HomingCoreWork*>(actor->work);
   if (work->state != kEventFire) {
     return MovePart(actor);
   }
@@ -391,7 +391,7 @@ int Control44::OnMove(Actor* actor) {
 }
 
 // Actor::work of control 45.
-struct Control45Work {
+struct HomingMissileWork {
   EnmSlot* slot;       // 0x30, of the launcher
   unsigned int flags;  // 0x34
   PartWork* launcher;  // 0x38
@@ -399,9 +399,9 @@ struct Control45Work {
 };
 
 // 0x414830
-int Control45::OnCreate(Actor* actor, void* param) {
+int HomingMissileControl::OnCreate(Actor* actor, void* param) {
   Prepare(actor, param);
-  Control45Work* work = reinterpret_cast<Control45Work*>(actor->work);
+  HomingMissileWork* work = reinterpret_cast<HomingMissileWork*>(actor->work);
   work->launcher = static_cast<PartWork*>(param);
   actor->team = 0x61;
   actor->debris = 17;
@@ -414,8 +414,8 @@ int Control45::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x414ac0
-int Control45::OnMove(Actor* actor) {
-  Control45Work* work = reinterpret_cast<Control45Work*>(actor->work);
+int HomingMissileControl::OnMove(Actor* actor) {
+  HomingMissileWork* work = reinterpret_cast<HomingMissileWork*>(actor->work);
   if (actor->age > 30 && work->homing > 0) {
     actor->TurnTo(g_player, 8);
     actor->start_angle = actor->angle;
@@ -445,7 +445,7 @@ D3DCOLOR g_smoke_colors[21] = {
 };
 
 // 0x4148d0
-int Control21::OnCreate(Actor* actor, void* param) {
+int SmokeControl::OnCreate(Actor* actor, void* param) {
   actor->hit_points = 1;
   actor->team = 0;
   actor->SetSprite(g_pats.add[0].Get(24));
@@ -459,7 +459,7 @@ int Control21::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x414940
-int Control21::OnMove(Actor* actor) {
+int SmokeControl::OnMove(Actor* actor) {
   SmokeWork* work = reinterpret_cast<SmokeWork*>(actor->work);
   if (actor->age < 21) {
     if (g_smoke_colors[actor->age] != 0) {
@@ -484,7 +484,7 @@ int Control21::OnMove(Actor* actor) {
 }
 
 // Actor::work of control 46.
-struct Control46Work : PartWork {
+struct SparkCoreWork : PartWork {
   short count;  // 0x54, sparks at a time
   short base;   // 0x56, of the speed (tenths)
   short range;  // 0x58, of the speed (tenths)
@@ -492,8 +492,8 @@ struct Control46Work : PartWork {
 };
 
 // 0x414b40
-void Control46::Setup(Actor* actor, int rank) {
-  Control46Work* work = reinterpret_cast<Control46Work*>(actor->work);
+void SparkCoreControl::Setup(Actor* actor, int rank) {
+  SparkCoreWork* work = reinterpret_cast<SparkCoreWork*>(actor->work);
   work->count = rank * 25 / 100 + 5;
   work->range = (rank >> 2) + 30;
   work->base = 25;
@@ -501,7 +501,7 @@ void Control46::Setup(Actor* actor, int rank) {
 }
 
 // 0x414ba0
-int Control46::Initialize() {
+int SparkCoreControl::Initialize() {
   memset(&desc_, 0, sizeof(desc_));
   desc_.color = 0xffffffff;
   HLSObject* sprite = g_pats.add[0].Get(25);
@@ -516,7 +516,7 @@ int Control46::Initialize() {
 }
 
 // 0x414c10
-int Control46::OnCreate(Actor* actor, void* param) {
+int SparkCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(52));
   actor->debris = 17;
@@ -525,8 +525,8 @@ int Control46::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x414c70
-int Control46::OnMove(Actor* actor) {
-  Control46Work* work = reinterpret_cast<Control46Work*>(actor->work);
+int SparkCoreControl::OnMove(Actor* actor) {
+  SparkCoreWork* work = reinterpret_cast<SparkCoreWork*>(actor->work);
   if (work->state != kEventFire) {
     return MovePart(actor);
   }
@@ -549,7 +549,7 @@ int Control46::OnMove(Actor* actor) {
 }
 
 // Actor::work of control 49.
-struct Control49Work : PartWork {
+struct StreamCoreWork : PartWork {
   int start;        // 0x54, the age when the sweep started
   short sweep;      // 0x58, frames of the sweep
   short delay;      // 0x5a
@@ -557,8 +557,8 @@ struct Control49Work : PartWork {
 };
 
 // 0x414dc0
-void Control49::Setup(Actor* actor, int rank) {
-  Control49Work* work = reinterpret_cast<Control49Work*>(actor->work);
+void StreamCoreControl::Setup(Actor* actor, int rank) {
+  StreamCoreWork* work = reinterpret_cast<StreamCoreWork*>(actor->work);
   short sweep = rank * 240 / 100 + 120;
   work->sweep = sweep;
   work->delay = 180 - rank * 120 / 100;
@@ -566,7 +566,7 @@ void Control49::Setup(Actor* actor, int rank) {
 }
 
 // 0x414e20
-int Control49::Initialize() {
+int StreamCoreControl::Initialize() {
   memset(&desc_, 0, sizeof(desc_));
   desc_.color = 0xffffffff;
   HLSObject* sprite = g_pats.sys[0].Get(66);
@@ -580,11 +580,11 @@ int Control49::Initialize() {
 }
 
 // 0x414e80
-int Control49::OnCreate(Actor* actor, void* param) {
+int StreamCoreControl::OnCreate(Actor* actor, void* param) {
   InitCore(actor, param);
   actor->SetSprite(g_pats.sys[0].Get(54));
   actor->debris = 17;
-  Control49Work* work = reinterpret_cast<Control49Work*>(actor->work);
+  StreamCoreWork* work = reinterpret_cast<StreamCoreWork*>(actor->work);
   work->flags &= ~PartWork::kAims;
   work->amplitude = (work->high - work->low) / 2;
   work->angle = work->low + work->amplitude;
@@ -595,8 +595,8 @@ int Control49::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x414f20
-int Control49::OnMove(Actor* actor) {
-  Control49Work* work = reinterpret_cast<Control49Work*>(actor->work);
+int StreamCoreControl::OnMove(Actor* actor) {
+  StreamCoreWork* work = reinterpret_cast<StreamCoreWork*>(actor->work);
   if (work->state != kEventFire) {
     return MovePart(actor);
   }
@@ -632,7 +632,7 @@ int Control49::OnMove(Actor* actor) {
 
 // Control 43 -----------------------------------------------------------------
 
-// The animations of the beam by Control42Work::mode.
+// The animations of the beam by LaserCoreWork::mode.
 short g_beam_scripts[3][4] = {
     {17, 40, 18, -1},
     {17, 40, 19, -1},
@@ -645,13 +645,13 @@ AnmData g_beam_anims[3] = {
 };
 // The beam stops after 8 segments outside this rectangle.
 FloatRect g_beam_bounds = {-120.0f, -120.0f, 760.0f, 600.0f};
-// The width of the beam by Control42Work::mode.
+// The width of the beam by LaserCoreWork::mode.
 float g_beam_scales[3] = {1.0f, 1.5f, 2.0f};
 
 // 0x414210
-int Control43::OnCreate(Actor* actor, void* param) {
-  Control43Work* work = reinterpret_cast<Control43Work*>(actor->work);
-  work->owner = static_cast<Control42Work*>(param);
+int LaserControl::OnCreate(Actor* actor, void* param) {
+  LaserWork* work = reinterpret_cast<LaserWork*>(actor->work);
+  work->owner = static_cast<LaserCoreWork*>(param);
   work->sound = 0;
   actor->hit_points = 1;
   actor->team = 0;
@@ -698,8 +698,8 @@ int Control43::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x414480
-int Control43::OnMove(Actor* actor) {
-  Control43Work* work = reinterpret_cast<Control43Work*>(actor->work);
+int LaserControl::OnMove(Actor* actor) {
+  LaserWork* work = reinterpret_cast<LaserWork*>(actor->work);
   // The beam flickers.
   int offset = -6 - (rand() & 0x1f);
   Actor* head = work->head;
@@ -723,8 +723,8 @@ int Control43::OnMove(Actor* actor) {
 }
 
 // 0x414550
-void Control43::OnEvent(Actor* actor, int x, int y) {
-  Control43Work* work = reinterpret_cast<Control43Work*>(actor->work);
+void LaserControl::OnEvent(Actor* actor, int x, int y) {
+  LaserWork* work = reinterpret_cast<LaserWork*>(actor->work);
   if (x != 2 || work->sound == 2) {
     return;
   }

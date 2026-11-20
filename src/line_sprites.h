@@ -39,7 +39,7 @@ class LaserSprite : public HLSObject {
   short spread() const { return spread_; }
 
  private:
-  friend class Control01;
+  friend class PlayerControl;
 
   D3DVECTOR points_[3];  // 0x08, relative to the ship
   float tip_x_;          // 0x2c

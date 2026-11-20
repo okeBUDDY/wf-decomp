@@ -2,18 +2,23 @@
 // of each subclass is registered in g_actor_system under its id by
 // cGlobal::RegisterActorControls(); an actor calls the control of its id.
 //
-// The subclasses are named after their registration ids. Hierarchy (from the
-// vtables):
+// The registration ids (Actor::id, the first argument of
+// ActorSystem::Create()) of the subclasses. Hierarchy (from the vtables):
 //   ActorControl (vtable 0x45237c, 9 slots)
-//     Control01..Control35, Control43   (9 slots)
-//     ScoredControl                     (+GetScore, GetHitPoints)
-//       Control45, Control48            (11 slots)
-//       PartControl                     (+OnDamage 0x4198e0)
-//         Control32                     (12 slots)
-//         LinkedPartControl             (OnDestroy..OnChildDestroyed)
-//           Control33, Control34        (12 slots)
-//         CorePartControl               (+GetLevel, Setup)
-//           Control40..Control49        (14 slots)
+//     PlayerControl 1, EffectControl 8, PlayerExplosionControl 16,
+//     Small/Medium/LargeExplosionControl 17/18/19, BossExplosionControl 20,
+//     SmokeControl 21, GlowControl 22, FlareControl 23, TurretControl 35,
+//     LaserControl 43                                     (9 slots)
+//     ScoredControl                   (+GetScore, GetHitPoints)
+//       HomingMissileControl 45, MissileControl 48       (11 slots)
+//       PartControl                   (+OnDamage 0x4198e0)
+//         LinkedPartControl           (OnDestroy..OnChildDestroyed)
+//           BossBodyControl 32, BossArmControl 33,
+//           JointPartControl 34                          (12 slots)
+//         CorePartControl             (+GetLevel, Setup)
+//           BulletCoreControl 40, ShellCoreControl 41, LaserCoreControl 42,
+//           HomingCoreControl 44, SparkCoreControl 46, MissileCoreControl 47,
+//           StreamCoreControl 49                         (14 slots)
 #ifndef WF_ACTOR_CONTROL_H_
 #define WF_ACTOR_CONTROL_H_
 
@@ -29,7 +34,7 @@ class File;
 // Actor::work of the parts of the boss.
 struct PartWork {
   enum Flags {
-    // Bits 0..15 are the control's own (Control32Work::Flags).
+    // Bits 0..15 are the control's own (BossBodyWork::Flags).
     kAims = 0x10000,           // takes kEventAim/kEventAimFire (armed parts)
     kTransforms = 0x20000,     // takes kEventTransform (plan flag 0x20)
     kArmored = 0x40000,        // takes kEventGlow (EnmSlot flag 8)
@@ -129,7 +134,7 @@ class PartControl : public ScoredControl {
   // The events of OnDamage() (the `x` of OnEvent()); the part enters the
   // state of the same number. The `y` of OnEvent() selects the parts:
   // bits 0..7 the depth to pass the event down to, 0x100 any depth,
-  // 0x200 / 0x400 skip side 1 / 0 (Control32), 0x800 at rank 100 (cores),
+  // 0x200 / 0x400 skip side 1 / 0 (BossBodyControl), 0x800 at rank 100 (cores),
   // 0x1000 linked parts, 0x2000 also parts that are not kReady, and
   // 0x10000 << level the cores of each weapon level.
   enum Events {
@@ -204,8 +209,8 @@ class CorePartControl : public PartControl {
 
 // Simple controls ---------------------------------------------------------
 
-// The player.
-class Control01 : public ActorControl {
+// Control 1: the player.
+class PlayerControl : public ActorControl {
  public:
   enum Weapons { kShot, kLaser, kWeapons };
   enum Events { kEventInvincible = 1 };
@@ -233,7 +238,8 @@ class Control01 : public ActorControl {
   static ActorDesc shot_;  // 0x4690b8
 };
 
-class Control08 : public ActorControl {
+// Control 8.
+class EffectControl : public ActorControl {
  public:
   virtual int Initialize();  // 0x412c80
   virtual void Finalize() {}
@@ -246,7 +252,8 @@ class Control08 : public ActorControl {
   static EffectDesc default_;  // 0x45d458
 };
 
-class Control16 : public ActorControl {
+// Control 16.
+class PlayerExplosionControl : public ActorControl {
  public:
   virtual int Initialize();  // 0x410540
   virtual void Finalize() {}
@@ -266,16 +273,24 @@ class Control16 : public ActorControl {
     virtual int OnMove(Actor* actor);                \
   }
 
-WF_SIMPLE_CONTROL(Control17);  // OnCreate 0x410930, OnMove 0x410500
-WF_SIMPLE_CONTROL(Control18);  // OnCreate 0x410a00, OnMove 0x410a80
-WF_SIMPLE_CONTROL(Control19);  // OnCreate 0x410be0, OnMove 0x410710
-WF_SIMPLE_CONTROL(Control21);  // OnCreate 0x4148d0, OnMove 0x414940
-WF_SIMPLE_CONTROL(Control22);  // OnCreate 0x410470, OnMove 0x410350
-WF_SIMPLE_CONTROL(Control23);  // OnCreate 0x411380, OnMove 0x411450
+// Control 17; OnCreate 0x410930, OnMove 0x410500.
+WF_SIMPLE_CONTROL(SmallExplosionControl);
+// Control 18; OnCreate 0x410a00, OnMove 0x410a80.
+WF_SIMPLE_CONTROL(MediumExplosionControl);
+// Control 19; OnCreate 0x410be0, OnMove 0x410710.
+WF_SIMPLE_CONTROL(LargeExplosionControl);
+// Control 21, the smoke of a missile; OnCreate 0x4148d0, OnMove 0x414940.
+WF_SIMPLE_CONTROL(SmokeControl);
+// Control 22, the glow of an armored part; OnCreate 0x410470, OnMove
+// 0x410350.
+WF_SIMPLE_CONTROL(GlowControl);
+// Control 23, the flare of a part; OnCreate 0x411380, OnMove 0x411450.
+WF_SIMPLE_CONTROL(FlareControl);
 
 #undef WF_SIMPLE_CONTROL
 
-class Control20 : public ActorControl {
+// Control 20.
+class BossExplosionControl : public ActorControl {
  public:
   virtual int Initialize() { return 1; }
   virtual void Finalize() {}
@@ -284,7 +299,8 @@ class Control20 : public ActorControl {
   virtual int OnMove(Actor* actor);                 // 0x410e70
 };
 
-class Control35 : public ActorControl {
+// Control 35.
+class TurretControl : public ActorControl {
  public:
   virtual int Initialize();  // 0x412820
   virtual void Finalize() {}
@@ -301,7 +317,8 @@ class Control35 : public ActorControl {
   static ActorDesc desc_;  // 0x469080
 };
 
-class Control43 : public ActorControl {
+// Control 43.
+class LaserControl : public ActorControl {
  public:
   virtual int Initialize() { return 1; }
   virtual void Finalize() {}
@@ -310,7 +327,7 @@ class Control43 : public ActorControl {
   virtual int OnMove(Actor* actor);                  // 0x414480
   virtual void OnEvent(Actor* actor, int x, int y);  // 0x414550
 
-  // The glow at the muzzle, and the segments of the beam (Control42
+  // The glow at the muzzle, and the segments of the beam (LaserCoreControl
   // fills them in).
   static ActorDesc glow_desc_;  // 0x469198
   static ActorDesc beam_desc_;  // 0x4691cc
@@ -322,7 +339,8 @@ class Control43 : public ActorControl {
 
 // Scored controls ---------------------------------------------------------
 
-class Control45 : public ScoredControl {
+// Control 45.
+class HomingMissileControl : public ScoredControl {
  public:
   virtual int Initialize() { return 1; }
   virtual void Finalize() {}
@@ -333,7 +351,8 @@ class Control45 : public ScoredControl {
   virtual int GetHitPoints(Actor* actor) { return 2; }
 };
 
-class Control48 : public ScoredControl {
+// Control 48.
+class MissileControl : public ScoredControl {
  public:
   virtual int Initialize() { return 1; }
   virtual void Finalize() {}
@@ -345,7 +364,7 @@ class Control48 : public ScoredControl {
 };
 
 // Actor::work of control 32, the body of the boss.
-struct Control32Work {
+struct BossBodyWork {
   enum Flags {
     kDashing = 0x1,  // in PartWork::flags
     kTurning = 0x2,
@@ -364,7 +383,8 @@ struct Control32Work {
   short turn_end;            // 0x6c
 };
 
-class Control32 : public LinkedPartControl {
+// Control 32.
+class BossBodyControl : public LinkedPartControl {
  public:
   virtual int Initialize();  // 0x411500
   virtual void Finalize() {}
@@ -406,14 +426,16 @@ class Control32 : public LinkedPartControl {
   static int weapons_[7];  // 0x469064
 };
 
-class Control33 : public LinkedPartControl {
+// Control 33.
+class BossArmControl : public LinkedPartControl {
  public:
   virtual int Initialize() { return 1; }
   virtual void Finalize() {}
   virtual int OnCreate(Actor* actor, void* param);  // 0x412c30
 };
 
-class Control34 : public LinkedPartControl {
+// Control 34.
+class JointPartControl : public LinkedPartControl {
  public:
   virtual int Initialize() { return 1; }
   virtual void Finalize() {}
@@ -432,8 +454,8 @@ class Control34 : public LinkedPartControl {
   virtual int GetLevel() { return level; }                      \
   virtual void Setup(Actor* actor, int rank);
 
-// Bullets (spawns 13 bullets at a time).
-class Control40 : public CorePartControl {
+// Control 40: bullets (spawns 13 bullets at a time).
+class BulletCoreControl : public CorePartControl {
   WF_CORE_CONTROL_BODY(1000, 20, 0)
   virtual int Initialize();  // 0x413a40
   // OnCreate 0x413aa0, OnMove 0x413b00, Setup 0x4139c0
@@ -442,8 +464,8 @@ class Control40 : public CorePartControl {
   static ActorDesc desc_;  // 0x469130
 };
 
-// A fan of shells.
-class Control41 : public CorePartControl {
+// Control 41: a fan of shells.
+class ShellCoreControl : public CorePartControl {
   WF_CORE_CONTROL_BODY(1200, 30, 1)
   virtual int Initialize();  // 0x413e30
   // OnCreate 0x413ea0, OnMove 0x413f00, Setup 0x413dc0
@@ -452,29 +474,29 @@ class Control41 : public CorePartControl {
   static ActorDesc desc_;  // 0x469164
 };
 
-// A laser (control 43).
-class Control42 : public CorePartControl {
+// Control 42: a laser (control 43).
+class LaserCoreControl : public CorePartControl {
   WF_CORE_CONTROL_BODY(1200, 30, 2)
   virtual int Initialize();  // 0x414040
   // OnCreate 0x4140d0, OnMove 0x414130, Setup 0x413fc0
 };
 
-// Homing missiles (control 45).
-class Control44 : public CorePartControl {
+// Control 44: homing missiles (control 45).
+class HomingCoreControl : public CorePartControl {
   WF_CORE_CONTROL_BODY(2000, 40, 3)
   virtual int Initialize() { return 1; }
   // OnCreate 0x414700, OnMove 0x414760, Setup 0x414650
 };
 
-// Slow missiles (control 48).
-class Control47 : public CorePartControl {
+// Control 47: slow missiles (control 48).
+class MissileCoreControl : public CorePartControl {
   WF_CORE_CONTROL_BODY(2000, 40, 5)
   virtual int Initialize() { return 1; }
   // OnCreate 0x413c60, OnMove 0x413cc0, Setup 0x413be0
 };
 
-// A spray of sparks.
-class Control46 : public CorePartControl {
+// Control 46: a spray of sparks.
+class SparkCoreControl : public CorePartControl {
   WF_CORE_CONTROL_BODY(2500, 40, 4)
   virtual int Initialize();  // 0x414ba0
   // OnCreate 0x414c10, OnMove 0x414c70, Setup 0x414b40
@@ -483,8 +505,8 @@ class Control46 : public CorePartControl {
   static ActorDesc desc_;  // 0x469208
 };
 
-// A sweeping stream of bullets.
-class Control49 : public CorePartControl {
+// Control 49: a sweeping stream of bullets.
+class StreamCoreControl : public CorePartControl {
   WF_CORE_CONTROL_BODY(2500, 40, 6)
   virtual int Initialize();  // 0x414e20
   // OnCreate 0x414e80, OnMove 0x414f20, Setup 0x414dc0

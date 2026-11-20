@@ -12,8 +12,8 @@
 #include "hl_3d.h"
 
 // 0x411580
-int Control32::StartTurn(Actor* actor, EnmProgram* program, short angle) {
-  Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
+int BossBodyControl::StartTurn(Actor* actor, EnmProgram* program, short angle) {
+  BossBodyWork* work = reinterpret_cast<BossBodyWork*>(actor->work);
   work->turn_from = actor->angle;
   work->turn = angle - actor->angle;
   short size = abs(work->turn);
@@ -29,13 +29,13 @@ int Control32::StartTurn(Actor* actor, EnmProgram* program, short angle) {
     work->turn_peak = angle;
     work->turn_end = angle * 2;
   }
-  reinterpret_cast<PartWork*>(actor->work)->flags |= Control32Work::kTurning;
+  reinterpret_cast<PartWork*>(actor->work)->flags |= BossBodyWork::kTurning;
   program->time = 0;
   return 1;
 }
 
 // 0x411600
-int Control32::ListWeapons(int side, int* out) {
+int BossBodyControl::ListWeapons(int side, int* out) {
   int count = 0;
   for (int i = 0; i < 7; ++i) {
     if (g_enm_param.core_power_[side][i] != 0) {
@@ -53,8 +53,8 @@ static inline void SendEvent(Actor* actor, int x, int y) {
 }
 
 // 0x411960
-void Control32::SignalSide(Actor* actor, int side, int x, int y) {
-  Control32Work* work = reinterpret_cast<Control32Work*>(actor->work);
+void BossBodyControl::SignalSide(Actor* actor, int side, int x, int y) {
+  BossBodyWork* work = reinterpret_cast<BossBodyWork*>(actor->work);
   if (side != 0) {
     SendEvent(work->arms[2], x, y);
     SendEvent(work->arms[3], x, y);
@@ -65,7 +65,7 @@ void Control32::SignalSide(Actor* actor, int side, int x, int y) {
 }
 
 // 0x4124f0
-unsigned short Control32::AngleToPlayer(Actor* actor) {
+unsigned short BossBodyControl::AngleToPlayer(Actor* actor) {
   if (g_player != NULL) {
     return actor->AngleTo(g_player->screen.m[2][0], g_player->screen.m[2][1]);
   }

@@ -117,8 +117,7 @@ void HL3D::DrawVertices(D3DPRIMITIVETYPE type, const Transform* transform,
 
 // 0x409f80
 HLSPat* HLSPatSys::Create(int width, int height, HLSurface* texture, int u,
-                          int v, int x, int y, int hit_width,
-                          int hit_height) {
+                          int v, int x, int y, int hit_width, int hit_height) {
   HLSPat* pat = pats_;
   for (int i = count_; i > 0; --i) {
     if (pat->used() == 0) {

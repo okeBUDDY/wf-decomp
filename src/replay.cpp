@@ -19,7 +19,7 @@ int Replay::LoadPlayer(Actor* player) {
   if (!file_.IsOpen()) {
     return 0;
   }
-  if (!Control01::Load(player, &file_)) {
+  if (!PlayerControl::Load(player, &file_)) {
     file_.Close();
     return 0;
   }
@@ -210,7 +210,7 @@ void Replay::Start(Actor* player) {
         file_.Close();
         return;
       }
-      if (!Control01::Save(player, &file_)) {
+      if (!PlayerControl::Save(player, &file_)) {
         file_.Close();
         return;
       }

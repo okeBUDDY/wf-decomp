@@ -67,10 +67,10 @@ class FnOption : public UserFunc {
   // The GameRules fields of each preset, in order.
   static int presets_[][kRules];  // 0x45d9b0
 
-  unsigned int flags_;    // 0x14, Flags
-  short cursor_;          // 0x18, the selected item
-  short blink_;           // 0x1a, alpha of the cursor, 255 down to 0
-  short values_[kItems];  // 0x1c, of each menu item
+  unsigned int flags_;             // 0x14, Flags
+  short cursor_;                   // 0x18, the selected item
+  short blink_;                    // 0x1a, alpha of the cursor, 255 down to 0
+  short values_[kItems];           // 0x1c, of each menu item
   unsigned char enabled_[kItems];  // 0x40, of each menu item
   char unknown_52_[2];
   HLSTxt* items_[kItems];       // 0x54, the text of each menu item

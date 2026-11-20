@@ -356,8 +356,7 @@ void Actor::Destroy(int debris, int notify) {
       unsigned short layer = this->layer;
       float y = screen.m[2][1];
       float x = screen.m[2][0];
-      Actor* actor =
-          system_->Create(-this->debris, NULL, x, y, layer, 0, NULL);
+      Actor* actor = system_->Create(-this->debris, NULL, x, y, layer, 0, NULL);
       if (actor != NULL) {
         actor->flags |= kDebris;
       }

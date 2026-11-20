@@ -21,14 +21,14 @@
 struct PlayerWork {
   Actor* flame;       // 0x30, the muzzle flash, shown while firing
   Actor* laser;       // 0x34, draws g_laser
-  short weapon;       // 0x38, Control01::Weapons
+  short weapon;       // 0x38, PlayerControl::Weapons
   short shots;        // 0x3a, frames fired in a row
   short switch_time;  // 0x3c, frames until the weapon calls its name
   short turn_time;    // 0x3e, frames since a direction was pressed
   short invincible;   // 0x40, frames left; negative: for good
 };
 
-// What Control01::Save() writes.
+// What PlayerControl::Save() writes.
 struct PlayerRecord {
   float x;
   float y;
@@ -45,12 +45,12 @@ extern int g_weapon_sounds[2];          // 0x45d4e0, indices of the sounds
 extern FloatRect g_player_bounds;       // 0x45d4e8
 extern short g_direction_angles[0x10];  // 0x45d4f8, by direction keys
 
-// The player's weapon (Control01::Weapons), kept from one life to the next.
+// The player's weapon (PlayerControl::Weapons), kept from one life to the next.
 // File-static: VC knows that stores through pointers leave it alone.
 static int g_player_weapon;  // 0x4690ec
 
-__forceinline void Control01::SelectWeapon(Actor* actor, int weapon, float x,
-                                           float y) {
+__forceinline void PlayerControl::SelectWeapon(Actor* actor, int weapon,
+                                               float x, float y) {
   PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
   if (weapon < 0) {
     weapon = work->weapon + 1;
@@ -73,10 +73,10 @@ __forceinline void Control01::SelectWeapon(Actor* actor, int weapon, float x,
 }
 
 // 0x412f90
-void Control01::ResetWeapon() { g_player_weapon = kShot; }
+void PlayerControl::ResetWeapon() { g_player_weapon = kShot; }
 
 // 0x412fe0
-int Control01::Initialize() {
+int PlayerControl::Initialize() {
   memset(&shot_, 0, sizeof(shot_));
   shot_.color = 0xffffffff;
   HLSObject* sprite = g_pats.sys[0].Get(2);
@@ -93,7 +93,7 @@ int Control01::Initialize() {
 }
 
 // 0x413070
-int Control01::Save(Actor* actor, File* file) {
+int PlayerControl::Save(Actor* actor, File* file) {
   PlayerRecord record;
   record.x = actor->transform->m[2][0];
   record.y = actor->transform->m[2][1];
@@ -106,7 +106,7 @@ int Control01::Save(Actor* actor, File* file) {
 }
 
 // 0x4130f0
-void Control01::OnEvent(Actor* actor, int event, int value) {
+void PlayerControl::OnEvent(Actor* actor, int event, int value) {
   switch (event) {
     case kEventInvincible: {
       PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
@@ -126,7 +126,7 @@ void Control01::OnEvent(Actor* actor, int event, int value) {
 }
 
 // 0x413130
-void Control01::Fire(Actor* actor) {
+void PlayerControl::Fire(Actor* actor) {
   PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
   short angle = 0;
   switch (work->weapon) {
@@ -192,7 +192,7 @@ void Control01::Fire(Actor* actor) {
 }
 
 // 0x413440
-int Control01::Load(Actor* actor, File* file) {
+int PlayerControl::Load(Actor* actor, File* file) {
   PlayerRecord record;
   if (!file->ReadExact(&record, sizeof(record))) {
     return 0;
@@ -209,7 +209,7 @@ int Control01::Load(Actor* actor, File* file) {
 }
 
 // 0x413550
-int Control01::OnCreate(Actor* actor, void* param) {
+int PlayerControl::OnCreate(Actor* actor, void* param) {
   PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
   actor->hit_points = 1;
   actor->team = 0x60;
@@ -255,7 +255,7 @@ int Control01::OnCreate(Actor* actor, void* param) {
 }
 
 // 0x4136f0
-int Control01::OnMove(Actor* actor) {
+int PlayerControl::OnMove(Actor* actor) {
   PlayerWork* work = reinterpret_cast<PlayerWork*>(actor->work);
   int pressed = g_fn_game.pressed();
   int keys = g_fn_game.keys();
