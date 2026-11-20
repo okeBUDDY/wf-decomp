@@ -143,8 +143,8 @@ int HL3D::CreateBuffers() {
     vertices_[i].rhw = 1.0f;
     vertices_[i].specular = 0xffffffff;
   }
-  g_vector_work = static_cast<float*>(malloc(0x78));
-  g_matrix_work = static_cast<float*>(malloc(0x280));
+  g_vector_work = static_cast<VectorWork*>(malloc(sizeof(VectorWork)));
+  g_matrix_work = static_cast<MatrixWork*>(malloc(sizeof(MatrixWork)));
   if (g_vector_work == NULL || g_matrix_work == NULL) {
     Error("ﾒﾓﾘが足りません");
     return 0;

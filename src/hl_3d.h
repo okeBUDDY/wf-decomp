@@ -57,40 +57,59 @@ void RotateTransformX(Transform* transform, float radians);  // 0x402550
 void RotateTransformY(Transform* transform, float radians);  // 0x4025e0
 void RotateTransformZ(Transform* transform, float radians);  // 0x402670
 
-// Math tables and scratch space, allocated by HL3D::CreateBuffers().
-extern float* g_sin_table;       // 0x468878, sin of 1024 steps a turn (+256)
-extern float* g_angle_table;     // 0x46887c, the radians of each step
-extern float* g_vector_work;     // 0x468870, 0x78 bytes
-extern float* g_matrix_work;     // 0x468874, 0x280 bytes
-extern Transform g_base_matrix;  // 0x468830
+// The scratch vectors of the transforms (g_vector_work). Only the vector
+// that TransformPoint() and the Draw*() loops transform into is used.
+struct VectorWork {
+  D3DVECTOR unused[8];  // 0x00
+  D3DVECTOR point;      // 0x60, the point being transformed
+  D3DVECTOR unused_6c;  // 0x6c
+};
 
-// The product MultiplyTransform() builds, in g_matrix_work.
-inline float& TransformProduct(int row, int column) {
-  return g_matrix_work[0x90 + row * 4 + column];
-}
+// The scratch matrices of the transforms (g_matrix_work).
+struct MatrixWork {
+  Transform unused[8];  // 0x000
+  Transform rotation;   // 0x200, built by RotateTransform*()
+  Transform product;    // 0x240, built by MultiplyTransform()
+};
+
+// Math tables and scratch space, allocated by HL3D::CreateBuffers().
+extern float* g_sin_table;         // 0x468878, sin of 1024 steps a turn (+256)
+extern float* g_angle_table;       // 0x46887c, the radians of each step
+extern VectorWork* g_vector_work;  // 0x468870
+extern MatrixWork* g_matrix_work;  // 0x468874
+extern Transform g_base_matrix;    // 0x468830
 
 // `out` = `a` x `b`. 0x4023d0, out of line where first used (hl_math.cpp).
 inline void MultiplyTransform(Transform* out, const Transform* a,
                               const Transform* b) {
-  TransformProduct(0, 0) = b->m[0][0] * a->m[0][0] + b->m[0][1] * a->m[1][0] +
-                           b->m[0][2] * a->m[2][0];
-  TransformProduct(0, 1) = b->m[0][0] * a->m[0][1] + b->m[0][1] * a->m[1][1] +
-                           b->m[0][2] * a->m[2][1];
-  TransformProduct(0, 2) = b->m[0][0] * a->m[0][2] + b->m[0][1] * a->m[1][2] +
-                           b->m[0][2] * a->m[2][2];
-  TransformProduct(1, 0) = b->m[1][0] * a->m[0][0] + b->m[1][1] * a->m[1][0] +
-                           b->m[1][2] * a->m[2][0];
-  TransformProduct(1, 1) = b->m[1][0] * a->m[0][1] + b->m[1][1] * a->m[1][1] +
-                           b->m[1][2] * a->m[2][1];
-  TransformProduct(1, 2) = b->m[1][0] * a->m[0][2] + b->m[1][1] * a->m[1][2] +
-                           b->m[1][2] * a->m[2][2];
-  TransformProduct(2, 0) = b->m[2][0] * a->m[0][0] + b->m[2][1] * a->m[1][0] +
-                           b->m[2][2] * a->m[2][0];
-  TransformProduct(2, 1) = b->m[2][0] * a->m[0][1] + a->m[1][1] * b->m[2][1] +
-                           b->m[2][2] * a->m[2][1];
-  TransformProduct(2, 2) = b->m[2][0] * a->m[0][2] + b->m[2][1] * a->m[1][2] +
-                           b->m[2][2] * a->m[2][2];
-  Transform* product = reinterpret_cast<Transform*>(&TransformProduct(0, 0));
+  g_matrix_work->product.m[0][0] = b->m[0][0] * a->m[0][0] +
+                                   b->m[0][1] * a->m[1][0] +
+                                   b->m[0][2] * a->m[2][0];
+  g_matrix_work->product.m[0][1] = b->m[0][0] * a->m[0][1] +
+                                   b->m[0][1] * a->m[1][1] +
+                                   b->m[0][2] * a->m[2][1];
+  g_matrix_work->product.m[0][2] = b->m[0][0] * a->m[0][2] +
+                                   b->m[0][1] * a->m[1][2] +
+                                   b->m[0][2] * a->m[2][2];
+  g_matrix_work->product.m[1][0] = b->m[1][0] * a->m[0][0] +
+                                   b->m[1][1] * a->m[1][0] +
+                                   b->m[1][2] * a->m[2][0];
+  g_matrix_work->product.m[1][1] = b->m[1][0] * a->m[0][1] +
+                                   b->m[1][1] * a->m[1][1] +
+                                   b->m[1][2] * a->m[2][1];
+  g_matrix_work->product.m[1][2] = b->m[1][0] * a->m[0][2] +
+                                   b->m[1][1] * a->m[1][2] +
+                                   b->m[1][2] * a->m[2][2];
+  g_matrix_work->product.m[2][0] = b->m[2][0] * a->m[0][0] +
+                                   b->m[2][1] * a->m[1][0] +
+                                   b->m[2][2] * a->m[2][0];
+  g_matrix_work->product.m[2][1] = b->m[2][0] * a->m[0][1] +
+                                   a->m[1][1] * b->m[2][1] +
+                                   b->m[2][2] * a->m[2][1];
+  g_matrix_work->product.m[2][2] = b->m[2][0] * a->m[0][2] +
+                                   b->m[2][1] * a->m[1][2] +
+                                   b->m[2][2] * a->m[2][2];
+  Transform* product = &g_matrix_work->product;
   out->m[0][0] = product->m[0][0];
   out->m[0][1] = product->m[0][1];
   out->m[0][2] = product->m[0][2];
@@ -264,12 +283,14 @@ inline void HL3D::DrawTexels(D3DPRIMITIVETYPE type, const Transform* transform,
   float scale_v = 1.0f / (texture_->scale_y_ * texture_->height_);
   D3DTLVERTEX* vertex = &vertices_[vertex_count_];
   for (int i = 0; i < count; ++i) {
-    g_vector_work[24] = transform->m[0][0] * points->x +
-                        transform->m[1][0] * points->y + transform->m[2][0];
-    g_vector_work[25] = transform->m[0][1] * points->x +
-                        transform->m[1][1] * points->y + transform->m[2][1];
-    vertex->sx = g_vector_work[24];
-    vertex->sy = g_vector_work[25];
+    g_vector_work->point.x = transform->m[0][0] * points->x +
+                             transform->m[1][0] * points->y +
+                             transform->m[2][0];
+    g_vector_work->point.y = transform->m[0][1] * points->x +
+                             transform->m[1][1] * points->y +
+                             transform->m[2][1];
+    vertex->sx = g_vector_work->point.x;
+    vertex->sy = g_vector_work->point.y;
     vertex->sz = points->z;
     vertex->tu = (texels->x + 0.45f) * scale_u;
     vertex->tv = (texels->y + 0.45f) * scale_v;
@@ -292,12 +313,14 @@ inline void HL3D::DrawPoints(D3DPRIMITIVETYPE type, const Transform* transform,
   }
   D3DTLVERTEX* vertex = &vertices_[vertex_count_];
   for (int i = 0; i < count; ++i) {
-    g_vector_work[24] = transform->m[0][0] * points->x +
-                        transform->m[1][0] * points->y + transform->m[2][0];
-    g_vector_work[25] = transform->m[0][1] * points->x +
-                        transform->m[1][1] * points->y + transform->m[2][1];
-    vertex->sx = g_vector_work[24];
-    vertex->sy = g_vector_work[25];
+    g_vector_work->point.x = transform->m[0][0] * points->x +
+                             transform->m[1][0] * points->y +
+                             transform->m[2][0];
+    g_vector_work->point.y = transform->m[0][1] * points->x +
+                             transform->m[1][1] * points->y +
+                             transform->m[2][1];
+    vertex->sx = g_vector_work->point.x;
+    vertex->sy = g_vector_work->point.y;
     vertex->sz = points->z;
     vertex->color = color;
     ++points;
